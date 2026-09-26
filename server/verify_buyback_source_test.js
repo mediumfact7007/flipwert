@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { verifyBuybackSource } = require('./verify_buyback_source');
+const { verifyBuybackSource, verifyBuybackSourceMatrix } = require('./verify_buyback_source');
 
 function fakeSource({ status, result }) {
   return {
@@ -120,6 +120,71 @@ function fakeSource({ status, result }) {
       provider_count: 2,
       provider_ids: ['clevertronic', 'zoxs'],
       newest_checked_at: '2026-09-24T08:01:00.000Z',
+    },
+  );
+
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({ cases: [] }),
+    { ok: false, reason: 'invalid_cases' },
+  );
+
+  const matrixSource = {
+    sourceStatus: () => ({ configured: true, readiness: 'ready' }),
+    fetchBuybackOffers: async (_query, condition) => ({
+      configured: true,
+      items: [{
+        provider_id: condition === 'like_new' ? 'zoxs' : 'clevertronic',
+        condition,
+        checked_at: condition === 'like_new'
+          ? '2026-09-24T08:00:00Z'
+          : '2026-09-24T08:05:00Z',
+      }],
+      best: null,
+    }),
+  };
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+      ],
+      source: matrixSource,
+    }),
+    {
+      ok: true,
+      readiness: 'ready',
+      case_count: 2,
+      offer_count: 2,
+      provider_count: 2,
+      provider_ids: ['clevertronic', 'zoxs'],
+      newest_checked_at: '2026-09-24T08:05:00.000Z',
+    },
+  );
+
+  const failingMatrixSource = {
+    sourceStatus: () => ({ configured: true, readiness: 'ready' }),
+    fetchBuybackOffers: async (_query, condition) => ({
+      configured: true,
+      items: condition === 'like_new'
+        ? [{ provider_id: 'zoxs', condition, checked_at: '2026-09-24T08:00:00Z' }]
+        : [],
+      best: null,
+    }),
+  };
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+      ],
+      source: failingMatrixSource,
+    }),
+    {
+      ok: false,
+      reason: 'case_failed',
+      failed_case_index: 1,
+      case_reason: 'no_exact_matching_offer',
+      readiness: 'ready',
     },
   );
 

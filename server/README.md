@@ -80,8 +80,25 @@ BUYBACK_VERIFY_QUERY="Apple iPhone 15 Pro 256 GB" \\
 BUYBACK_VERIFY_CONDITION="like_new" npm run verify:buyback-source
 ```
 
+For provider activation, prefer a small representative matrix covering distinct
+models, storage/connectivity variants and conditions:
+
+```bash
+BUYBACK_VERIFY_CASES_JSON='[
+  {"query":"Apple iPhone 15 Pro 256 GB","condition":"like_new"},
+  {"query":"Samsung Galaxy S24 Ultra 512 GB","condition":"used_good"},
+  {"query":"Apple iPad Air M2 256 GB Wi-Fi","condition":"very_good"}
+]' npm run verify:buyback-source
+```
+
+The matrix is limited to 20 cases, runs sequentially to respect partner limits
+and fails closed when any case has no fresh exact-condition offer. Output
+identifies only the failing case index and reason; it never prints the query,
+price, destination URL, token or approval reference.
+
 The command exits successfully only when the rights gate is ready and at least
-one fresh, exact-condition offer survives the full validation path. Its JSON
+one fresh, exact-condition offer survives the full validation path (or every
+configured matrix case succeeds). Its JSON
 output contains provider IDs, counts and the newest check time, but never emits
 tokens, internal approval references, prices or offer URLs. A successful probe
 verifies technical readiness; it does not replace the underlying contractual
