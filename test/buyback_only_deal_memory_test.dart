@@ -95,4 +95,86 @@ void main() {
       monetization.dispose();
     },
   );
+
+  testWidgets(
+    'LIVE buyback-only saved deal shows a visible recheck without private market value',
+    (tester) async {
+      final now = DateTime.now();
+      final saved = V13Flip(
+        id: 'buyback-only-1',
+        name: 'Apple iPhone 15 Pro 256 GB',
+        category: 'Elektronik',
+        buy: 250,
+        expectedAtBuy: 0,
+        costs: 10,
+        sourceCount: 0,
+        confidence: '',
+        status: 'Saved',
+        createdAt: now.subtract(const Duration(days: 1)),
+        checkedAt: now.subtract(const Duration(days: 1)),
+        maxBuyAtCheck: 0,
+        profitAtCheck: 0,
+        roiAtCheck: 0,
+        buybackPriceAtCheck: 300,
+        buybackProviderAtCheck: 'reBuy',
+        buybackConditionAtCheck: 'very_good',
+        buybackCheckedAt: now.subtract(const Duration(days: 1)),
+        buybackQuoteKindAtCheck: 'live_provider',
+      );
+      final monetization = V13Monetization(onProUnlocked: () {});
+
+      await tester.pumpWidget(MaterialApp(
+        home: V13CheckPage(
+          english: false,
+          input: normalizeV13Search(saved.name),
+          targetRoi: 35,
+          minProfit: 20,
+          plan: UserPlan.free,
+          taxMode: V13TaxMode.privateSeller,
+          sources: const [],
+          flips: [saved],
+          existingSnapshot: saved,
+          monetization: monetization,
+          onHistory: (_) {},
+          onAddFlip: (_) {},
+          buybackSearch: (query, condition) async => BuybackSearchResult(
+            configured: true,
+            live: true,
+            unavailable: false,
+            offers: [
+              BuybackOffer(
+                providerId: 'zoxs',
+                providerName: 'ZOXS',
+                productId: 'iphone-15-pro-256',
+                matchedTitle: 'Apple iPhone 15 Pro 256 GB',
+                condition: condition,
+                price: 340,
+                currency: 'EUR',
+                offerUrl: Uri.parse('https://www.zoxs.de/offer/123'),
+                checkedAt: DateTime.now().toUtc(),
+                requiresInspection: true,
+                matchConfidence: .98,
+              ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final recheck = find.byKey(const ValueKey('buyback-recheck-card'));
+      await tester.scrollUntilVisible(
+        recheck,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(recheck, findsOneWidget);
+      expect(find.textContaining('Vorher: reBuy · 300,00 €'), findsOneWidget);
+      expect(find.textContaining('Jetzt: ZOXS · 340,00 €'), findsOneWidget);
+      expect(find.textContaining('Gewinn jetzt: 80,00 €'), findsOneWidget);
+      expect(find.text('+40,00 €'), findsOneWidget);
+
+      monetization.dispose();
+    },
+  );
+
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'buyback_summary.dart';
+import 'buyback.dart';
 
 class BuybackRecheckCard extends StatelessWidget {
   const BuybackRecheckCard({
@@ -8,14 +8,16 @@ class BuybackRecheckCard extends StatelessWidget {
     required this.previousProvider,
     required this.previousPrice,
     required this.previousProfit,
-    required this.current,
+    required this.currentOffer,
+    required this.currentPurchasePrice,
     this.english = false,
   });
 
   final String previousProvider;
   final double previousPrice;
   final double previousProfit;
-  final BuybackComparisonSummary current;
+  final BuybackOffer currentOffer;
+  final double currentPurchasePrice;
   final bool english;
 
   String t(String de, String en) => english ? en : de;
@@ -27,9 +29,16 @@ class BuybackRecheckCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!previousPrice.isFinite || previousPrice <= 0) return const SizedBox.shrink();
-    final priceDelta = current.offer.price - previousPrice;
-    final profitDelta = current.instantMargin - previousProfit;
+    if (!previousPrice.isFinite ||
+        previousPrice <= 0 ||
+        !currentPurchasePrice.isFinite ||
+        currentPurchasePrice < 0 ||
+        !currentOffer.isEligibleForComparison) {
+      return const SizedBox.shrink();
+    }
+    final currentProfit = currentOffer.price - currentPurchasePrice;
+    final priceDelta = currentOffer.price - previousPrice;
+    final profitDelta = currentProfit - previousProfit;
     final improved = profitDelta > 0;
     final unchanged = profitDelta.abs() < .005;
     final color = unchanged
@@ -59,13 +68,13 @@ class BuybackRecheckCard extends StatelessWidget {
         const SizedBox(height: 5),
         Text(
           '${t('Vorher', 'Before')}: ${previousProvider.trim().isEmpty ? 'Anbieter' : previousProvider} · ${_money(previousPrice)}\n'
-          '${t('Jetzt', 'Now')}: ${current.offer.providerName} · ${_money(current.offer.price)}',
+          '${t('Jetzt', 'Now')}: ${currentOffer.providerName} · ${_money(currentOffer.price)}',
           style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w700, height: 1.35),
         ),
         const SizedBox(height: 3),
         Text(
           '${t('Ankaufpreis-Differenz', 'Buyback price difference')}: ${priceDelta > 0 ? '+' : ''}${_money(priceDelta)} · '
-          '${t('Gewinn jetzt', 'Profit now')}: ${_money(current.instantMargin)}',
+          '${t('Gewinn jetzt', 'Profit now')}: ${_money(currentProfit)}',
           style: const TextStyle(fontSize: 10, color: Color(0xFF6D7180)),
         ),
       ]),

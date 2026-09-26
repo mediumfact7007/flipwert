@@ -1,13 +1,11 @@
 import 'package:flipwert/buyback.dart';
 import 'package:flipwert/buyback_recheck_card.dart';
-import 'package:flipwert/buyback_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('shows provider buyback and profit change on a saved-deal recheck', (tester) async {
-    final summary = BuybackComparisonSummary(
-      offer: BuybackOffer(
+    final offer = BuybackOffer(
         providerId: 'zoxs',
         providerName: 'ZOXS',
         productId: 'iphone-15-pro-256',
@@ -19,16 +17,14 @@ void main() {
         checkedAt: DateTime.now().toUtc(),
         requiresInspection: true,
         matchConfidence: .98,
-      ),
-      purchasePrice: 250,
-      privateMarketValue: 390,
     );
 
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: BuybackRecheckCard(
       previousProvider: 'reBuy',
       previousPrice: 300,
       previousProfit: 50,
-      current: summary,
+      currentOffer: offer,
+      currentPurchasePrice: 250,
     ))));
 
     expect(find.byKey(const ValueKey('buyback-recheck-card')), findsOneWidget);

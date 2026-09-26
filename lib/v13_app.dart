@@ -2039,13 +2039,14 @@ class _V13CheckPageState extends State<V13CheckPage> {
             if (widget.existingSnapshot?.isSaved == true &&
                 widget.existingSnapshot!.buybackPriceAtCheck > 0 &&
                 widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider' &&
-                buybackSummary != null) ...[
+                currentComparableBuybackOffer != null) ...[
               const SizedBox(height: 8),
               BuybackRecheckCard(
                 previousProvider: widget.existingSnapshot!.buybackProviderAtCheck,
                 previousPrice: widget.existingSnapshot!.buybackPriceAtCheck,
                 previousProfit: widget.existingSnapshot!.buybackPriceAtCheck - widget.existingSnapshot!.buy - widget.existingSnapshot!.costs,
-                current: buybackSummary!,
+                currentOffer: currentComparableBuybackOffer!,
+                currentPurchasePrice: buyPrice + extraCosts,
                 english: widget.english,
               ),
             ],
