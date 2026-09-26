@@ -20,14 +20,20 @@ void main() {
           matchConfidence: 0.98,
         );
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: BuybackOffersCard(
-      offers: [offer('Provider A', 610), offer('Provider B', 650)],
+      offers: [offer('Provider A', 610), offer('Provider B', 650), offer('Provider C', 450)],
       purchasePrice: 500,
     )))));
     expect(find.byKey(const ValueKey('buyback-offers-card')), findsOneWidget);
-    expect(find.text('650,00 €'), findsOneWidget);
+    expect(find.text('650,00 €*'), findsOneWidget);
     expect(find.text('Gewinn nach Einkauf: 150,00 €'), findsOneWidget);
-    expect(find.text('610,00 €'), findsOneWidget);
+    expect(find.text('610,00 €*'), findsOneWidget);
     expect(find.text('Gewinn nach Einkauf: 110,00 €'), findsOneWidget);
-    expect(find.text('Öffnen'), findsNWidgets(2));
+    expect(find.text('450,00 €*'), findsOneWidget);
+    expect(find.text('Verlust nach Einkauf: 50,00 €'), findsOneWidget);
+    expect(find.text('3 qualitätsgeprüfte Anbieterangebote'), findsOneWidget);
+    expect(find.text('Beste Marge'), findsOneWidget);
+    expect(find.text('Zustand: Wie neu · Prüfung ausstehend'), findsNWidgets(3));
+    expect(find.byKey(const ValueKey('buyback-inspection-note')), findsOneWidget);
+    expect(find.text('Öffnen'), findsNWidgets(3));
   });
 }
