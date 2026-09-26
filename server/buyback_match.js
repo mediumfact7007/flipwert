@@ -44,6 +44,20 @@ function matchesBuybackQuery(query, offer) {
   if (criticalIdentity(searched).some((part) => !title.includes(part))) return false;
 
   const family = searched.find((part) => FAMILIES.has(part));
+
+  // Storage is an exact variant dimension even for products outside the
+  // explicitly modelled families (for example Steam Deck or laptops). Do not
+  // accept a provider's storage-specific SKU when the user's query omitted
+  // storage: that would turn an ambiguous search into a falsely exact LIVE
+  // price. Consoles whose base storage is inherent in the named model remain
+  // compatible with the existing family exception below.
+  const requestedStorage = storage(searched);
+  const offeredStorage = storage(title);
+  const storageOptionalFamily = ['switch', 'ps5', 'ps4'].includes(family);
+  if (requestedStorage.length &&
+      !requestedStorage.some((part) => offeredStorage.includes(part))) return false;
+  if (!requestedStorage.length && offeredStorage.length && !storageOptionalFamily) return false;
+
   if (family) {
     if (!title.includes(family)) return false;
     const model = searched.slice(searched.indexOf(family) + 1, searched.indexOf(family) + 5)
@@ -54,10 +68,6 @@ function matchesBuybackQuery(query, offer) {
     const offeredVariants = title.filter((part) => VARIANTS.has(part));
     if (requestedVariants.some((part) => !offeredVariants.includes(part)) ||
         offeredVariants.some((part) => !requestedVariants.includes(part))) return false;
-    const requestedStorage = storage(searched);
-    const offeredStorage = storage(title);
-    if (requestedStorage.length && !requestedStorage.some((part) => offeredStorage.includes(part))) return false;
-    if (!requestedStorage.length && offeredStorage.length && !['switch', 'ps5', 'ps4'].includes(family)) return false;
   }
 
   const meaningful = [...new Set(searched.filter((part) => part.length > 1 && !NOISE.has(part)))];

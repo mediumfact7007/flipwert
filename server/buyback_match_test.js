@@ -23,5 +23,9 @@ assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Standard Konsole')), 
 assert.equal(matches('4006381333931', offer('iPhone 15 Pro', { ean: '4006381333931' })), true);
 assert.equal(matches('4006381333931', offer('iPhone 15 Pro')), false);
 assert.equal(matches('iPhone', offer('iPhone 15 Pro 256GB')), false);
+assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 1 TB')), false, 'storage must match outside phone families too');
+assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 512GB')), true, 'exact generic storage variant should match');
+assert.equal(matches('Steam Deck OLED', offer('Steam Deck OLED 512GB')), false, 'ambiguous generic storage must not become an exact LIVE SKU');
+assert.equal(matches('Nintendo Switch OLED', offer('Nintendo Switch OLED 64GB Konsole')), true, 'console family keeps inherent-storage exception');
 
 console.log('buyback_match_test: ok');
