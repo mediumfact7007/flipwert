@@ -2006,6 +2006,32 @@ class _V13CheckPageState extends State<V13CheckPage> {
                 english: widget.english,
               ),
             ],
+            if (expectedSale == null &&
+                buyPrice > 0 &&
+                (currentComparableBuybackOffer != null ||
+                    manualBuybackQuote != null)) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('buyback-only-remember-deal'),
+                  onPressed: savedWatch ? null : _remember,
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                  label: Text(
+                    currentComparableBuybackOffer != null
+                        ? t('LIVE-Ankauf als Deal merken', 'Save LIVE buyback deal')
+                        : t('Manuellen Ankauf als Deal merken', 'Save manual buyback deal'),
+                  ),
+                ),
+              ),
+              Text(
+                t(
+                  'Der Ankauf wird mit seiner Herkunft gespeichert; ein fehlender Privatmarktwert wird nicht geschätzt.',
+                  'The buyback keeps its provenance; a missing private-market value is not estimated.',
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             if (buybackSummary != null) ...[
               const SizedBox(height: 8),
               BuybackComparisonCard(summary: buybackSummary!, locale: widget.english ? 'en' : 'de'),
@@ -2149,12 +2175,15 @@ class _V13CheckPageState extends State<V13CheckPage> {
 
   V13Flip? _dealSnapshot(String status) {
     final expected = expectedSale;
-    if (buyPrice <= 0 || expected == null) return null;
+    final buybackOffer = currentComparableBuybackOffer;
+    final manualQuote = buybackOffer == null ? manualBuybackQuote : null;
+    if (buyPrice <= 0 ||
+        (expected == null && buybackOffer == null && manualQuote == null)) {
+      return null;
+    }
     final now = DateTime.now();
     final existing = widget.existingSnapshot;
     final rawUrl = _v147SourceUrl(widget.input.raw);
-    final buybackOffer = buybackSummary?.offer;
-    final manualQuote = buybackOffer == null ? manualBuybackQuote : null;
     final createdAt = status == 'Bought' && existing?.isSaved == true
         ? now
         : (existing?.createdAt ?? now);
@@ -2163,7 +2192,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
       name: query.text.trim(),
       category: category,
       buy: buyPrice,
-      expectedAtBuy: expected,
+      expectedAtBuy: expected ?? 0,
       costs: extraCosts,
       sourceCount: resaleValues.length,
       confidence: confidence,
@@ -2171,9 +2200,12 @@ class _V13CheckPageState extends State<V13CheckPage> {
       createdAt: createdAt,
       checkedAt: now,
       sourceUrl: rawUrl.isNotEmpty ? rawUrl : (existing?.sourceUrl ?? ''),
-      maxBuyAtCheck: maxBuy ?? 0,
-      profitAtCheck: profit,
-      roiAtCheck: roi,
+      // Keep missing private-market evidence missing. The buyback fields below
+      // carry the independent exit path and must never manufacture a private
+      // sale estimate merely to make a deal snapshot persistable.
+      maxBuyAtCheck: expected == null ? 0 : (maxBuy ?? 0),
+      profitAtCheck: expected == null ? 0 : profit,
+      roiAtCheck: expected == null ? 0 : roi,
       confidenceScore: marketConfidence.score,
       buybackPriceAtCheck: buybackOffer?.price ?? manualQuote?.price ?? 0,
       buybackProviderAtCheck: buybackOffer?.providerName ?? manualQuote?.providerName ?? '',
