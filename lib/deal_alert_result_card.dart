@@ -65,6 +65,12 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
     setState(() => _preference = preference);
   }
 
+  String _profitState(double value) {
+    final amount = value.abs().toStringAsFixed(0);
+    if (value < 0) return t('$amount € Verlust', '$amount € loss');
+    return t('$amount € Gewinn', '$amount € profit');
+  }
+
   @override
   Widget build(BuildContext context) {
     final preference = _preference;
@@ -100,14 +106,14 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
     final comparisonLines = <String>[];
     if (widget.hasPrivateComparison) {
       comparisonLines.add(
-        '${t('Privat vorher', 'Private before')}: ${t('Gewinn', 'Profit')} ${widget.previousProfit.toStringAsFixed(0)} € · ROI ${widget.previousRoi.toStringAsFixed(0)} %\n'
-        '${t('Privat jetzt', 'Private now')}: ${t('Gewinn', 'Profit')} ${widget.currentProfit.toStringAsFixed(0)} € · ROI ${widget.currentRoi.toStringAsFixed(0)} %',
+        '${t('Privat vorher', 'Private before')}: ${_profitState(widget.previousProfit)} · ROI ${widget.previousRoi.toStringAsFixed(0)} %\n'
+        '${t('Privat jetzt', 'Private now')}: ${_profitState(widget.currentProfit)} · ROI ${widget.currentRoi.toStringAsFixed(0)} %',
       );
     }
     if (widget.verifiedBuybackComparison && widget.previousBuybackProfit != null && widget.currentBuybackProfit != null) {
       comparisonLines.add(
-        '${t('LIVE-Ankauf vorher', 'LIVE buyback before')}: ${widget.previousBuybackProfit!.toStringAsFixed(0)} € ${t('Gewinn', 'profit')}\n'
-        '${t('LIVE-Ankauf jetzt', 'LIVE buyback now')}: ${widget.currentBuybackProfit!.toStringAsFixed(0)} € ${t('Gewinn', 'profit')}',
+        '${t('LIVE-Ankauf vorher', 'LIVE buyback before')}: ${_profitState(widget.previousBuybackProfit!)}\n'
+        '${t('LIVE-Ankauf jetzt', 'LIVE buyback now')}: ${_profitState(widget.currentBuybackProfit!)}',
       );
     }
     final comparison = comparisonLines.join('\n');

@@ -143,8 +143,8 @@ class _DealAlertToggleState extends State<DealAlertToggle> {
           Text(
             enabled && preference != null
                 ? t(
-                    '${_sensitivityLabel(preference)}: ab +${preference.minProfitIncrease.toStringAsFixed(0)} € Privat-/LIVE-Ankaufgewinn oder +${preference.minRoiIncrease.toStringAsFixed(0)} %-Pkt. ROI.',
-                    '${_sensitivityLabel(preference)}: from +€${preference.minProfitIncrease.toStringAsFixed(0)} private/LIVE buyback profit or +${preference.minRoiIncrease.toStringAsFixed(0)}pp ROI.',
+                    '${_sensitivityLabel(preference)}: Privat +${preference.minProfitIncrease.toStringAsFixed(0)} €, LIVE-Ankauf +${preference.minBuybackProfitIncrease.toStringAsFixed(0)} €, ROI +${preference.minRoiIncrease.toStringAsFixed(0)} %-Pkt.',
+                    '${_sensitivityLabel(preference)}: private +€${preference.minProfitIncrease.toStringAsFixed(0)}, LIVE buyback +€${preference.minBuybackProfitIncrease.toStringAsFixed(0)}, ROI +${preference.minRoiIncrease.toStringAsFixed(0)}pp.',
                   )
                 : t('Beim Recheck deutlich bessere Deals markieren.', 'Flag meaningfully better deals on recheck.'),
             style: const TextStyle(fontSize: 9.8, color: Color(0xFF707481)),

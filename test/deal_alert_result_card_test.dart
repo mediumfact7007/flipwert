@@ -42,6 +42,29 @@ void main() {
     expect(find.textContaining('Privat vorher'), findsNothing);
   });
 
+  testWidgets('LIVE buyback crossing from loss to profit is explicit',
+      (tester) async {
+    final store = _FixedAlertStore(DealAlertPreference.defaults('flip-1'));
+    await tester.pumpWidget(_host(DealAlertResultCard(
+      flipId: 'flip-1',
+      english: false,
+      previousProfit: 0,
+      currentProfit: 0,
+      previousRoi: 0,
+      currentRoi: 0,
+      hasPrivateComparison: false,
+      previousBuybackProfit: -4,
+      currentBuybackProfit: 2,
+      verifiedBuybackComparison: true,
+      store: store,
+    )));
+    await tester.pump();
+
+    expect(find.textContaining('LIVE-Ankauf jetzt profitabel'), findsOneWidget);
+    expect(find.textContaining('LIVE-Ankauf vorher: 4 € Verlust'), findsOneWidget);
+    expect(find.textContaining('LIVE-Ankauf jetzt: 2 € Gewinn'), findsOneWidget);
+  });
+
   testWidgets('unverified manual buyback improvement stays silent',
       (tester) async {
     final store = _FixedAlertStore(DealAlertPreference.defaults('flip-1'));
