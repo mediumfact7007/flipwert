@@ -3,12 +3,21 @@
 const VARIANTS = new Set(['pro', 'max', 'plus', 'ultra', 'mini', 'air', 'oled', 'lite', 'fe', 'slim']);
 const NOISE = new Set(['apple', 'samsung', 'google', 'mit', 'und', 'ohne', 'ovp', 'neu', 'gebraucht', 'top', 'zustand', 'versand', 'abholung', 'verkauf', 'original', 'inkl', 'in', 'der', 'das', 'die', 'the', 'with', 'for', 'new', 'used', 'black', 'white', 'schwarz', 'weiss']);
 const FAMILIES = new Set(['iphone', 'ipad', 'galaxy', 'pixel', 'switch', 'macbook', 'playstation', 'ps5', 'ps4']);
+const CONNECTIVITY_VARIANTS = new Set(['wifi', 'cellular', 'lte', '5g']);
+const CONSOLE_EDITIONS = new Set(['digital', 'disc']);
 
 function tokens(value) {
   const normalized = String(value || '').normalize('NFKD').toLowerCase()
     .replace(/\bplay\s*station\s*5\b/g, 'ps5')
     .replace(/\bps\s*5\b/g, 'ps5')
     .replace(/\bpromax\b/g, 'pro max')
+    .replace(/\bwi[\s-]?fi\b|\bwlan\b/g, 'wifi')
+    .replace(/\b4g\b/g, 'lte')
+    .replace(/\bohne\s+(?:disc|disk|laufwerk)\b/g, 'digital')
+    .replace(/\bmit\s+(?:disc|disk|laufwerk)\b/g, 'disc')
+    .replace(/\bdisk\s+edition\b/g, 'disc')
+    .replace(/\bdisc\s+edition\b/g, 'disc')
+    .replace(/\bdigital\s+edition\b/g, 'digital')
     .replace(/([a-z0-9])\+/g, '$1 plus')
     .replace(/(\d+)\s*(tb|gb)\b/g, (_, size, unit) => `${Number(size) * (unit === 'tb' ? 1024 : 1)}gb`)
     .replace(/[^a-z0-9]+/g, ' ').trim();
@@ -21,6 +30,13 @@ function storage(parts) {
 
 function criticalIdentity(parts) {
   return [...new Set(parts.filter((part) => /\d/.test(part) || VARIANTS.has(part)))];
+}
+
+function hasExactDimension(searched, title, values) {
+  const requested = [...new Set(searched.filter((part) => values.has(part)))];
+  const offered = [...new Set(title.filter((part) => values.has(part)))];
+  return requested.length === offered.length &&
+    requested.every((part) => offered.includes(part));
 }
 
 // A partner's confidence is a claim about its own lookup, not evidence that
@@ -57,6 +73,22 @@ function matchesBuybackQuery(query, offer) {
   if (requestedStorage.length &&
       !requestedStorage.some((part) => offeredStorage.includes(part))) return false;
   if (!requestedStorage.length && offeredStorage.length && !storageOptionalFamily) return false;
+
+  // Connectivity is a price-defining SKU dimension for tablets and watches.
+  // Keep it scoped to those categories so incidental laptop terms such as
+  // "Wi-Fi 6" do not turn into a false mismatch.
+  const connectivityProduct = ['ipad', 'tablet', 'tab', 'watch']
+    .some((part) => searched.includes(part) || title.includes(part));
+  if (connectivityProduct &&
+      !hasExactDimension(searched, title, CONNECTIVITY_VARIANTS)) return false;
+
+  // Console disc/digital editions are different products and commonly carry
+  // different buyback prices. An omitted edition is ambiguous and must not be
+  // promoted to an exact LIVE match.
+  const consoleProduct = ['ps5', 'ps4', 'playstation', 'xbox']
+    .some((part) => searched.includes(part) || title.includes(part));
+  if (consoleProduct &&
+      !hasExactDimension(searched, title, CONSOLE_EDITIONS)) return false;
 
   if (family) {
     if (!title.includes(family)) return false;

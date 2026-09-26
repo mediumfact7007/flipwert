@@ -27,5 +27,11 @@ assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 1 TB')), f
 assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 512GB')), true, 'exact generic storage variant should match');
 assert.equal(matches('Steam Deck OLED', offer('Steam Deck OLED 512GB')), false, 'ambiguous generic storage must not become an exact LIVE SKU');
 assert.equal(matches('Nintendo Switch OLED', offer('Nintendo Switch OLED 64GB Konsole')), true, 'console family keeps inherent-storage exception');
+assert.equal(matches('Apple iPad Air M2 256 GB Wi-Fi', offer('Apple iPad Air M2 256GB Cellular')), false, 'tablet connectivity variants must not cross-match');
+assert.equal(matches('Apple iPad Air M2 256 GB WLAN', offer('Apple iPad Air M2 256GB Wi-Fi')), true, 'common Wi-Fi aliases normalize consistently');
+assert.equal(matches('Apple iPad Air M2 256 GB', offer('Apple iPad Air M2 256GB Wi-Fi')), false, 'omitted tablet connectivity must remain ambiguous');
+assert.equal(matches('PlayStation 5 Slim Digital Edition', offer('Sony PS5 Slim Disc Edition')), false, 'console editions must not cross-match');
+assert.equal(matches('PlayStation 5 Slim ohne Laufwerk', offer('Sony PS5 Slim Digital Edition')), true, 'console edition aliases normalize consistently');
+assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Slim Disc Edition')), false, 'omitted console edition must remain ambiguous');
 
 console.log('buyback_match_test: ok');
