@@ -147,6 +147,17 @@ class BuybackClient {
       }
       final configured = decoded['configured'] == true;
       final unavailable = decoded['unavailable'] == true;
+      // Fail closed at the app boundary too: an unconfigured backend must not
+      // be able to surface provider rows as comparable quotes, even if a stale
+      // or malformed response happens to contain items.
+      if (!configured) {
+        return BuybackSearchResult(
+          offers: const [],
+          configured: false,
+          live: false,
+          unavailable: unavailable,
+        );
+      }
       final rawItems = decoded['items'];
       if (rawItems is! List) {
         return BuybackSearchResult(offers: const [], configured: configured, live: false, unavailable: true);
