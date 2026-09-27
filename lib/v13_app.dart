@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -30,6 +31,7 @@ import 'recheck_delta_card.dart';
 import 'source_registry.dart';
 import 'source_status.dart';
 import 'scanner_page.dart';
+import 'sales_csv.dart';
 
 const _v13Primary = Color(0xFF4E50D8);
 const _v13Ink = Color(0xFF20213F);
@@ -834,6 +836,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                 setState(() => flips.insert(0, item));
                 _save();
               },
+              onImportSales: (items) { setState(() => flips.insertAll(0, items)); _save(); },
               onUpdateFlip: (item) {
                 final i = flips.indexWhere((e) => e.id == item.id);
                 if (i >= 0) {
@@ -900,6 +903,7 @@ class V13Shell extends StatefulWidget {
   final ValueChanged<String> onHistory;
   final ValueChanged<V13Flip> onAddFlip;
   final ValueChanged<V13Flip> onUpdateFlip;
+  final ValueChanged<List<V13Flip>> onImportSales;
   final ValueChanged<String> onDeleteFlip;
   final ValueChanged<bool> onLanguage;
   final ValueChanged<double> onRoi;
@@ -924,6 +928,7 @@ class V13Shell extends StatefulWidget {
     required this.onHistory,
     required this.onAddFlip,
     required this.onUpdateFlip,
+    required this.onImportSales,
     required this.onDeleteFlip,
     required this.onLanguage,
     required this.onRoi,
@@ -1084,6 +1089,7 @@ class _V13ShellState extends State<V13Shell> {
         flips: widget.flips,
         monetization: widget.monetization,
         onUpdate: widget.onUpdateFlip,
+        onImportSales: widget.onImportSales,
         onDelete: widget.onDeleteFlip,
         onRecheck: _recheckFlip,
         onPro: () => _openPaywall(context),
@@ -2907,12 +2913,13 @@ class V13FlipsPage extends StatefulWidget {
   final List<V13Flip> flips;
   final V13Monetization monetization;
   final ValueChanged<V13Flip> onUpdate;
+  final ValueChanged<List<V13Flip>> onImportSales;
   final ValueChanged<String> onDelete;
   final ValueChanged<V13Flip> onRecheck;
   final VoidCallback onPro;
   final String initialFilter;
 
-  const V13FlipsPage({super.key, required this.english, required this.plan, required this.flips, required this.monetization, required this.onUpdate, required this.onDelete, required this.onRecheck, required this.onPro, this.initialFilter = 'open'});
+  const V13FlipsPage({super.key, required this.english, required this.plan, required this.flips, required this.monetization, required this.onUpdate, required this.onImportSales, required this.onDelete, required this.onRecheck, required this.onPro, this.initialFilter = 'open'});
   @override
   State<V13FlipsPage> createState() => _V13FlipsPageState();
 }
@@ -2925,6 +2932,14 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
   void initState() {
     super.initState();
     filter = widget.initialFilter;
+  }
+
+  Future<void> _importSalesCsv() async {
+    final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:const ['csv'],withData:true); if(picked==null||picked.files.isEmpty||!mounted)return;
+    final bytes=picked.files.single.bytes; if(bytes==null||bytes.length>5*1024*1024){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('CSV konnte nicht gelesen werden oder ist größer als 5 MB.','CSV could not be read or exceeds 5 MB.'))));return;}
+    String content;try{content=utf8.decode(bytes);}catch(_){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('CSV muss UTF-8 kodiert sein.','CSV must use UTF-8 encoding.'))));return;}
+    final parsed=parseSalesCsv(content);if(parsed.rows.isNotEmpty){final stamp=DateTime.now().microsecondsSinceEpoch;final imported=<V13Flip>[];for(var i=0;i<parsed.rows.length;i++){final row=parsed.rows[i];imported.add(V13Flip(id:'csv-$stamp-$i',name:row.article,category:row.category,buy:row.purchasePrice,expectedAtBuy:0,costs:row.costs,sourceCount:0,confidence:'Eigener Verkauf',status:'Sold',createdAt:row.purchaseDate,checkedAt:row.purchaseDate,soldAt:row.saleDate,actualSell:row.salePrice,soldPlatform:row.platform));}widget.onImportSales(imported);}
+    if(!mounted)return;final message=parsed.rows.isEmpty?(parsed.errors.isEmpty?t('Keine Verkäufe gefunden.','No sales found.'):parsed.errors.first):'${parsed.rows.length} '+t('Verkäufe importiert','sales imported')+(parsed.errors.isEmpty?'.':' · ${parsed.errors.length} '+t('Zeilen übersprungen.','rows skipped.'));ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));
   }
 
   @override
@@ -2961,7 +2976,9 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
         const Text('Meine Flips', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text(t('Gekauft → verkauft → daraus lernt Flipwert.', 'Bought → sold → Flipwert learns from it.'), style: const TextStyle(fontSize: 12.5, color: Color(0xFF777B88))),
-        const SizedBox(height: 15),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(key: const ValueKey('sales-csv-import'), onPressed: _importSalesCsv, icon: const Icon(Icons.upload_file_rounded), label: Text(t('VERKÄUFE AUS CSV IMPORTIEREN', 'IMPORT SALES CSV'))),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(color: _v13Ink, borderRadius: BorderRadius.circular(22)),
