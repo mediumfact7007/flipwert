@@ -39,18 +39,43 @@ function hasExactDimension(searched, title, values) {
     requested.every((part) => offered.includes(part));
 }
 
+// EAN-8, UPC-A, EAN-13 and GTIN-14 share the same GS1 modulo-10 check
+// digit. Canonicalizing valid values to GTIN-14 lets a scanner's EAN-13 match
+// a partner's zero-padded GTIN-14 without accepting arbitrary numeric product
+// IDs as barcodes.
+function canonicalGtin(value) {
+  const digits = String(value || '').trim();
+  if (![8, 12, 13, 14].includes(digits.length) || !/^\d+$/.test(digits)) {
+    return null;
+  }
+  const body = digits.slice(0, -1);
+  let sum = 0;
+  for (let index = body.length - 1, weight = 3; index >= 0; index -= 1) {
+    sum += Number(body[index]) * weight;
+    weight = weight === 3 ? 1 : 3;
+  }
+  const expectedCheckDigit = (10 - (sum % 10)) % 10;
+  if (expectedCheckDigit !== Number(digits.at(-1))) return null;
+  return digits.padStart(14, '0');
+}
+
 // A partner's confidence is a claim about its own lookup, not evidence that
 // the returned product matches the user's search. Check visible identity too.
 function matchesBuybackQuery(query, offer) {
+  const rawQuery = String(query || '').trim();
   const searched = tokens(query);
   const title = tokens(offer.matched_title);
   if (!searched.length || !title.length) return false;
 
-  // Numeric EAN/GTIN searches need an explicit matching identifier. A title
-  // or an unrelated internal product ID cannot establish barcode identity.
-  if (/^\d{8,14}$/.test(String(query).trim())) {
-    return [offer.ean, offer.gtin, offer.product_id]
-      .some((value) => String(value || '').trim() === String(query).trim());
+  // Numeric barcode searches need an explicit, checksum-valid EAN/GTIN. A
+  // title or an unrelated internal product ID cannot establish barcode
+  // identity. Treat invalid numeric barcode-shaped input as unmatched instead
+  // of falling through to fuzzy title matching.
+  if (/^\d+$/.test(rawQuery)) {
+    const requestedGtin = canonicalGtin(rawQuery);
+    if (!requestedGtin) return false;
+    return [offer.ean, offer.gtin]
+      .some((value) => canonicalGtin(value) === requestedGtin);
   }
 
   // Model numbers and named variants are hard identity constraints for every

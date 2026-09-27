@@ -21,7 +21,12 @@ assert.equal(matches('Samsung Galaxy S24+', offer('Samsung Galaxy S24 Plus')), t
 assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Slim Konsole')), true, 'common console aliases normalize consistently');
 assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Standard Konsole')), false);
 assert.equal(matches('4006381333931', offer('iPhone 15 Pro', { ean: '4006381333931' })), true);
+assert.equal(matches('4006381333931', offer('iPhone 15 Pro', { gtin: '04006381333931' })), true, 'EAN-13 and zero-padded GTIN-14 are the same product identifier');
+assert.equal(matches('036000291452', offer('Product', { gtin: '00036000291452' })), true, 'UPC-A and zero-padded GTIN-14 normalize consistently');
 assert.equal(matches('4006381333931', offer('iPhone 15 Pro')), false);
+assert.equal(matches('4006381333931', offer('iPhone 15 Pro', { product_id: '4006381333931' })), false, 'internal product IDs must never prove barcode identity');
+assert.equal(matches('4006381333932', offer('iPhone 15 Pro', { ean: '4006381333932' })), false, 'invalid GS1 check digits must be rejected');
+assert.equal(matches('123456789', offer('Product', { ean: '123456789' })), false, 'unsupported numeric lengths are not valid GTINs');
 assert.equal(matches('iPhone', offer('iPhone 15 Pro 256GB')), false);
 assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 1 TB')), false, 'storage must match outside phone families too');
 assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 512GB')), true, 'exact generic storage variant should match');
