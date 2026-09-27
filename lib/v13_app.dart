@@ -246,6 +246,7 @@ class V13Flip {
   final double buy;
   final double expectedAtBuy;
   final double costs;
+  final double buybackSafetyReserve;
   final int sourceCount;
   final String confidence;
   final String status;
@@ -273,6 +274,7 @@ class V13Flip {
     required this.buy,
     required this.expectedAtBuy,
     required this.costs,
+    this.buybackSafetyReserve = 0,
     required this.sourceCount,
     required this.confidence,
     required this.status,
@@ -292,7 +294,8 @@ class V13Flip {
     this.buybackConditionAtCheck = '',
     this.buybackCheckedAt,
     this.buybackQuoteKindAtCheck = '',
-  }) : checkedAt = checkedAt ?? createdAt;
+  })  : assert(buybackSafetyReserve >= 0),
+        checkedAt = checkedAt ?? createdAt;
 
   bool get isSaved => status == 'Saved';
   bool get isArchived => status == 'Archived';
@@ -317,6 +320,7 @@ class V13Flip {
         buy: buy,
         expectedAtBuy: expectedAtBuy,
         costs: costs,
+        buybackSafetyReserve: buybackSafetyReserve,
         sourceCount: sourceCount,
         confidence: confidence,
         status: status ?? this.status,
@@ -345,6 +349,7 @@ class V13Flip {
         'buy': buy,
         'expectedAtBuy': expectedAtBuy,
         'costs': costs,
+        'buybackSafetyReserve': buybackSafetyReserve,
         'sourceCount': sourceCount,
         'confidence': confidence,
         'status': status,
@@ -372,6 +377,8 @@ class V13Flip {
     final actual = (j['actualSell'] as num?)?.toDouble() ?? (status == 'Sold' ? legacySell : 0);
     final created = DateTime.tryParse(j['createdAt']?.toString() ?? '') ?? DateTime.now();
     final buybackPrice = (j['buybackPriceAtCheck'] as num?)?.toDouble() ?? 0;
+    final storedBuybackReserve =
+        (j['buybackSafetyReserve'] as num?)?.toDouble() ?? 0;
     final storedBuybackKind = j['buybackQuoteKindAtCheck']?.toString() ?? '';
     return V13Flip(
       id: j['id']?.toString() ?? DateTime.now().microsecondsSinceEpoch.toString(),
@@ -380,6 +387,10 @@ class V13Flip {
       buy: (j['buy'] as num?)?.toDouble() ?? 0,
       expectedAtBuy: (j['expectedAtBuy'] as num?)?.toDouble() ?? legacySell,
       costs: (j['costs'] as num?)?.toDouble() ?? 0,
+      buybackSafetyReserve:
+          storedBuybackReserve.isFinite && storedBuybackReserve > 0
+              ? storedBuybackReserve
+              : 0,
       sourceCount: (j['sourceCount'] as num?)?.toInt() ?? 0,
       confidence: j['confidence']?.toString() ?? 'Unbekannt',
       status: status,
@@ -1486,6 +1497,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   late final TextEditingController query;
   final buy = TextEditingController();
   final costs = TextEditingController(text: '0');
+  final buybackReserve = TextEditingController(text: '0');
   final manualSell = TextEditingController();
   final buyFocus = FocusNode();
   final manualFocus = FocusNode();
@@ -1545,6 +1557,15 @@ class _V13CheckPageState extends State<V13CheckPage> {
       costs.text = existing.costs == existing.costs.roundToDouble()
           ? existing.costs.toStringAsFixed(0)
           : existing.costs.toStringAsFixed(2).replaceAll('.', ',');
+    }
+    if (existing != null && existing.buybackSafetyReserve > 0) {
+      buybackReserve.text =
+          existing.buybackSafetyReserve ==
+                  existing.buybackSafetyReserve.roundToDouble()
+              ? existing.buybackSafetyReserve.toStringAsFixed(0)
+              : existing.buybackSafetyReserve
+                  .toStringAsFixed(2)
+                  .replaceAll('.', ',');
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _search();
@@ -1664,15 +1685,17 @@ class _V13CheckPageState extends State<V13CheckPage> {
       condition: condition,
       purchasePrice: buyPrice + extraCosts,
       privateMarketValue: privateValue,
+      safetyReserve: buybackSafetyReserve,
     );
   }
 
   BuybackOffer? get currentComparableBuybackOffer {
     final condition = buybackCondition;
     if (condition == null) return null;
-    return bestComparableBuybackOffer(
+    return bestComparableBuybackOfferAfterReserve(
       buybackOffers,
       condition: condition,
+      safetyReserve: buybackSafetyReserve,
       now: DateTime.now(),
     );
   }
@@ -1742,6 +1765,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   }
 
   double get extraCosts => v13Money(costs.text);
+  double get buybackSafetyReserve => v13Money(buybackReserve.text);
   double get buyPrice => v13Money(buy.text);
 
   double? get maxBuy {
@@ -2003,6 +2027,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
               BuybackOffersCard(
                 offers: buybackOffers,
                 purchasePrice: buyPrice > 0 ? buyPrice + extraCosts : 0,
+                safetyReserve: buybackSafetyReserve,
                 english: widget.english,
               ),
             ],
@@ -2044,9 +2069,18 @@ class _V13CheckPageState extends State<V13CheckPage> {
               BuybackRecheckCard(
                 previousProvider: widget.existingSnapshot!.buybackProviderAtCheck,
                 previousPrice: widget.existingSnapshot!.buybackPriceAtCheck,
-                previousProfit: widget.existingSnapshot!.buybackPriceAtCheck - widget.existingSnapshot!.buy - widget.existingSnapshot!.costs,
                 currentOffer: currentComparableBuybackOffer!,
-                currentPurchasePrice: buyPrice + extraCosts,
+                previousProfit:
+                    widget.existingSnapshot!.buybackPriceAtCheck -
+                        widget.existingSnapshot!.buy -
+                        widget.existingSnapshot!.costs -
+                        widget.existingSnapshot!.buybackSafetyReserve,
+                currentPurchasePrice:
+                    buyPrice +
+                        extraCosts +
+                        (currentComparableBuybackOffer!.requiresInspection
+                            ? buybackSafetyReserve
+                            : 0),
                 english: widget.english,
               ),
             ],
@@ -2091,12 +2125,16 @@ class _V13CheckPageState extends State<V13CheckPage> {
                   widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider'
                       ? widget.existingSnapshot!.buybackPriceAtCheck -
                           widget.existingSnapshot!.buy -
-                          widget.existingSnapshot!.costs
+                          widget.existingSnapshot!.costs -
+                          widget.existingSnapshot!.buybackSafetyReserve
                       : null,
               currentBuybackProfit:
                   widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider' &&
                           currentComparableBuybackOffer != null
                       ? currentComparableBuybackOffer!.price - buyPrice - extraCosts
+                          - (currentComparableBuybackOffer!.requiresInspection
+                              ? buybackSafetyReserve
+                              : 0)
                       : null,
               verifiedBuybackComparison:
                   widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider' &&
@@ -2137,6 +2175,25 @@ class _V13CheckPageState extends State<V13CheckPage> {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   labelText: t('Zusatzkosten gesamt', 'Extra costs total'),
+                  suffixText: '€',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const ValueKey('buyback-safety-reserve-input'),
+                controller: buybackReserve,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: t(
+                    'Ankauf-Sicherheitsabschlag (optional)',
+                    'Buyback safety reserve (optional)',
+                  ),
+                  helperText: t(
+                    'Wird nur von vorläufigen Angeboten vor Anbieterprüfung abgezogen.',
+                    'Only deducted from provisional quotes before provider inspection.',
+                  ),
                   suffixText: '€',
                 ),
               ),
@@ -2195,6 +2252,10 @@ class _V13CheckPageState extends State<V13CheckPage> {
       buy: buyPrice,
       expectedAtBuy: expected ?? 0,
       costs: extraCosts,
+      buybackSafetyReserve:
+          buybackOffer?.requiresInspection == true
+              ? buybackSafetyReserve
+              : 0,
       sourceCount: resaleValues.length,
       confidence: confidence,
       status: status,
@@ -2269,6 +2330,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
     query.dispose();
     buy.dispose();
     costs.dispose();
+    buybackReserve.dispose();
     manualSell.dispose();
     buyFocus.dispose();
     manualFocus.dispose();

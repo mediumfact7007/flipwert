@@ -24,6 +24,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: BuybackOffersCard(
       offers: [offer('Provider A', 610), offer('Provider B', 650, affiliateLink: true), offer('Provider C', 450)],
       purchasePrice: 500,
+      safetyReserve: 20,
       launcher: (uri) async {
         opened = uri;
         return true;
@@ -31,11 +32,11 @@ void main() {
     )))));
     expect(find.byKey(const ValueKey('buyback-offers-card')), findsOneWidget);
     expect(find.text('650,00 €*'), findsOneWidget);
-    expect(find.text('Gewinn nach Gesamteinsatz: 150,00 €'), findsOneWidget);
+    expect(find.text('Gewinn nach Gesamteinsatz: 130,00 €'), findsOneWidget);
     expect(find.text('610,00 €*'), findsOneWidget);
-    expect(find.text('Gewinn nach Gesamteinsatz: 110,00 €'), findsOneWidget);
+    expect(find.text('Gewinn nach Gesamteinsatz: 90,00 €'), findsOneWidget);
     expect(find.text('450,00 €*'), findsOneWidget);
-    expect(find.text('Verlust nach Gesamteinsatz: 50,00 €'), findsOneWidget);
+    expect(find.text('Verlust nach Gesamteinsatz: 70,00 €'), findsOneWidget);
     expect(
       find.text(
         'Margenbasis: Gesamteinsatz 500,00 € '
@@ -43,6 +44,13 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.text(
+        'Vorläufige Angebote werden mit 20,00 € Sicherheitsabschlag kalkuliert.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Kalkulierter Erlös: 630,00 €'), findsOneWidget);
     expect(find.text('3 qualitätsgeprüfte Anbieterangebote'), findsOneWidget);
     expect(find.text('Beste Marge'), findsOneWidget);
     expect(find.text('Zustand: Wie neu · Prüfung ausstehend'), findsNWidgets(3));

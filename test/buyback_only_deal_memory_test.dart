@@ -65,6 +65,20 @@ void main() {
       await tester.tap(find.text('Sehr gut').last);
       await tester.pumpAndSettle();
 
+      final costsSection = find.text('Kosten & Berechnung');
+      await tester.scrollUntilVisible(
+        costsSection,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(costsSection);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('buyback-safety-reserve-input')),
+        '20',
+      );
+      await tester.pump();
+
       final remember =
           find.byKey(const ValueKey('buyback-only-remember-deal'));
       await tester.scrollUntilVisible(
@@ -91,6 +105,7 @@ void main() {
       expect(saved!.buybackConditionAtCheck, 'very_good');
       expect(saved!.buybackQuoteKindAtCheck, 'live_provider');
       expect(saved!.buybackCheckedAt, isNotNull);
+      expect(saved!.buybackSafetyReserve, 20);
 
       monetization.dispose();
     },
@@ -107,6 +122,7 @@ void main() {
         buy: 250,
         expectedAtBuy: 0,
         costs: 10,
+        buybackSafetyReserve: 20,
         sourceCount: 0,
         confidence: '',
         status: 'Saved',
@@ -170,7 +186,7 @@ void main() {
       expect(recheck, findsOneWidget);
       expect(find.textContaining('Vorher: reBuy · 300,00 €'), findsOneWidget);
       expect(find.textContaining('Jetzt: ZOXS · 340,00 €'), findsOneWidget);
-      expect(find.textContaining('Gewinn jetzt: 80,00 €'), findsOneWidget);
+      expect(find.textContaining('Gewinn jetzt: 60,00 €'), findsOneWidget);
       expect(find.text('+40,00 €'), findsOneWidget);
 
       monetization.dispose();

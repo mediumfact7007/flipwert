@@ -94,6 +94,19 @@ class BuybackComparisonCard extends StatelessWidget {
           _ExitRow(title: _de ? 'Privat verkaufen' : 'Sell privately', value: _money(summary.privateMarketValue), detail: '${_de ? 'Gewinn' : 'Profit'} ${_money(summary.privateMargin)} · ROI ${_roi(summary.privateRoi)}', emphasized: !noProfitableExit && !instantBetter && !equalProfit, emphasisLabel: profitLabel),
           const Divider(height: 22),
           _ExitRow(title: _de ? 'Sofortankauf' : 'Instant buyback', value: instantValue, detail: '${summary.offer.providerName} · ${_de ? 'Gewinn' : 'Profit'} ${_money(summary.instantMargin)} · ROI ${_roi(summary.instantRoi)}', emphasized: !noProfitableExit && instantBetter, emphasisLabel: profitLabel),
+          if (summary.appliedSafetyReserve > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              _de
+                  ? 'Konservativ gerechnet: ${_money(summary.effectiveInstantProceeds)} Ankaufserlös nach ${_money(summary.appliedSafetyReserve)} Sicherheitsabschlag.'
+                  : 'Conservative calculation: ${_money(summary.effectiveInstantProceeds)} buyback proceeds after a ${_money(summary.appliedSafetyReserve)} safety reserve.',
+              key: const ValueKey('buyback-safety-reserve-note'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (summary.convenienceGap > 0) ...[
             const SizedBox(height: 12),
             Text(_de ? 'Zeit-vs.-Geld: Sofortankauf kostet dich hier ca. ${_money(summary.convenienceGap)} möglichen Erlös.' : 'Time vs money: instant buyback costs about ${_money(summary.convenienceGap)} in potential proceeds here.', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),

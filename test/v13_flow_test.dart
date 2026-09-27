@@ -65,6 +65,7 @@ void main() {
       buy: 300,
       expectedAtBuy: 430,
       costs: 20,
+      buybackSafetyReserve: 25,
       sourceCount: 7,
       confidence: 'Mittel',
       status: 'Sold',
@@ -78,6 +79,7 @@ void main() {
     expect(restored.realizedProfit, 100);
     expect(restored.realizedRoi, closeTo(33.333, 0.01));
     expect(restored.soldPlatform, 'eBay');
+    expect(restored.buybackSafetyReserve, 25);
   });
 
   testWidgets('V0.13 home is search-first and barcode remains secondary', (tester) async {

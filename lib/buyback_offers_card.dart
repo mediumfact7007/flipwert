@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'buyback.dart';
+import 'buyback_summary.dart';
 
 /// Current provider quotes stay visible even when no private-market valuation
 /// exists. The caller supplies already validated, condition-matched offers.
@@ -10,16 +11,24 @@ class BuybackOffersCard extends StatelessWidget {
     super.key,
     required this.offers,
     required this.purchasePrice,
+    this.safetyReserve = 0,
     this.english = false,
     this.launcher,
   });
 
   final List<BuybackOffer> offers;
   final double purchasePrice;
+  final double safetyReserve;
   final bool english;
   final Future<bool> Function(Uri uri)? launcher;
 
   String _money(double amount) => '${amount.toStringAsFixed(2).replaceAll('.', english ? '.' : ',')} €';
+
+  double _appliedReserve(BuybackOffer offer) =>
+      buybackAppliedSafetyReserve(offer, safetyReserve);
+
+  double _effectiveProceeds(BuybackOffer offer) =>
+      buybackEffectiveProceeds(offer, safetyReserve);
 
   String _checkedAt(DateTime value) {
     final local = value.toLocal();
@@ -58,7 +67,7 @@ class BuybackOffersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ranked = offers.where((offer) => offer.isEligibleForComparison).toList()
-      ..sort((a, b) => b.price.compareTo(a.price));
+      ..sort((a, b) => _effectiveProceeds(b).compareTo(_effectiveProceeds(a)));
     if (ranked.isEmpty) return const SizedBox.shrink();
     final best = ranked.first;
     final theme = Theme.of(context);
@@ -86,6 +95,20 @@ class BuybackOffersCard extends StatelessWidget {
                   : 'Margenbasis: Gesamteinsatz ${_money(purchasePrice)} (Einkauf + eingetragene Zusatzkosten).',
               key: const ValueKey('buyback-offers-cost-basis'),
               style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+          if (safetyReserve > 0 &&
+              ranked.any((offer) => offer.requiresInspection)) ...[
+            const SizedBox(height: 4),
+            Text(
+              english
+                  ? 'Provisional quotes use a ${_money(safetyReserve)} safety reserve.'
+                  : 'Vorläufige Angebote werden mit ${_money(safetyReserve)} Sicherheitsabschlag kalkuliert.',
+              key: const ValueKey('buyback-offers-safety-reserve'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
           for (final offer in ranked) ...[
@@ -130,7 +153,7 @@ class BuybackOffersCard extends StatelessWidget {
                   ),
                   if (purchasePrice > 0)
                     Builder(builder: (context) {
-                      final margin = offer.price - purchasePrice;
+                      final margin = _effectiveProceeds(offer) - purchasePrice;
                       final profitable = margin >= 0;
                       return Text(
                         profitable
@@ -143,6 +166,16 @@ class BuybackOffersCard extends StatelessWidget {
                         ),
                       );
                     }),
+                  if (_appliedReserve(offer) > 0)
+                    Text(
+                      english
+                          ? 'Calculated proceeds: ${_money(_effectiveProceeds(offer))}'
+                          : 'Kalkulierter Erlös: ${_money(_effectiveProceeds(offer))}',
+                      key: ValueKey(
+                        'buyback-effective-proceeds-${offer.providerId}',
+                      ),
+                      style: theme.textTheme.bodySmall,
+                    ),
                 ])),
                 const SizedBox(width: 8),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
