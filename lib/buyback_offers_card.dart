@@ -119,10 +119,24 @@ class BuybackOffersCard extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () => launchUrl(offer.offerUrl, mode: LaunchMode.externalApplication),
-                    child: Text(english ? 'Open' : 'Öffnen'),
+                    child: Text(
+                      offer.affiliateLink
+                          ? (english ? 'Open ad link' : 'Werbelink öffnen')
+                          : (english ? 'Open' : 'Öffnen'),
+                    ),
                   ),
                 ]),
               ],
+            ),
+          ],
+          if (ranked.any((offer) => offer.affiliateLink)) ...[
+            const SizedBox(height: 6),
+            Text(
+              english
+                  ? 'Ad links are marked. Flipwert may receive a commission; the displayed provider price does not change.'
+                  : 'Werbelinks sind gekennzeichnet. Flipwert kann eine Provision erhalten; der angezeigte Anbieterpreis ändert sich dadurch nicht.',
+              key: const ValueKey('buyback-affiliate-note'),
+              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
           if (ranked.any((offer) => offer.requiresInspection)) ...[

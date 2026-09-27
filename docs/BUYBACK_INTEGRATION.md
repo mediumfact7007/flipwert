@@ -41,7 +41,8 @@ A backend/partner adapter should return normalized records such as:
   "checked_at": "2026-09-16T08:30:00+02:00",
   "price_kind": "indicative_buyback",
   "requires_inspection": true,
-  "match_confidence": 0.98
+  "match_confidence": 0.98,
+  "affiliate_link": false
 }
 ```
 
@@ -68,6 +69,9 @@ Required fields: provider, matched product, normalized condition, price/currency
 - Every provider approval is bound to explicit feed hosts and offer-link hosts.
   A valid provider ID alone cannot authorize data from another feed or redirect
   users to an unapproved destination.
+- Affiliate/advertising links require a separate explicit provider approval.
+  A feed item marked `affiliate_link: true` is discarded unless that right is
+  current; accepted commercial links are labelled visibly in the app.
 - Repeated identical product/condition requests are coalesced and may use a
   short server-side cache within the partner's rate limits. An outage is never
   cached as a valid empty result, and cached quotes never outlive the normal

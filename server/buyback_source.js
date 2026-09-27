@@ -83,6 +83,7 @@ function currentProviderApprovals(now = Date.now()) {
       validUntil,
       feedHosts,
       offerHosts,
+      affiliateLinks: row.affiliate_links === true,
     });
   }
   return approvals;
@@ -253,6 +254,9 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
       const approval = allowedProviders.get(providerId);
       return approval?.feedHosts.has(endpoint.hostname.toLowerCase()) === true &&
         hasApprovedOfferUrl(item?.offer_url, approval.offerHosts) &&
+        (item?.affiliate_link === undefined ||
+          item?.affiliate_link === false ||
+          (item?.affiliate_link === true && approval.affiliateLinks === true)) &&
         matchesBuybackQuery(normalizedQuery, item);
     }), { now });
     // The requested condition is part of the product identity. Some partner
@@ -283,7 +287,7 @@ function sourceStatus(now = Date.now()) {
     minimum_match_confidence: 0.9,
     rights_gate: isConfigured ? 'approved' : 'not_approved_or_expired',
     readiness: sourceReadiness(now),
-    approval_model: 'per_provider_hosts_v2',
+    approval_model: 'per_provider_hosts_and_affiliate_rights_v3',
     approved_provider_count: isConfigured ? approvals.size : 0,
   };
 }

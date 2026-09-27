@@ -8,6 +8,7 @@
     "price_display": true,
     "offer_links": true,
     "provider_identity_display": true,
+    "affiliate_links": false,
     "feed_hosts": [
       "approved-adapter.example"
     ],

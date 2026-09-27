@@ -25,6 +25,7 @@ function offer(overrides = {}) {
 const normalized = normalizeBuybackPayload({ items: [offer()] }, { now });
 assert.strictEqual(normalized.length, 1);
 assert.strictEqual(normalized[0].price, 620);
+assert.strictEqual(normalized[0].affiliate_link, false);
 
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ checked_at: '2026-09-14T09:30:00Z' })] }, { now }).length, 0);
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ checked_at: '2026-09-16T09:30:00' })] }, { now }).length, 0, 'provider timestamps without timezone must not affect freshness');
@@ -34,6 +35,8 @@ assert.strictEqual(normalizeBuybackPayload({ items: [offer({ price: 10001 })] },
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ price_kind: 'asking_price' })] }, { now }).length, 0);
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ match_confidence: 0.72 })] }, { now }).length, 0);
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ condition_uncertain: true })] }, { now }).length, 0);
+assert.strictEqual(normalizeBuybackPayload({ items: [offer({ affiliate_link: 'true' })] }, { now }).length, 0, 'affiliate metadata must be boolean');
+assert.strictEqual(normalizeBuybackPayload({ items: [offer({ affiliate_link: true })] }, { now })[0].affiliate_link, true);
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ offer_url: 'http://example.com/offer' })] }, { now }).length, 0);
 assert.strictEqual(normalizeBuybackPayload({ items: [offer({ offer_url: 'https://user:secret@example.com/offer' })] }, { now }).length, 0, 'offer URLs must not embed credentials');
 

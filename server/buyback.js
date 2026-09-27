@@ -40,6 +40,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   if (!hasExplicitTimeZone(checkedAtRaw) || !Number.isFinite(checkedAt) || checkedAt > now + 5 * 60 * 1000 || now - checkedAt > MAX_AGE_MS) return null;
   if (parsedUrl.protocol !== 'https:' || parsedUrl.username || parsedUrl.password) return null;
   if (raw.condition_uncertain === true) return null;
+  if (raw.affiliate_link !== undefined && typeof raw.affiliate_link !== 'boolean') return null;
 
   const providerId = text(raw.provider_id, 80);
   const providerName = text(raw.provider_name, 120);
@@ -60,6 +61,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
     price_kind: 'indicative_buyback',
     requires_inspection: raw.requires_inspection !== false,
     match_confidence: confidence,
+    affiliate_link: raw.affiliate_link === true,
   };
 }
 

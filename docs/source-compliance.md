@@ -20,7 +20,7 @@ Stand: 23. September 2026. Technische Produktgrenzen, keine Rechtsfreigabe.
 Das Buyback-Backend erzwingt diese Freigabe zusätzlich technisch: Neben der
 HTTPS-Adapteradresse braucht jeder Anbieter einen eigenen aktuellen
 Freigabedatensatz. Dieser bestätigt Feed-Abruf, Preisanzeige, Angebotslinks und
-Anbieter-/Markendarstellung getrennt und enthält interne Referenz, Prüfdatum,
+Anbieter-/Markendarstellung getrennt. Affiliate-/Werbelinks benötigen eine\nzusätzliche ausdrückliche Freigabe und werden sichtbar gekennzeichnet. Der Datensatz\nenthält interne Referenz, Prüfdatum,
 Ablaufdatum sowie ausdrücklich genehmigte Feed- und Angebotslink-Hosts.
 Freigaben gelten nur für den hinterlegten Feed-Host; abweichende Angebotslinks,
 abgelaufene, unvollständige oder nicht im Datensatz enthaltene Anbieter-IDs aus

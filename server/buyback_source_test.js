@@ -52,7 +52,7 @@ function approvedEnv(overrides = {}) {
       feed_access: true,
       price_display: true,
       offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     }]),
@@ -109,7 +109,7 @@ function approvedEnv(overrides = {}) {
     provider_id: 'clevertronic', approval_reference: 'expired-contract',
     reviewed_at: '2019-01-01T00:00:00Z', valid_until: '2020-01-01T00:00:00Z',
     feed_access: true, price_display: true, offer_links: true,
-    provider_identity_display: true,
+    provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
   }]) }));
@@ -121,7 +121,7 @@ function approvedEnv(overrides = {}) {
       provider_id: 'clevertronic', approval_reference: 'limited-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     };
@@ -135,7 +135,7 @@ function approvedEnv(overrides = {}) {
     provider_id: 'clevertronic', approval_reference: 'future-review',
     reviewed_at: '2099-01-01T00:00:00Z', valid_until: '2099-12-31T23:59:59Z',
     feed_access: true, price_display: true, offer_links: true,
-    provider_identity_display: true,
+    provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
   }]) }));
@@ -146,7 +146,7 @@ function approvedEnv(overrides = {}) {
     provider_id: 'clevertronic', approval_reference: 'duplicate-contract',
     reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
     feed_access: true, price_display: true, offer_links: true,
-    provider_identity_display: true,
+    provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
   };
@@ -236,6 +236,7 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(result.items.length, 1);
   assert.strictEqual(result.best.provider_id, 'clevertronic');
   assert.strictEqual(result.best.price, 615);
+  assert.strictEqual(result.best.affiliate_link, false);
   const mixed = await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
     now,
     fetchImpl: async () => ({
@@ -262,6 +263,59 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions and offer hosts must not enter the comparison');
   assert.strictEqual(mixed.items[0].condition, 'like_new', 'only the explicitly requested condition may reach the app');
   assert.strictEqual(mixed.best.provider_id, 'clevertronic');
+
+  const blockedAffiliate = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB', 'like_new', {
+      now,
+      fetchImpl: async () => ({
+        ok: true,
+        async json() {
+          return { items: [{
+            provider_id: 'clevertronic', provider_name: 'Clevertronic',
+            product_id: 'iphone-15-pro-256',
+            matched_title: 'Apple iPhone 15 Pro 256 GB',
+            condition: 'like_new', price: 620, currency: 'EUR',
+            offer_url: 'https://partner.example/offer/affiliate',
+            checked_at: '2026-09-20T07:55:00Z',
+            price_kind: 'indicative_buyback', match_confidence: 0.98,
+            affiliate_link: true,
+          }] };
+        },
+      }),
+    },
+  );
+  assert.strictEqual(
+    blockedAffiliate.items.length,
+    0,
+    'affiliate links must fail closed without explicit affiliate rights',
+  );
+  loaded.restore();
+
+  const affiliateApproval = JSON.parse(approvedEnv().approvals);
+  affiliateApproval[0].affiliate_links = true;
+  loaded = loadSource(approvedEnv({ approvals: JSON.stringify(affiliateApproval) }));
+  const approvedAffiliate = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB', 'like_new', {
+      now,
+      fetchImpl: async () => ({
+        ok: true,
+        async json() {
+          return { items: [{
+            provider_id: 'clevertronic', provider_name: 'Clevertronic',
+            product_id: 'iphone-15-pro-256',
+            matched_title: 'Apple iPhone 15 Pro 256 GB',
+            condition: 'like_new', price: 620, currency: 'EUR',
+            offer_url: 'https://partner.example/offer/affiliate',
+            checked_at: '2026-09-20T07:55:00Z',
+            price_kind: 'indicative_buyback', match_confidence: 0.98,
+            affiliate_link: true,
+          }] };
+        },
+      }),
+    },
+  );
+  assert.strictEqual(approvedAffiliate.items.length, 1);
+  assert.strictEqual(approvedAffiliate.items[0].affiliate_link, true);
   loaded.restore();
 
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([
@@ -269,7 +323,7 @@ function approvedEnv(overrides = {}) {
       provider_id: 'clevertronic', approval_reference: 'clevertronic-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     },
@@ -277,7 +331,7 @@ function approvedEnv(overrides = {}) {
       provider_id: 'zoxs', approval_reference: 'zoxs-contract',
       reviewed_at: '2026-09-02T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     },
@@ -312,7 +366,7 @@ function approvedEnv(overrides = {}) {
     minimum_match_confidence: 0.9,
     rights_gate: 'approved',
     readiness: 'ready',
-    approval_model: 'per_provider_hosts_v2',
+    approval_model: 'per_provider_hosts_and_affiliate_rights_v3',
     approved_provider_count: 2,
   });
   loaded.restore();
@@ -322,7 +376,7 @@ function approvedEnv(overrides = {}) {
       provider_id: 'clevertronic', approval_reference: 'expired-clevertronic-contract',
       reviewed_at: '2019-01-01T00:00:00Z', valid_until: '2020-01-01T00:00:00Z',
       feed_access: true, price_display: true, offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     },
@@ -330,7 +384,7 @@ function approvedEnv(overrides = {}) {
       provider_id: 'zoxs', approval_reference: 'current-zoxs-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
-      provider_identity_display: true,
+      provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
     },
@@ -383,7 +437,7 @@ function approvedEnv(overrides = {}) {
         provider_id: 'clevertronic', approval_reference: 'short-clevertronic-contract',
         reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2026-09-20T08:00:30Z',
         feed_access: true, price_display: true, offer_links: true,
-        provider_identity_display: true,
+        provider_identity_display: true, affiliate_links: false,
         feed_hosts: ['partner.example'],
         offer_hosts: ['partner.example'],
       },
@@ -391,7 +445,7 @@ function approvedEnv(overrides = {}) {
         provider_id: 'zoxs', approval_reference: 'current-zoxs-contract',
         reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
         feed_access: true, price_display: true, offer_links: true,
-        provider_identity_display: true,
+        provider_identity_display: true, affiliate_links: false,
         feed_hosts: ['partner.example'],
         offer_hosts: ['partner.example'],
       },

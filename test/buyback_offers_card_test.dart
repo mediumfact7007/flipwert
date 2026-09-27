@@ -6,7 +6,7 @@ import 'package:flipwert/buyback_offers_card.dart';
 void main() {
   testWidgets('shows independent provider quotes and purchase margins without a private sale value', (tester) async {
     final checkedAt = DateTime.now().toUtc();
-    BuybackOffer offer(String id, double price) => BuybackOffer(
+    BuybackOffer offer(String id, double price, {bool affiliateLink = false}) => BuybackOffer(
           providerId: id,
           providerName: id,
           productId: 'iphone-15-pro-256',
@@ -18,9 +18,10 @@ void main() {
           checkedAt: checkedAt,
           requiresInspection: true,
           matchConfidence: 0.98,
+          affiliateLink: affiliateLink,
         );
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: BuybackOffersCard(
-      offers: [offer('Provider A', 610), offer('Provider B', 650), offer('Provider C', 450)],
+      offers: [offer('Provider A', 610), offer('Provider B', 650, affiliateLink: true), offer('Provider C', 450)],
       purchasePrice: 500,
     )))));
     expect(find.byKey(const ValueKey('buyback-offers-card')), findsOneWidget);
@@ -34,6 +35,9 @@ void main() {
     expect(find.text('Beste Marge'), findsOneWidget);
     expect(find.text('Zustand: Wie neu · Prüfung ausstehend'), findsNWidgets(3));
     expect(find.byKey(const ValueKey('buyback-inspection-note')), findsOneWidget);
-    expect(find.text('Öffnen'), findsNWidgets(3));
+    expect(find.text('Öffnen'), findsNWidgets(2));
+    expect(find.text('Werbelink öffnen'), findsOneWidget);
+    expect(find.byKey(const ValueKey('buyback-affiliate-note')), findsOneWidget);
+    expect(find.textContaining('Provision erhalten'), findsOneWidget);
   });
 }

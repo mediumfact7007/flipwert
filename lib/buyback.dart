@@ -51,9 +51,9 @@ bool _hasExplicitTimeZone(String value) {
 }
 
 class BuybackOffer {
-  const BuybackOffer({required this.providerId, required this.providerName, required this.productId, required this.matchedTitle, required this.condition, required this.price, required this.currency, required this.offerUrl, required this.checkedAt, required this.requiresInspection, required this.matchConfidence, this.conditionUncertain = false});
+  const BuybackOffer({required this.providerId, required this.providerName, required this.productId, required this.matchedTitle, required this.condition, required this.price, required this.currency, required this.offerUrl, required this.checkedAt, required this.requiresInspection, required this.matchConfidence, this.conditionUncertain = false, this.affiliateLink = false});
   static const double maxComparablePriceEur = 10000;
-  final String providerId; final String providerName; final String productId; final String matchedTitle; final BuybackCondition condition; final double price; final String currency; final Uri offerUrl; final DateTime checkedAt; final bool requiresInspection; final double matchConfidence; final bool conditionUncertain;
+  final String providerId; final String providerName; final String productId; final String matchedTitle; final BuybackCondition condition; final double price; final String currency; final Uri offerUrl; final DateTime checkedAt; final bool requiresInspection; final double matchConfidence; final bool conditionUncertain; final bool affiliateLink;
   bool get isEligibleForComparison => !conditionUncertain && providerId.trim().isNotEmpty && providerName.trim().isNotEmpty && productId.trim().isNotEmpty && matchedTitle.trim().isNotEmpty && price.isFinite && price > 0 && price <= maxComparablePriceEur && currency == 'EUR' && _hasSafeOfferUrl(offerUrl) && matchConfidence.isFinite && matchConfidence >= 0.9 && matchConfidence <= 1;
   bool isFreshAt(DateTime now, {Duration maxAge = const Duration(hours: 24), Duration futureTolerance = const Duration(minutes: 5)}) { final age = now.toUtc().difference(checkedAt.toUtc()); return age >= -futureTolerance && age <= maxAge; }
 
@@ -68,7 +68,7 @@ class BuybackOffer {
     final offerUrl = Uri.tryParse(json['offer_url'] as String? ?? '');
     if (price == null || confidence == null || checkedAt == null || !_hasExplicitTimeZone(checkedAtRaw) || offerUrl == null || !offerUrl.hasScheme || offerUrl.host.isEmpty) throw const FormatException('Incomplete buyback offer');
     if (!_hasSafeOfferUrl(offerUrl)) throw const FormatException('Unsafe buyback offer URL');
-    return BuybackOffer(providerId: json['provider_id'] as String? ?? '', providerName: json['provider_name'] as String? ?? '', productId: json['product_id'] as String? ?? '', matchedTitle: json['matched_title'] as String? ?? '', condition: condition, price: price, currency: json['currency'] as String? ?? '', offerUrl: offerUrl, checkedAt: checkedAt, requiresInspection: json['requires_inspection'] as bool? ?? true, matchConfidence: confidence, conditionUncertain: json['condition_uncertain'] as bool? ?? false);
+    return BuybackOffer(providerId: json['provider_id'] as String? ?? '', providerName: json['provider_name'] as String? ?? '', productId: json['product_id'] as String? ?? '', matchedTitle: json['matched_title'] as String? ?? '', condition: condition, price: price, currency: json['currency'] as String? ?? '', offerUrl: offerUrl, checkedAt: checkedAt, requiresInspection: json['requires_inspection'] as bool? ?? true, matchConfidence: confidence, conditionUncertain: json['condition_uncertain'] as bool? ?? false, affiliateLink: json['affiliate_link'] as bool? ?? false);
   }
 }
 
