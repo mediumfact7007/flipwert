@@ -30,6 +30,9 @@ Vertrag und keine juristische Prüfung.
 
 ## Veröffentlichungsgate Deutschland/EU
 
+Der manuell auszulösende öffentliche Android-Build wird zusätzlich durch das [technische Release-Gate](PUBLIC_RELEASE_GATE.md) blockiert, solange die erforderlichen Betreiber-, Datenschutz-, Bedingungen-, Quellenrechte- und Prüfbestätigungen fehlen. Normale CI-/Test-Builds bleiben davon unberührt.
+
+
 - Anbieterkennzeichnung und Kontakt nach [§ 5 DDG](https://www.gesetze-im-internet.de/ddg/__5.html) mit den tatsächlichen Betreiberangaben bereitstellen; keine Platzhalter veröffentlichen.
 - Datenschutzhinweise für App, Backend, lokale Deal-Speicherung, externe Suchlinks und eingesetzte SDKs erstellen; Rechtsgrundlagen und Empfänger prüfen. Einwilligung/Endgerätezugriff nach [§ 25 TDDDG](https://www.gesetze-im-internet.de/ttdsg/__25.html) und Google-Vorgaben für AdMob gesondert prüfen.
 - Vor Live-Billing und Werbung Preisdarstellung, Kaufbedingungen, Widerruf und Play-Store-Angaben für das konkrete Angebot prüfen.

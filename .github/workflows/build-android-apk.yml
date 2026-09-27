@@ -2,6 +2,12 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      public_release:
+        description: Require the documented public-release approvals
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [ main ]
 
@@ -64,6 +70,21 @@ jobs:
       - name: Check backend
         run: |
           npm --prefix server run check
+
+      - name: Verify public release gate
+        env:
+          FLIPWERT_PUBLIC_RELEASE: ${{ inputs.public_release || 'false' }}
+          FLIPWERT_OPERATOR_NAME: ${{ vars.FLIPWERT_OPERATOR_NAME }}
+          FLIPWERT_OPERATOR_ADDRESS: ${{ vars.FLIPWERT_OPERATOR_ADDRESS }}
+          FLIPWERT_OPERATOR_EMAIL: ${{ vars.FLIPWERT_OPERATOR_EMAIL }}
+          FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
+          FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
+          FLIPWERT_LEGAL_REVIEWED_AT: ${{ vars.FLIPWERT_LEGAL_REVIEWED_AT }}
+          FLIPWERT_LEGAL_REVIEW_ACK: ${{ vars.FLIPWERT_LEGAL_REVIEW_ACK }}
+          FLIPWERT_SOURCE_RIGHTS_ACK: ${{ vars.FLIPWERT_SOURCE_RIGHTS_ACK }}
+        run: |
+          python3 tools/check_public_release_gate_test.py
+          python3 tools/check_public_release_gate.py
 
       - name: Smoke test sandbox and disabled listing import
         shell: bash
