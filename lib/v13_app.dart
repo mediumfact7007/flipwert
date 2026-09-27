@@ -20,6 +20,8 @@ import 'buyback_offers_card.dart';
 import 'buyback_provider_links_card.dart';
 import 'buyback_recheck_card.dart';
 import 'deal_alert_toggle.dart';
+import 'dual_exit.dart';
+import 'dual_exit_card.dart';
 import 'deal_alert_result_card.dart';
 import 'manual_buyback_quote_card.dart';
 
@@ -1767,6 +1769,18 @@ class _V13CheckPageState extends State<V13CheckPage> {
     );
   }
 
+  DualExitComparison get dualExitComparison {
+    final offer = currentComparableBuybackOffer;
+    return buildDualExitComparison(
+      purchasePrice: buyPrice,
+      additionalCosts: extraCosts,
+      instantProceeds: offer == null
+          ? null
+          : buybackEffectiveProceeds(offer, buybackSafetyReserve),
+      marketEstimate: resaleEstimate,
+    );
+  }
+
   void _retryFailed() {
     if (failed.isEmpty) return;
     final q = normalizeV13Search(query.text).query;
@@ -2095,6 +2109,18 @@ class _V13CheckPageState extends State<V13CheckPage> {
                 initialQuote: manualBuybackQuote,
                 english: widget.english,
                 onChanged: (quote) => setState(() => manualBuybackQuote = quote),
+              ),
+            ],
+            if (buyPrice > 0 &&
+                (currentComparableBuybackOffer != null ||
+                    resaleEstimate != null)) ...[
+              const SizedBox(height: 8),
+              DualExitCard(
+                comparison: dualExitComparison,
+                instantProvider: currentComparableBuybackOffer?.providerName,
+                instantRequiresInspection:
+                    currentComparableBuybackOffer?.requiresInspection ?? false,
+                english: widget.english,
               ),
             ],
             if (buybackOffers.isNotEmpty && !buybackLoading) ...[
