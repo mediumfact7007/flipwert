@@ -101,4 +101,19 @@ void main() {
     expect(result.offer, isNull);
     expect(comparableBuybackOffers([result], now: now), isEmpty);
   });
+
+  test('provider expiry removes an otherwise fresh quote from comparison', () {
+    final checkedAt = DateTime.parse('2026-09-22T08:00:00Z');
+    final json = payload(checkedAt)
+      ..['expires_at'] = '2026-09-22T08:15:00Z';
+    final result = parseBuybackSourceItem(json, buybackSource);
+
+    expect(result.offer, isNotNull);
+    expect(
+      result.hasFreshComparableOfferAt(
+        DateTime.parse('2026-09-22T08:15:00Z'),
+      ),
+      isFalse,
+    );
+  });
 }

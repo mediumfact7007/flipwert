@@ -14,7 +14,7 @@ Stand: 23. September 2026. Technische Produktgrenzen, keine Rechtsfreigabe.
 
 1. Vor Implementierung Quelle, Verantwortlichen, Bedingungen, erlaubte Felder, Abruffrequenz, Caching, Weitergabe, Affiliate-Regeln und Ablaufdatum der Freigabe festhalten.
 2. Nur offizielle/vertraglich gedeckte Schnittstellen automatisiert abrufen. Keine Suche nach internen Endpunkten, Login-Automatisierung, Anti-Bot-Umgehung oder Fremdseiten-HTML als vermeintlich freie Preis-API.
-3. Preis, Währung, Auszahlungsart, Variante, Zustand, Abrufzeit und Anbieter-Link gemeinsam validieren. Nur ausdrücklich als Geld-Auszahlung deklarierte Ankaufangebote dürfen in Gewinn und Ranking einfließen; Gutschein- oder Shopguthaben sind keine Geld-Auszahlung. Fehlende Freigabe oder fehlende Pflichtwerte ergeben leere Ergebnisse, keine Schätzung als Live-Angebot.
+3. Preis, Währung, Auszahlungsart, Variante, Zustand, Abrufzeit, optionale Angebotsgültigkeit und Anbieter-Link gemeinsam validieren. Nur ausdrücklich als Geld-Auszahlung deklarierte Ankaufangebote dürfen in Gewinn und Ranking einfließen; Gutschein- oder Shopguthaben sind keine Geld-Auszahlung. Ein vom Anbieter genanntes Ablaufdatum begrenzt die allgemeine Frischegrenze zusätzlich. Fehlende Freigabe, abgelaufene Angebote oder fehlende Pflichtwerte ergeben leere Ergebnisse, keine Schätzung als Live-Angebot.
 4. Bei Widerruf, Vertragsänderung oder Sperre betroffene Quelle serverseitig abschalten; keine gespeicherten Fremddaten nach Ende der Nutzungsrechte weiter ausspielen.
 
 Das Buyback-Backend erzwingt diese Freigabe zusätzlich technisch: Neben der

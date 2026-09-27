@@ -32,6 +32,10 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   const confidence = Number(raw.match_confidence);
   const checkedAtRaw = text(raw.checked_at, 80);
   const checkedAt = Date.parse(checkedAtRaw);
+  const expiresAtRaw = raw.expires_at === undefined || raw.expires_at === null
+    ? ''
+    : text(raw.expires_at, 80);
+  const expiresAt = expiresAtRaw ? Date.parse(expiresAtRaw) : null;
   const offerUrl = text(raw.offer_url, 1000);
   let parsedUrl;
   try { parsedUrl = new URL(offerUrl); } catch (_) { return null; }
@@ -45,6 +49,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   if (text(raw.payout_type, 40) !== 'cash') return null;
   if (!Number.isFinite(confidence) || confidence < 0.9 || confidence > 1) return null;
   if (!hasExplicitTimeZone(checkedAtRaw) || !Number.isFinite(checkedAt) || checkedAt > now + 5 * 60 * 1000 || now - checkedAt > MAX_AGE_MS) return null;
+  if (expiresAtRaw && (!hasExplicitTimeZone(expiresAtRaw) || !Number.isFinite(expiresAt) || expiresAt <= now || expiresAt <= checkedAt)) return null;
   if (parsedUrl.protocol !== 'https:' || parsedUrl.username || parsedUrl.password) return null;
   if (raw.condition_uncertain === true) return null;
   if (raw.affiliate_link !== undefined && typeof raw.affiliate_link !== 'boolean') return null;
@@ -68,6 +73,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
     currency: 'EUR',
     offer_url: parsedUrl.toString(),
     checked_at: new Date(checkedAt).toISOString(),
+    ...(expiresAt === null ? {} : { expires_at: new Date(expiresAt).toISOString() }),
     price_kind: 'indicative_buyback',
     payout_type: 'cash',
     requires_inspection: raw.requires_inspection !== false,

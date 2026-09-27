@@ -39,6 +39,15 @@ class BuybackOffersCard extends StatelessWidget {
     return english ? '$month/$day $hour:$minute' : '$day.$month. $hour:$minute Uhr';
   }
 
+  String _validUntil(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return english ? '$month/$day $hour:$minute' : '$day.$month. $hour:$minute Uhr';
+  }
+
   String _conditionLabel(BuybackCondition condition) => switch (condition) {
         BuybackCondition.newSealed => english ? 'New / sealed' : 'Neu / versiegelt',
         BuybackCondition.likeNew => english ? 'Like new' : 'Wie neu',
@@ -156,6 +165,12 @@ class BuybackOffersCard extends StatelessWidget {
                     english ? 'Checked: ${_checkedAt(offer.checkedAt)} · Match ${(offer.matchConfidence * 100).round()}%' : 'Geprüft: ${_checkedAt(offer.checkedAt)} · Treffer ${(offer.matchConfidence * 100).round()} %',
                     style: theme.textTheme.bodySmall,
                   ),
+                  if (offer.expiresAt != null)
+                    Text(
+                      english ? 'Valid until: ${_validUntil(offer.expiresAt!)}' : 'Gültig bis: ${_validUntil(offer.expiresAt!)}',
+                      key: ValueKey('buyback-expiry-${offer.providerId}'),
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
                   if (purchasePrice > 0)
                     Builder(builder: (context) {
                       final margin = _effectiveProceeds(offer) - purchasePrice;

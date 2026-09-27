@@ -8,6 +8,7 @@ BuybackComparisonSummary summaryWithUrl(
   Uri url, {
   double buybackPrice = 620,
   double safetyReserve = 0,
+  DateTime? expiresAt,
 }) {
   return BuybackComparisonSummary(
     offer: BuybackOffer(
@@ -22,6 +23,7 @@ BuybackComparisonSummary summaryWithUrl(
       checkedAt: DateTime.parse('2026-09-21T12:00:00Z'),
       requiresInspection: true,
       matchConfidence: 0.98,
+      expiresAt: expiresAt,
     ),
     purchasePrice: 500,
     privateMarketValue: 680,
@@ -107,6 +109,23 @@ void main() {
     );
     expect(button.onPressed, isNotNull);
     expect(find.textContaining('Geldauszahlung'), findsOneWidget);
+  });
+
+  testWidgets('shows the provider-specific offer expiry', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BuybackComparisonCard(
+            summary: summaryWithUrl(
+              Uri.parse('https://example.com/offer'),
+              expiresAt: DateTime.parse('2026-09-21T13:00:00Z'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('buyback-expiry-note')), findsOneWidget);
   });
 
   testWidgets('shows the purchase basis used for both profit calculations', (

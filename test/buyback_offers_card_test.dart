@@ -16,6 +16,7 @@ void main() {
       price: 620,
       listedPrice: 650,
       mandatoryDeductionsEur: 30,
+      expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 30)),
       currency: 'EUR',
       offerUrl: Uri.parse('https://provider.example/offer/123'),
       checkedAt: DateTime.now().toUtc(),
@@ -40,6 +41,7 @@ void main() {
     );
     expect(find.text('Gewinn nach Gesamteinsatz: 120,00 €'), findsOneWidget);
     expect(find.text('Auszahlung: Geld'), findsOneWidget);
+    expect(find.byKey(const ValueKey('buyback-expiry-provider')), findsOneWidget);
   });
 
   testWidgets('shows independent provider quotes and purchase margins without a private sale value', (tester) async {

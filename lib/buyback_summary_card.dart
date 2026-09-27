@@ -33,6 +33,15 @@ class BuybackComparisonCard extends StatelessWidget {
     return _de ? 'Preis geprüft: $day.$month. · $hour:$minute Uhr · $ageText' : 'Price checked: $month/$day · $hour:$minute local time · $ageText';
   }
 
+  String _validUntil(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return _de ? 'Angebot gültig bis: $day.$month. · $hour:$minute Uhr' : 'Offer valid until: $month/$day · $hour:$minute local time';
+  }
+
   String get _matchQuality {
     final percent = (summary.offer.matchConfidence * 100).round().clamp(0, 100);
     return _de ? 'Produkt-Treffer: $percent %' : 'Product match: $percent%';
@@ -105,6 +114,14 @@ class BuybackComparisonCard extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ],
+          if (summary.offer.expiresAt != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _validUntil(summary.offer.expiresAt!),
+              key: const ValueKey('buyback-expiry-note'),
+              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
           if (summary.appliedSafetyReserve > 0) ...[

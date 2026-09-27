@@ -53,13 +53,13 @@ bool _hasExplicitTimeZone(String value) {
 }
 
 class BuybackOffer {
-  const BuybackOffer({required this.providerId, required this.providerName, required this.productId, required this.matchedTitle, required this.condition, required this.price, required this.currency, required this.offerUrl, required this.checkedAt, required this.requiresInspection, required this.matchConfidence, this.conditionUncertain = false, this.affiliateLink = false, this.listedPrice, this.mandatoryDeductionsEur = 0, this.payoutType = BuybackPayoutType.cash});
+  const BuybackOffer({required this.providerId, required this.providerName, required this.productId, required this.matchedTitle, required this.condition, required this.price, required this.currency, required this.offerUrl, required this.checkedAt, required this.requiresInspection, required this.matchConfidence, this.conditionUncertain = false, this.affiliateLink = false, this.listedPrice, this.mandatoryDeductionsEur = 0, this.payoutType = BuybackPayoutType.cash, this.expiresAt});
   static const double maxComparablePriceEur = 10000;
-  final String providerId; final String providerName; final String productId; final String matchedTitle; final BuybackCondition condition; final double price; final String currency; final Uri offerUrl; final DateTime checkedAt; final bool requiresInspection; final double matchConfidence; final bool conditionUncertain; final bool affiliateLink; final double? listedPrice; final double mandatoryDeductionsEur; final BuybackPayoutType payoutType;
+  final String providerId; final String providerName; final String productId; final String matchedTitle; final BuybackCondition condition; final double price; final String currency; final Uri offerUrl; final DateTime checkedAt; final bool requiresInspection; final double matchConfidence; final bool conditionUncertain; final bool affiliateLink; final double? listedPrice; final double mandatoryDeductionsEur; final BuybackPayoutType payoutType; final DateTime? expiresAt;
   double get displayedListedPrice => listedPrice ?? price;
   bool get hasMandatoryDeductions => mandatoryDeductionsEur > 0;
   bool get isEligibleForComparison => !conditionUncertain && payoutType == BuybackPayoutType.cash && providerId.trim().isNotEmpty && providerName.trim().isNotEmpty && productId.trim().isNotEmpty && matchedTitle.trim().isNotEmpty && price.isFinite && price > 0 && price <= maxComparablePriceEur && displayedListedPrice.isFinite && displayedListedPrice >= price && displayedListedPrice <= maxComparablePriceEur && mandatoryDeductionsEur.isFinite && mandatoryDeductionsEur >= 0 && (displayedListedPrice - mandatoryDeductionsEur - price).abs() < 0.011 && currency == 'EUR' && _hasSafeOfferUrl(offerUrl) && matchConfidence.isFinite && matchConfidence >= 0.9 && matchConfidence <= 1;
-  bool isFreshAt(DateTime now, {Duration maxAge = const Duration(hours: 24), Duration futureTolerance = const Duration(minutes: 5)}) { final age = now.toUtc().difference(checkedAt.toUtc()); return age >= -futureTolerance && age <= maxAge; }
+  bool isFreshAt(DateTime now, {Duration maxAge = const Duration(hours: 24), Duration futureTolerance = const Duration(minutes: 5)}) { final utcNow = now.toUtc(); final age = utcNow.difference(checkedAt.toUtc()); return age >= -futureTolerance && age <= maxAge && (expiresAt == null || utcNow.isBefore(expiresAt!.toUtc())); }
 
   factory BuybackOffer.fromJson(Map<String, dynamic> json) {
     final condition = BuybackConditionWire.tryParse(json['condition'] as String? ?? '');
@@ -73,12 +73,17 @@ class BuybackOffer {
     final confidence = (json['match_confidence'] as num?)?.toDouble();
     final checkedAtRaw = json['checked_at'] as String? ?? '';
     final checkedAt = DateTime.tryParse(checkedAtRaw);
+    final expiresAtValue = json['expires_at'];
+    if (expiresAtValue != null && expiresAtValue is! String) throw const FormatException('Invalid buyback expiry');
+    final expiresAtRaw = expiresAtValue as String?;
+    final expiresAt = expiresAtRaw == null ? null : DateTime.tryParse(expiresAtRaw);
     final offerUrl = Uri.tryParse(json['offer_url'] as String? ?? '');
     if (price == null || listedPrice == null || confidence == null || checkedAt == null || !_hasExplicitTimeZone(checkedAtRaw) || offerUrl == null || !offerUrl.hasScheme || offerUrl.host.isEmpty) throw const FormatException('Incomplete buyback offer');
+    if (expiresAtRaw != null && (expiresAt == null || !_hasExplicitTimeZone(expiresAtRaw) || !expiresAt.isAfter(checkedAt))) throw const FormatException('Invalid buyback expiry');
     if (priceBasis != null && priceBasis != 'net_after_mandatory_deductions') throw const FormatException('Unsupported buyback price basis');
     if (!listedPrice.isFinite || !mandatoryDeductions.isFinite || mandatoryDeductions < 0 || listedPrice < price || (listedPrice - mandatoryDeductions - price).abs() >= 0.011) throw const FormatException('Invalid buyback deductions');
     if (!_hasSafeOfferUrl(offerUrl)) throw const FormatException('Unsafe buyback offer URL');
-    return BuybackOffer(providerId: json['provider_id'] as String? ?? '', providerName: json['provider_name'] as String? ?? '', productId: json['product_id'] as String? ?? '', matchedTitle: json['matched_title'] as String? ?? '', condition: condition, price: price, currency: json['currency'] as String? ?? '', offerUrl: offerUrl, checkedAt: checkedAt, requiresInspection: json['requires_inspection'] as bool? ?? true, matchConfidence: confidence, conditionUncertain: json['condition_uncertain'] as bool? ?? false, affiliateLink: json['affiliate_link'] as bool? ?? false, listedPrice: listedPrice, mandatoryDeductionsEur: mandatoryDeductions, payoutType: BuybackPayoutType.cash);
+    return BuybackOffer(providerId: json['provider_id'] as String? ?? '', providerName: json['provider_name'] as String? ?? '', productId: json['product_id'] as String? ?? '', matchedTitle: json['matched_title'] as String? ?? '', condition: condition, price: price, currency: json['currency'] as String? ?? '', offerUrl: offerUrl, checkedAt: checkedAt, requiresInspection: json['requires_inspection'] as bool? ?? true, matchConfidence: confidence, conditionUncertain: json['condition_uncertain'] as bool? ?? false, affiliateLink: json['affiliate_link'] as bool? ?? false, listedPrice: listedPrice, mandatoryDeductionsEur: mandatoryDeductions, payoutType: BuybackPayoutType.cash, expiresAt: expiresAt);
   }
 }
 

@@ -39,6 +39,11 @@ assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 700 }), 
 assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: 'store_credit' }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: undefined }), { now }), null);
 
+const expiring = normalizeBuybackOffer(rawOffer({ expires_at: '2026-09-27T12:15:00Z' }), { now });
+assert.equal(expiring.expires_at, '2026-09-27T12:15:00.000Z');
+assert.equal(normalizeBuybackOffer(rawOffer({ expires_at: '2026-09-27T11:59:00Z' }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ expires_at: '2026-09-27T12:15:00' }), { now }), null);
+
 const highGross = normalizeBuybackOffer(rawOffer({ provider_id: 'gross', price: 650, mandatory_deductions_eur: 80 }), { now });
 const lowerGross = normalizeBuybackOffer(rawOffer({ provider_id: 'net', price: 620, mandatory_deductions_eur: 10 }), { now });
 assert.equal(bestBuybackOffer([highGross, lowerGross], 'like_new').provider_id, 'net');
