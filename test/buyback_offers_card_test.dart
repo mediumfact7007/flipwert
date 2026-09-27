@@ -6,6 +6,7 @@ import 'package:flipwert/buyback_offers_card.dart';
 void main() {
   testWidgets('shows independent provider quotes and purchase margins without a private sale value', (tester) async {
     final checkedAt = DateTime.now().toUtc();
+    Uri? opened;
     BuybackOffer offer(String id, double price, {bool affiliateLink = false}) => BuybackOffer(
           providerId: id,
           providerName: id,
@@ -23,6 +24,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: BuybackOffersCard(
       offers: [offer('Provider A', 610), offer('Provider B', 650, affiliateLink: true), offer('Provider C', 450)],
       purchasePrice: 500,
+      launcher: (uri) async {
+        opened = uri;
+        return true;
+      },
     )))));
     expect(find.byKey(const ValueKey('buyback-offers-card')), findsOneWidget);
     expect(find.text('650,00 €*'), findsOneWidget);
@@ -39,5 +44,44 @@ void main() {
     expect(find.text('Werbelink öffnen'), findsOneWidget);
     expect(find.byKey(const ValueKey('buyback-affiliate-note')), findsOneWidget);
     expect(find.textContaining('Provision erhalten'), findsOneWidget);
+
+    await tester.tap(find.text('Werbelink öffnen'));
+    await tester.pump();
+    expect(opened, Uri.parse('https://example.com/Provider%20B'));
+  });
+
+  testWidgets('reports a provider handoff failure instead of staying silent',
+      (tester) async {
+    final offer = BuybackOffer(
+      providerId: 'provider',
+      providerName: 'Provider',
+      productId: 'phone-256',
+      matchedTitle: 'Phone 256 GB',
+      condition: BuybackCondition.likeNew,
+      price: 600,
+      currency: 'EUR',
+      offerUrl: Uri.parse('https://provider.example/offer/123'),
+      checkedAt: DateTime.now().toUtc(),
+      requiresInspection: true,
+      matchConfidence: 0.98,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: BuybackOffersCard(
+          offers: [offer],
+          purchasePrice: 500,
+          launcher: (_) async => false,
+        ),
+      ),
+    ));
+
+    await tester.tap(find.text('Öffnen'));
+    await tester.pump();
+
+    expect(
+      find.text('Der Anbieterlink konnte nicht geöffnet werden.'),
+      findsOneWidget,
+    );
   });
 }

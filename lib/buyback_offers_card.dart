@@ -6,11 +6,18 @@ import 'buyback.dart';
 /// Current provider quotes stay visible even when no private-market valuation
 /// exists. The caller supplies already validated, condition-matched offers.
 class BuybackOffersCard extends StatelessWidget {
-  const BuybackOffersCard({super.key, required this.offers, required this.purchasePrice, this.english = false});
+  const BuybackOffersCard({
+    super.key,
+    required this.offers,
+    required this.purchasePrice,
+    this.english = false,
+    this.launcher,
+  });
 
   final List<BuybackOffer> offers;
   final double purchasePrice;
   final bool english;
+  final Future<bool> Function(Uri uri)? launcher;
 
   String _money(double amount) => '${amount.toStringAsFixed(2).replaceAll('.', english ? '.' : ',')} €';
 
@@ -31,6 +38,22 @@ class BuybackOffersCard extends StatelessWidget {
         BuybackCondition.acceptable => english ? 'Acceptable' : 'Akzeptabel',
         BuybackCondition.defective => english ? 'Defective' : 'Defekt',
       };
+
+  Future<void> _openProvider(
+    BuildContext context,
+    BuybackOffer offer,
+  ) async {
+    final opened = await (launcher?.call(offer.offerUrl) ??
+        launchUrl(offer.offerUrl, mode: LaunchMode.externalApplication));
+    if (!context.mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+        english
+            ? 'The provider link could not be opened.'
+            : 'Der Anbieterlink konnte nicht geöffnet werden.',
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +141,7 @@ class BuybackOffersCard extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextButton(
-                    onPressed: () => launchUrl(offer.offerUrl, mode: LaunchMode.externalApplication),
+                    onPressed: () => _openProvider(context, offer),
                     child: Text(
                       offer.affiliateLink
                           ? (english ? 'Open ad link' : 'Werbelink öffnen')
