@@ -4,6 +4,43 @@ import 'package:flipwert/buyback.dart';
 import 'package:flipwert/buyback_offers_card.dart';
 
 void main() {
+  testWidgets('shows listed price and net payout after provider deductions', (
+    tester,
+  ) async {
+    final offer = BuybackOffer(
+      providerId: 'provider',
+      providerName: 'Provider',
+      productId: 'phone-256',
+      matchedTitle: 'Phone 256 GB',
+      condition: BuybackCondition.likeNew,
+      price: 620,
+      listedPrice: 650,
+      mandatoryDeductionsEur: 30,
+      currency: 'EUR',
+      offerUrl: Uri.parse('https://provider.example/offer/123'),
+      checkedAt: DateTime.now().toUtc(),
+      requiresInspection: true,
+      matchConfidence: 0.98,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: BuybackOffersCard(
+          offers: [offer],
+          purchasePrice: 500,
+          launcher: (_) async => true,
+        ),
+      ),
+    ));
+
+    expect(find.text('650,00 €*'), findsOneWidget);
+    expect(
+      find.text('Nettoauszahlung 620,00 € nach 30,00 € Pflichtabzügen.'),
+      findsOneWidget,
+    );
+    expect(find.text('Gewinn nach Gesamteinsatz: 120,00 €'), findsOneWidget);
+  });
+
   testWidgets('shows independent provider quotes and purchase margins without a private sale value', (tester) async {
     final checkedAt = DateTime.now().toUtc();
     Uri? opened;

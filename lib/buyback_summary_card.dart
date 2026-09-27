@@ -94,6 +94,19 @@ class BuybackComparisonCard extends StatelessWidget {
           _ExitRow(title: _de ? 'Privat verkaufen' : 'Sell privately', value: _money(summary.privateMarketValue), detail: '${_de ? 'Gewinn' : 'Profit'} ${_money(summary.privateMargin)} · ROI ${_roi(summary.privateRoi)}', emphasized: !noProfitableExit && !instantBetter && !equalProfit, emphasisLabel: profitLabel),
           const Divider(height: 22),
           _ExitRow(title: _de ? 'Sofortankauf' : 'Instant buyback', value: instantValue, detail: '${summary.offer.providerName} · ${_de ? 'Gewinn' : 'Profit'} ${_money(summary.instantMargin)} · ROI ${_roi(summary.instantRoi)}', emphasized: !noProfitableExit && instantBetter, emphasisLabel: profitLabel),
+          if (summary.offer.hasMandatoryDeductions) ...[
+            const SizedBox(height: 6),
+            Text(
+              _de
+                  ? 'Nettoauszahlung: ${_money(summary.offer.price)} nach ${_money(summary.offer.mandatoryDeductionsEur)} gemeldeten Pflichtabzügen vom Anbieterpreis ${_money(summary.offer.displayedListedPrice)}.'
+                  : 'Net payout: ${_money(summary.offer.price)} after ${_money(summary.offer.mandatoryDeductionsEur)} reported mandatory deductions from the listed ${_money(summary.offer.displayedListedPrice)}.',
+              key: const ValueKey('buyback-mandatory-deductions-note'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (summary.appliedSafetyReserve > 0) ...[
             const SizedBox(height: 6),
             Text(

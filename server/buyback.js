@@ -24,7 +24,11 @@ function hasExplicitTimeZone(value) {
 function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   if (!raw || typeof raw !== 'object') return null;
   const condition = text(raw.condition, 32);
-  const price = Number(raw.price);
+  const listedPrice = Number(raw.price);
+  const mandatoryDeductions = raw.mandatory_deductions_eur === undefined
+    ? 0
+    : Number(raw.mandatory_deductions_eur);
+  const price = Math.round((listedPrice - mandatoryDeductions) * 100) / 100;
   const confidence = Number(raw.match_confidence);
   const checkedAtRaw = text(raw.checked_at, 80);
   const checkedAt = Date.parse(checkedAtRaw);
@@ -33,7 +37,9 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   try { parsedUrl = new URL(offerUrl); } catch (_) { return null; }
 
   if (!CONDITIONS.has(condition)) return null;
-  if (!Number.isFinite(price) || price <= 0 || price > MAX_PRICE_EUR) return null;
+  if (!Number.isFinite(listedPrice) || listedPrice <= 0 || listedPrice > MAX_PRICE_EUR) return null;
+  if (!Number.isFinite(mandatoryDeductions) || mandatoryDeductions < 0 ||
+      mandatoryDeductions >= listedPrice || price <= 0) return null;
   if (text(raw.currency, 8) !== 'EUR') return null;
   if (text(raw.price_kind, 40) !== 'indicative_buyback') return null;
   if (!Number.isFinite(confidence) || confidence < 0.9 || confidence > 1) return null;
@@ -55,6 +61,9 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
     matched_title: matchedTitle,
     condition,
     price,
+    listed_price: listedPrice,
+    mandatory_deductions_eur: mandatoryDeductions,
+    price_basis: 'net_after_mandatory_deductions',
     currency: 'EUR',
     offer_url: parsedUrl.toString(),
     checked_at: new Date(checkedAt).toISOString(),

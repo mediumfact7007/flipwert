@@ -176,11 +176,21 @@ class BuybackOffersCard extends StatelessWidget {
                       ),
                       style: theme.textTheme.bodySmall,
                     ),
+                  if (offer.hasMandatoryDeductions)
+                    Text(
+                      english
+                          ? 'Net payout ${_money(offer.price)} after ${_money(offer.mandatoryDeductionsEur)} mandatory deductions.'
+                          : 'Nettoauszahlung ${_money(offer.price)} nach ${_money(offer.mandatoryDeductionsEur)} Pflichtabzügen.',
+                      key: ValueKey('buyback-deductions-${offer.providerId}'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ])),
                 const SizedBox(width: 8),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(
-                    '${_money(offer.price)}${offer.requiresInspection ? '*' : ''}',
+                    '${_money(offer.hasMandatoryDeductions ? offer.displayedListedPrice : offer.price)}${offer.requiresInspection ? '*' : ''}',
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextButton(
