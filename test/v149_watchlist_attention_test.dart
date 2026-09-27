@@ -38,6 +38,7 @@ void main() {
           flips: [fresh, stale, oldest],
           monetization: monetization,
           onUpdate: (_) {},
+          onImportSales: (_) {},
           onDelete: (_) {},
           onRecheck: (value) => requested = value,
           onPro: () {},
