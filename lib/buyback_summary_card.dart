@@ -53,7 +53,7 @@ class BuybackComparisonCard extends StatelessWidget {
     final theme = Theme.of(context);
     final provisionalSuffix = summary.offer.requiresInspection ? (_de ? ' (vor Prüfung)' : ' (before inspection)') : '';
     final recommendation = noProfitableExit
-        ? (_de ? 'Kein positiver Exit – Einkaufspreis zu hoch' : 'No profitable exit – purchase price is too high')
+        ? (_de ? 'Kein positiver Exit – Gesamteinsatz zu hoch' : 'No profitable exit – total investment is too high')
         : equalProfit
             ? (_de ? 'Gleicher Gewinn – Sofortankauf spart Zeit' : 'Same profit – instant buyback saves time')
             : instantBetter
@@ -71,7 +71,14 @@ class BuybackComparisonCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(_de ? 'Flipwert zeigt dir Erlös, Gewinn und den Preis für mehr Bequemlichkeit.' : 'Flipwert shows proceeds, profit and the price of extra convenience.', style: theme.textTheme.bodySmall),
           const SizedBox(height: 4),
-          Text(_de ? 'Basis: Einkauf ${_money(summary.purchasePrice)}' : 'Basis: purchase ${_money(summary.purchasePrice)}', key: const ValueKey('buyback-purchase-basis'), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+          Text(_de ? 'Basis: Gesamteinsatz ${_money(summary.purchasePrice)}' : 'Basis: total investment ${_money(summary.purchasePrice)}', key: const ValueKey('buyback-purchase-basis'), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            _de
+                ? 'Gesamteinsatz = Einkaufspreis + eingetragene Zusatzkosten.'
+                : 'Total investment = purchase price + entered additional costs.',
+            key: const ValueKey('buyback-cost-basis-note'),
+            style: theme.textTheme.bodySmall,
+          ),
           const SizedBox(height: 10),
           Container(
             key: const ValueKey('buyback-recommendation'),

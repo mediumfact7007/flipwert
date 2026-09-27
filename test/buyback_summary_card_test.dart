@@ -80,7 +80,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Basis: Einkauf 500 €'), findsOneWidget);
+    expect(find.text('Basis: Gesamteinsatz 500 €'), findsOneWidget);
+    expect(
+      find.text('Gesamteinsatz = Einkaufspreis + eingetragene Zusatzkosten.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows provider product match quality for trust', (tester) async {

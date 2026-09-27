@@ -78,6 +78,16 @@ class BuybackOffersCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(english ? 'Indicative prices for the selected condition; inspection may change the payout.' : 'Vorläufige Preise für den gewählten Zustand; die Prüfung kann den Auszahlungsbetrag ändern.', style: theme.textTheme.bodySmall),
+          if (purchasePrice > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              english
+                  ? 'Margin basis: total investment ${_money(purchasePrice)} (purchase + entered additional costs).'
+                  : 'Margenbasis: Gesamteinsatz ${_money(purchasePrice)} (Einkauf + eingetragene Zusatzkosten).',
+              key: const ValueKey('buyback-offers-cost-basis'),
+              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
           for (final offer in ranked) ...[
             const Divider(height: 20),
             Row(
@@ -124,8 +134,8 @@ class BuybackOffersCard extends StatelessWidget {
                       final profitable = margin >= 0;
                       return Text(
                         profitable
-                            ? (english ? 'Profit after purchase: ${_money(margin)}' : 'Gewinn nach Einkauf: ${_money(margin)}')
-                            : (english ? 'Loss after purchase: ${_money(-margin)}' : 'Verlust nach Einkauf: ${_money(-margin)}'),
+                            ? (english ? 'Profit after total investment: ${_money(margin)}' : 'Gewinn nach Gesamteinsatz: ${_money(margin)}')
+                            : (english ? 'Loss after total investment: ${_money(-margin)}' : 'Verlust nach Gesamteinsatz: ${_money(-margin)}'),
                         key: ValueKey('buyback-margin-${offer.providerId}'),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: profitable ? const Color(0xFF087F5B) : theme.colorScheme.error,

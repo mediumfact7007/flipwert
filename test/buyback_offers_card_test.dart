@@ -31,11 +31,18 @@ void main() {
     )))));
     expect(find.byKey(const ValueKey('buyback-offers-card')), findsOneWidget);
     expect(find.text('650,00 €*'), findsOneWidget);
-    expect(find.text('Gewinn nach Einkauf: 150,00 €'), findsOneWidget);
+    expect(find.text('Gewinn nach Gesamteinsatz: 150,00 €'), findsOneWidget);
     expect(find.text('610,00 €*'), findsOneWidget);
-    expect(find.text('Gewinn nach Einkauf: 110,00 €'), findsOneWidget);
+    expect(find.text('Gewinn nach Gesamteinsatz: 110,00 €'), findsOneWidget);
     expect(find.text('450,00 €*'), findsOneWidget);
-    expect(find.text('Verlust nach Einkauf: 50,00 €'), findsOneWidget);
+    expect(find.text('Verlust nach Gesamteinsatz: 50,00 €'), findsOneWidget);
+    expect(
+      find.text(
+        'Margenbasis: Gesamteinsatz 500,00 € '
+        '(Einkauf + eingetragene Zusatzkosten).',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('3 qualitätsgeprüfte Anbieterangebote'), findsOneWidget);
     expect(find.text('Beste Marge'), findsOneWidget);
     expect(find.text('Zustand: Wie neu · Prüfung ausstehend'), findsNWidgets(3));
