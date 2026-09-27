@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'buyback.dart';
 
@@ -11,6 +12,7 @@ class BuybackRecheckCard extends StatelessWidget {
     required this.currentOffer,
     required this.currentPurchasePrice,
     this.english = false,
+    this.launcher,
   });
 
   final String previousProvider;
@@ -19,12 +21,30 @@ class BuybackRecheckCard extends StatelessWidget {
   final BuybackOffer currentOffer;
   final double currentPurchasePrice;
   final bool english;
+  final Future<bool> Function(Uri uri)? launcher;
 
   String t(String de, String en) => english ? en : de;
 
   String _money(double amount) {
     final value = amount.toStringAsFixed(2).replaceAll('.', english ? '.' : ',');
     return '$value €';
+  }
+
+  Future<void> _openCurrentOffer(BuildContext context) async {
+    final opened = await (launcher?.call(currentOffer.offerUrl) ??
+        launchUrl(
+          currentOffer.offerUrl,
+          mode: LaunchMode.externalApplication,
+        ));
+    if (!context.mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+        t(
+          'Der Anbieterlink konnte nicht geöffnet werden.',
+          'The provider link could not be opened.',
+        ),
+      ),
+    ));
   }
 
   @override
@@ -76,6 +96,20 @@ class BuybackRecheckCard extends StatelessWidget {
           '${t('Ankaufpreis-Differenz', 'Buyback price difference')}: ${priceDelta > 0 ? '+' : ''}${_money(priceDelta)} · '
           '${t('Gewinn jetzt', 'Profit now')}: ${_money(currentProfit)}',
           style: const TextStyle(fontSize: 10, color: Color(0xFF6D7180)),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: const ValueKey('buyback-recheck-open-current'),
+            onPressed: () => _openCurrentOffer(context),
+            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+            label: Text(
+              currentOffer.affiliateLink
+                  ? t('Aktuellen Werbelink öffnen', 'Open current ad link')
+                  : t('Aktuelles Angebot öffnen', 'Open current offer'),
+            ),
+          ),
         ),
       ]),
     );
