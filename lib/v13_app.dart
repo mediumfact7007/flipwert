@@ -32,6 +32,7 @@ import 'source_registry.dart';
 import 'source_status.dart';
 import 'scanner_page.dart';
 import 'sales_csv.dart';
+import 'resale_estimate.dart';
 
 const _v13Primary = Color(0xFF4E50D8);
 const _v13Ink = Color(0xFF20213F);
@@ -1811,24 +1812,45 @@ class _V13CheckPageState extends State<V13CheckPage> {
   String get category => v13Category(query.text);
   V13PersonalStats get personal => V13PersonalStats.forCategory(widget.flips, category);
 
+  List<double> get ebayAskingValues => _clean(
+        listings
+            .where((item) =>
+                item.live &&
+                item.sourceId == 'ebay_de' &&
+                (item.role == 'resale' || item.role == 'local'))
+            .map((item) => item.total)
+            .where((value) => value > 0 && value.isFinite)
+            .toList(),
+      );
+
+  ResaleEstimate? get resaleEstimate => estimateResaleValue(
+        ResaleEstimateInput(
+          article: query.text,
+          category: category,
+          ownSales: widget.flips
+              .where((flip) =>
+                  flip.status == 'Sold' &&
+                  flip.actualSell > 0 &&
+                  flip.soldAt != null)
+              .map((flip) => ResaleSaleSample(
+                    article: flip.name,
+                    category: flip.category,
+                    salePrice: flip.actualSell,
+                    purchaseDate: flip.createdAt,
+                    saleDate: flip.soldAt!,
+                  ))
+              .toList(),
+          activeEbayAskingPrices: ebayAskingValues,
+          buybackFloor: buybackMedian,
+        ),
+      );
+
   double? get baseExpectedSale {
     if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
-    final values = resaleValues;
-    if (values.length < 3) return null;
-    final median = _median(values);
-    if (median == null || median <= 0) return null;
-    // Asking-price heuristic only; deliberately not labelled as sold data.
-    return median * .90;
+    return resaleEstimate?.likely;
   }
 
-  double? get expectedSale {
-    final base = baseExpectedSale;
-    if (base == null) return null;
-    if (widget.plan != UserPlan.free && personal.sample >= 3 && personal.saleFactor != null) {
-      return base * personal.saleFactor!;
-    }
-    return base;
-  }
+  double? get expectedSale => baseExpectedSale;
 
   double get extraCosts => v13Money(costs.text);
   double get buybackSafetyReserve => v13Money(buybackReserve.text);
@@ -1866,13 +1888,8 @@ class _V13CheckPageState extends State<V13CheckPage> {
   List<double> get resaleValues => _clean(_valuesFor({'resale', 'local'}));
 
   double? get conservativeExit {
-    final values = resaleValues;
-    if (values.isEmpty) return buybackMedian;
-    final idx = ((values.length - 1) * .25).floor();
-    final lower = values[idx] * .85;
-    final buyback = buybackMedian;
-    if (buyback != null && buyback > 0) return math.max(lower, buyback);
-    return lower;
+    if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
+    return resaleEstimate?.low;
   }
 
   double? _sourceMedian(String id) => _median(_clean(listings.where((e) => e.live && e.sourceId == id).map((e) => e.total).where((e) => e > 0).toList()));
