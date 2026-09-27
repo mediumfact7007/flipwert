@@ -75,18 +75,38 @@ int _compareProviderQuotes(BuybackOffer a, BuybackOffer b) {
 
 /// Result metadata keeps an unavailable partner separate from an enabled
 /// source that simply has no matching quote. Empty prices are never estimated.
+enum BuybackReadiness {
+  ready,
+  awaitingValidation,
+  approvalsMissing,
+  notConfigured,
+}
+
+BuybackReadiness? parseBuybackReadiness(Object? value) {
+  if (value == 'ready') return BuybackReadiness.ready;
+  if (value == 'missing_or_stale_validation') {
+    return BuybackReadiness.awaitingValidation;
+  }
+  if (value == 'no_current_provider_approvals') {
+    return BuybackReadiness.approvalsMissing;
+  }
+  return value is String ? BuybackReadiness.notConfigured : null;
+}
+
 class BuybackSearchResult {
   const BuybackSearchResult({
     required this.offers,
     required this.configured,
     required this.live,
     required this.unavailable,
+    this.readiness,
   });
 
   final List<BuybackOffer> offers;
   final bool configured;
   final bool live;
   final bool unavailable;
+  final BuybackReadiness? readiness;
 }
 
 /// Isolated client for Flipwert's buyback endpoint.
@@ -147,6 +167,7 @@ class BuybackClient {
       }
       final configured = decoded['configured'] == true;
       final unavailable = decoded['unavailable'] == true;
+      final readiness = parseBuybackReadiness(decoded['readiness']);
       final rawItems = decoded['items'];
       if (rawItems is! List) {
         return BuybackSearchResult(offers: const [], configured: configured, live: false, unavailable: true);
@@ -177,6 +198,7 @@ class BuybackClient {
         configured: configured,
         live: configured && decoded['live'] == true && distinct.isNotEmpty,
         unavailable: unavailable,
+        readiness: readiness,
       );
     } catch (_) {
       // Buyback is optional: network/provider failure must never break the

@@ -1674,6 +1674,66 @@ class _V13CheckPageState extends State<V13CheckPage> {
         BuybackCondition.defective => t('Defekt', 'Defective'),
       };
 
+  String get _buybackEmptyTitle {
+    final result = buybackResult;
+    if (result?.unavailable == true) {
+      return t(
+        'Ankaufquelle vorübergehend nicht erreichbar',
+        'Buyback source temporarily unavailable',
+      );
+    }
+    if (result?.configured == true) {
+      return t(
+        'Kein passendes LIVE-Ankaufangebot',
+        'No matching LIVE buyback offer',
+      );
+    }
+    return switch (result?.readiness) {
+      BuybackReadiness.awaitingValidation => t(
+          'LIVE-Ankaufquelle wartet auf technische Freigabe',
+          'LIVE buyback source awaits technical approval',
+        ),
+      BuybackReadiness.approvalsMissing => t(
+          'Anbieterfreigabe fehlt oder ist abgelaufen',
+          'Provider approval is missing or expired',
+        ),
+      _ => t(
+          'Noch keine LIVE-Ankaufquelle freigeschaltet',
+          'No LIVE buyback source enabled yet',
+        ),
+    };
+  }
+
+  String get _buybackEmptyBody {
+    final result = buybackResult;
+    if (result?.unavailable == true) {
+      return t(
+        'Die LIVE-Abfrage ist fehlgeschlagen. Deine normale Deal-Prüfung bleibt nutzbar; Flipwert zeigt keinen geschätzten Ersatzpreis.',
+        'The LIVE request failed. Your normal deal check remains available; Flipwert does not show an estimated substitute price.',
+      );
+    }
+    if (result?.configured == true) {
+      return t(
+        'Die angebundene Quelle liefert für diesen Artikel und Zustand aktuell keinen qualitätsgeprüften Preis. Flipwert schätzt hier bewusst keinen Ankaufpreis.',
+        'The connected source currently has no quality-checked price for this item and condition. Flipwert deliberately does not estimate a buyback price.',
+      );
+    }
+    return switch (result?.readiness) {
+      BuybackReadiness.awaitingValidation => t(
+          'Der genehmigte Feed ist vorbereitet, aber die repräsentative Geräte-, Varianten- und Zustandsprüfung ist noch nicht aktuell erfolgreich. Bis zur bewussten Aktivierung zeigt Flipwert keine Preise.',
+          'The approved feed is prepared, but its representative product, variant and condition validation is not currently successful. Flipwert shows no prices until deliberate activation.',
+        ),
+      BuybackReadiness.approvalsMissing => t(
+          'Für LIVE-Preise werden aktuelle Feed-, Preis-, Anbieter- und Linkrechte benötigt. Ohne gültige Freigabe bleibt die Quelle gesperrt.',
+          'Current feed, price-display, provider and link rights are required for LIVE prices. The source stays disabled without valid approval.',
+        ),
+      _ => t(
+          'Für echte Ankaufpreise fehlt noch ein genehmigter Anbieterfeed mit Preisfreigabe. Flipwert zeigt bis dahin bewusst keinen geschätzten Ankaufpreis.',
+          'An approved provider feed with price-display permission is still required for real buyback prices. Flipwert deliberately shows no estimated price until then.',
+        ),
+    };
+  }
+
   BuybackComparisonSummary? get buybackSummary {
     final condition = buybackCondition;
     final privateValue = expectedSale;
@@ -1978,20 +2038,12 @@ class _V13CheckPageState extends State<V13CheckPage> {
                   const SizedBox(width: 7),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(
-                      buybackResult?.unavailable == true
-                          ? t('Ankaufquelle vorübergehend nicht erreichbar', 'Buyback source temporarily unavailable')
-                          : buybackResult?.configured == true
-                              ? t('Kein passendes LIVE-Ankaufangebot', 'No matching LIVE buyback offer')
-                              : t('Noch keine LIVE-Ankaufquelle freigeschaltet', 'No LIVE buyback source enabled yet'),
+                      _buybackEmptyTitle,
                       style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      buybackResult?.unavailable == true
-                          ? t('Die LIVE-Abfrage ist fehlgeschlagen. Deine normale Deal-Prüfung bleibt nutzbar; Flipwert zeigt keinen geschätzten Ersatzpreis.', 'The LIVE request failed. Your normal deal check remains available; Flipwert does not show an estimated substitute price.')
-                          : buybackResult?.configured == true
-                              ? t('Die angebundene Quelle liefert für diesen Artikel und Zustand aktuell keinen qualitätsgeprüften Preis. Flipwert schätzt hier bewusst keinen Ankaufpreis.', 'The connected source currently has no quality-checked price for this item and condition. Flipwert deliberately does not estimate a buyback price.')
-                              : t('Für echte Ankaufpreise fehlt noch ein genehmigter Anbieterfeed mit Preisfreigabe. Flipwert zeigt bis dahin bewusst keinen geschätzten Ankaufpreis.', 'An approved provider feed with price-display permission is still required for real buyback prices. Flipwert deliberately shows no estimated price until then.'),
+                      _buybackEmptyBody,
                       style: const TextStyle(fontSize: 9.8, color: Color(0xFF6F6250)),
                     ),
                     if (buybackResult?.unavailable == true) ...[

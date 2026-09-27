@@ -333,11 +333,13 @@ const server = http.createServer(async (req, res) => {
       const started = Date.now();
       try {
         const result = await fetchBuybackOffers(q, condition);
+        const readiness = buybackSourceStatus().readiness;
         return json(res, 200, {
           source: 'buyback',
           query: q,
           condition,
           configured: result.configured,
+          readiness,
           unavailable: result.unavailable === true,
           live: result.configured && result.items.length > 0,
           items: result.items,

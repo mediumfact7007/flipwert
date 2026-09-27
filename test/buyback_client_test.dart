@@ -163,6 +163,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'configured': true,
+            'readiness': 'ready',
             'live': true,
             'unavailable': false,
             'items': [
@@ -211,6 +212,7 @@ void main() {
     expect(result.configured, isTrue);
     expect(result.live, isTrue);
     expect(result.unavailable, isFalse);
+    expect(result.readiness, BuybackReadiness.ready);
     expect(result.offers.single.providerId, 'rebuy');
     expect(result.offers.single.condition, BuybackCondition.usedGood);
   });
@@ -231,5 +233,21 @@ void main() {
     expect(empty.unavailable, isFalse);
     expect(unavailable.configured, isTrue);
     expect(unavailable.unavailable, isTrue);
+  });
+
+  test('maps only documented readiness reasons to safe app states', () {
+    expect(
+      parseBuybackReadiness('missing_or_stale_validation'),
+      BuybackReadiness.awaitingValidation,
+    );
+    expect(
+      parseBuybackReadiness('no_current_provider_approvals'),
+      BuybackReadiness.approvalsMissing,
+    );
+    expect(
+      parseBuybackReadiness('missing_token'),
+      BuybackReadiness.notConfigured,
+    );
+    expect(parseBuybackReadiness({'unexpected': true}), isNull);
   });
 }
