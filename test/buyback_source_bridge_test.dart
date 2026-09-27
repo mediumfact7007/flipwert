@@ -28,6 +28,7 @@ Map<String, dynamic> payload(
       'offer_url': 'https://example.com/offer',
       'checked_at': checkedAt.toIso8601String(),
       'price_kind': 'indicative_buyback',
+      'payout_type': 'cash',
       'requires_inspection': true,
       'match_confidence': confidence,
       'live': true,
@@ -88,6 +89,16 @@ void main() {
     expect(result.listing.title, 'Apple iPhone 15 Pro 256 GB');
     expect(result.offer, isNull);
     expect(result.hasComparableOffer, isFalse);
+    expect(comparableBuybackOffers([result], now: now), isEmpty);
+  });
+
+  test('store credit remains visible but never becomes a comparable payout', () {
+    final now = DateTime.parse('2026-09-22T08:00:00Z');
+    final json = payload(now)..['payout_type'] = 'store_credit';
+    final result = parseBuybackSourceItem(json, buybackSource);
+
+    expect(result.listing.title, 'Apple iPhone 15 Pro 256 GB');
+    expect(result.offer, isNull);
     expect(comparableBuybackOffers([result], now: now), isEmpty);
   });
 }
