@@ -24,9 +24,7 @@ Anbieter-/Markendarstellung getrennt. Affiliate-/Werbelinks benötigen eine\nzus
 Ablaufdatum sowie ausdrücklich genehmigte Feed- und Angebotslink-Hosts.
 Freigaben gelten nur für den hinterlegten Feed-Host; abweichende Angebotslinks,
 abgelaufene, unvollständige oder nicht im Datensatz enthaltene Anbieter-IDs aus
-demselben Feed werden verworfen. Die Konfiguration bleibt
-serverseitig und dokumentiert nur die bewusste Aktivierung; sie ersetzt keinen
-Vertrag und keine juristische Prüfung.
+demselben Feed werden verworfen. Zusätzlich bleibt die Quelle gesperrt, bis eine repräsentative Geräte-, Varianten- und Zustandsmatrix erfolgreich geprüft wurde. Der dabei erzeugte Aktivierungs-Fingerprint ist an die konkrete Feed-URL und die aktuellen Freigabedaten gebunden; Änderungen oder auslaufende Rechte sperren LIVE-Preise bis zur erneuten Abnahme. Die Konfiguration bleibt serverseitig und dokumentiert nur die bewusste Aktivierung; sie ersetzt keinen Vertrag und keine juristische Prüfung.
 
 ## Veröffentlichungsgate Deutschland/EU
 

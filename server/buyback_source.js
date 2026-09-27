@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const { CONDITIONS, normalizeBuybackPayload, bestBuybackOffer } = require('./buyback');
 const { matchesBuybackQuery } = require('./buyback_match');
 
@@ -16,7 +18,9 @@ const BUYBACK_SOURCE_URL = String(process.env.BUYBACK_SOURCE_URL || '').trim();
 const BUYBACK_SOURCE_TOKEN = String(process.env.BUYBACK_SOURCE_TOKEN || '').trim();
 const BUYBACK_SOURCE_POLICY_ACK = String(process.env.BUYBACK_SOURCE_POLICY_ACK || '').trim();
 const BUYBACK_SOURCE_APPROVALS_JSON = String(process.env.BUYBACK_SOURCE_APPROVALS_JSON || '').trim();
+const BUYBACK_SOURCE_ACTIVATION_FINGERPRINT = String(process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT || '').trim().toLowerCase();
 const REQUIRED_POLICY_ACK = 'approved-feed-and-price-display-v1';
+const ACTIVATION_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 const APPROVED_HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const resultCache = new Map();
@@ -100,6 +104,31 @@ function currentSourceApprovals(now = Date.now()) {
   }
 }
 
+function sourceConfigFingerprint(now = Date.now()) {
+  const approvals = currentSourceApprovals(now);
+  if (!approvals.size || !BUYBACK_SOURCE_URL) return null;
+  let sourceUrl;
+  try {
+    sourceUrl = new URL(BUYBACK_SOURCE_URL).toString();
+  } catch (_) {
+    return null;
+  }
+  const providers = [...approvals.values()]
+    .sort((a, b) => a.providerId.localeCompare(b.providerId))
+    .map((approval) => ({
+      provider_id: approval.providerId,
+      approval_reference: approval.approvalReference,
+      reviewed_at: new Date(approval.reviewedAt).toISOString(),
+      valid_until: new Date(approval.validUntil).toISOString(),
+      feed_hosts: [...approval.feedHosts].sort(),
+      offer_hosts: [...approval.offerHosts].sort(),
+      affiliate_links: approval.affiliateLinks,
+    }));
+  return crypto.createHash('sha256')
+    .update(JSON.stringify({ source_url: sourceUrl, providers }))
+    .digest('hex');
+}
+
 function hasCurrentApproval(now = Date.now()) {
   return currentSourceApprovals(now).size > 0;
 }
@@ -128,7 +157,7 @@ function hasPublicSourceHost(hostname) {
     (a === 203 && b === 0 && c === 113) || a >= 224);
 }
 
-function sourceReadiness(now = Date.now()) {
+function sourceRightsReadiness(now = Date.now()) {
   if (!BUYBACK_SOURCE_URL) return 'missing_source_url';
   let url;
   try {
@@ -144,6 +173,18 @@ function sourceReadiness(now = Date.now()) {
   if (![...approvals.values()].some((approval) =>
     approval.feedHosts.has(url.hostname.toLowerCase()))) {
     return 'source_host_not_approved';
+  }
+  return 'rights_ready';
+}
+
+function sourceReadiness(now = Date.now()) {
+  const rightsReadiness = sourceRightsReadiness(now);
+  if (rightsReadiness !== 'rights_ready') return rightsReadiness;
+  const expected = sourceConfigFingerprint(now);
+  if (!expected ||
+      !ACTIVATION_FINGERPRINT_PATTERN.test(BUYBACK_SOURCE_ACTIVATION_FINGERPRINT) ||
+      BUYBACK_SOURCE_ACTIVATION_FINGERPRINT !== expected) {
+    return 'missing_or_stale_validation';
   }
   return 'ready';
 }
@@ -197,8 +238,24 @@ function cacheResult(key, result, now) {
   resultCache.set(key, { expiresAt, result });
 }
 
-async function fetchBuybackOffers(query, condition, { fetchImpl = fetch, now = Date.now() } = {}) {
-  if (!configured(now)) return { configured: false, items: [], best: null };
+async function fetchBuybackOffers(query, condition, options = {}) {
+  return fetchBuybackOffersInternal(query, condition, options, true);
+}
+
+async function fetchBuybackOffersForVerification(query, condition, options = {}) {
+  return fetchBuybackOffersInternal(query, condition, options, false);
+}
+
+async function fetchBuybackOffersInternal(
+  query,
+  condition,
+  { fetchImpl = fetch, now = Date.now() } = {},
+  requireActivation,
+) {
+  const available = requireActivation
+    ? configured(now)
+    : sourceRightsReadiness(now) === 'rights_ready';
+  if (!available) return { configured: false, items: [], best: null };
 
   const normalizedQuery = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 160);
   if (normalizedQuery.length < 3) return { configured: true, items: [], best: null };
@@ -277,7 +334,9 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
 
 function sourceStatus(now = Date.now()) {
   const approvals = currentSourceApprovals(now);
-  const isConfigured = configured(now);
+  const readiness = sourceReadiness(now);
+  const rightsReady = sourceRightsReadiness(now) === 'rights_ready';
+  const isConfigured = readiness === 'ready';
   return {
     configured: isConfigured,
     mode: isConfigured ? 'approved_partner_adapter' : 'disabled',
@@ -285,11 +344,21 @@ function sourceStatus(now = Date.now()) {
     max_age_hours: 24,
     cache_ttl_seconds: BUYBACK_SOURCE_CACHE_TTL_MS / 1000,
     minimum_match_confidence: 0.9,
-    rights_gate: isConfigured ? 'approved' : 'not_approved_or_expired',
-    readiness: sourceReadiness(now),
-    approval_model: 'per_provider_hosts_and_affiliate_rights_v3',
+    rights_gate: rightsReady ? 'approved' : 'not_approved_or_expired',
+    activation_gate: isConfigured ? 'validated' : 'missing_or_stale',
+    readiness,
+    approval_model: 'per_provider_hosts_affiliate_and_activation_v4',
+    activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: isConfigured ? approvals.size : 0,
   };
 }
 
-module.exports = { configured, fetchBuybackOffers, sourceStatus, hasCurrentApproval, sourceReadiness };
+module.exports = {
+  configured,
+  fetchBuybackOffers,
+  fetchBuybackOffersForVerification,
+  sourceStatus,
+  hasCurrentApproval,
+  sourceReadiness,
+  activationFingerprint: sourceConfigFingerprint,
+};

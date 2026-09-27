@@ -52,6 +52,7 @@ BUYBACK_SOURCE_TOKEN=...
 BUYBACK_SOURCE_TIMEOUT_MS=6000
 BUYBACK_SOURCE_CACHE_TTL_MS=60000
 BUYBACK_SOURCE_POLICY_ACK=approved-feed-and-price-display-v1
+BUYBACK_SOURCE_ACTIVATION_FINGERPRINT=
 BUYBACK_SOURCE_APPROVALS_JSON=[{"provider_id":"zoxs","approval_reference":"internal-contract-reference","reviewed_at":"2026-09-24T00:00:00Z","valid_until":"2027-12-31T23:59:59Z","feed_access":true,"price_display":true,"offer_links":true,"provider_identity_display":true,"feed_hosts":["partner-adapter.example"],"offer_hosts":["www.zoxs.de"]}]
 ```
 
@@ -67,8 +68,11 @@ hosts and exact permitted offer-link hosts. Feed rows for other, expired or
 partially approved providers are discarded even if the adapter returns them.
 Use `docs/buyback-source-approval.example.json` as the non-secret template.
 The public `/v1/status` response exposes a `readiness` reason such as
-`missing_policy_ack`, `source_host_not_approved` or `ready` without
-revealing credentials or internal contract references. Renew or disable each record before its configured expiry; never use these
+`missing_policy_ack`, `source_host_not_approved`,
+`missing_or_stale_validation` or `ready` without revealing credentials or
+internal contract references. Rights approval alone does not activate LIVE
+prices: the exact current source URL and provider-rights configuration must
+also match a successful representative validation fingerprint. Renew or disable each record before its configured expiry; never use these
 flags as a substitute for the underlying written rights. Keep this JSON and all
 credentials in deployment configuration, not in the APK or repository.
 
@@ -95,6 +99,15 @@ The matrix is limited to 20 cases, runs sequentially to respect partner limits
 and fails closed when any case has no fresh exact-condition offer. Output
 identifies only the failing case index and reason; it never prints the query,
 price, destination URL, token or approval reference.
+
+Leave `BUYBACK_SOURCE_ACTIVATION_FINGERPRINT` empty for this pre-activation
+probe. A successful matrix returns a non-secret `activation_fingerprint`.
+Store that exact value in the server deployment configuration and restart the
+service. Changing the source URL, approval reference, validity dates, approved
+hosts or affiliate rights changes the expected fingerprint and disables LIVE
+prices until the matrix is rerun and the new fingerprint is deliberately
+applied. Removing the fingerprint immediately disables the source after a
+server restart, without an app update.
 
 The command exits successfully only when the rights gate is ready and at least
 one fresh, exact-condition offer survives the full validation path (or every

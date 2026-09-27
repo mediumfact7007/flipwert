@@ -3,10 +3,16 @@
 const assert = require('assert');
 const { verifyBuybackSource, verifyBuybackSourceMatrix } = require('./verify_buyback_source');
 
-function fakeSource({ status, result }) {
+function fakeSource({ status, result, verificationResult, activationFingerprint }) {
   return {
     sourceStatus: () => status,
     fetchBuybackOffers: async () => result,
+    ...(verificationResult === undefined ? {} : {
+      fetchBuybackOffersForVerification: async () => verificationResult,
+    }),
+    ...(activationFingerprint === undefined ? {} : {
+      activationFingerprint: () => activationFingerprint,
+    }),
   };
 }
 
@@ -33,6 +39,37 @@ function fakeSource({ status, result }) {
       ok: false,
       reason: 'source_not_ready',
       readiness: 'missing_current_provider_approval',
+    },
+  );
+
+  const pendingActivation = fakeSource({
+    status: { configured: false, readiness: 'missing_or_stale_validation' },
+    verificationResult: {
+      configured: true,
+      items: [{
+        provider_id: 'zoxs',
+        condition: 'like_new',
+        checked_at: '2026-09-24T08:00:00Z',
+      }],
+      best: null,
+    },
+    activationFingerprint: 'a'.repeat(64),
+  });
+  assert.deepStrictEqual(
+    await verifyBuybackSource({
+      query: 'iPhone 15 Pro 256 GB',
+      condition: 'like_new',
+      source: pendingActivation,
+    }),
+    {
+      ok: true,
+      readiness: 'validation_passed_activation_required',
+      condition: 'like_new',
+      offer_count: 1,
+      provider_count: 1,
+      provider_ids: ['zoxs'],
+      newest_checked_at: '2026-09-24T08:00:00.000Z',
+      activation_fingerprint: 'a'.repeat(64),
     },
   );
 

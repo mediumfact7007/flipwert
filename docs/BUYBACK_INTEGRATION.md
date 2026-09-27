@@ -72,6 +72,11 @@ Required fields: provider, matched product, normalized condition, price/currency
 - Affiliate/advertising links require a separate explicit provider approval.
   A feed item marked `affiliate_link: true` is discarded unless that right is
   current; accepted commercial links are labelled visibly in the app.
+- A rights-approved feed remains pre-activation until a representative
+  product/variant/condition matrix succeeds. The resulting configuration
+  fingerprint is bound to the exact source URL, approval references, validity
+  dates, approved hosts and affiliate rights; any change disables LIVE prices
+  until the matrix is rerun and deliberately reactivated.
 - Repeated identical product/condition requests are coalesced and may use a
   short server-side cache within the partner's rate limits. An outage is never
   cached as a valid empty result, and cached quotes never outlive the normal

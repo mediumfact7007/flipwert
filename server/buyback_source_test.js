@@ -12,6 +12,7 @@ function loadSource(env = {}) {
     BUYBACK_SOURCE_CACHE_TTL_MS: process.env.BUYBACK_SOURCE_CACHE_TTL_MS,
     BUYBACK_SOURCE_POLICY_ACK: process.env.BUYBACK_SOURCE_POLICY_ACK,
     BUYBACK_SOURCE_APPROVALS_JSON: process.env.BUYBACK_SOURCE_APPROVALS_JSON,
+    BUYBACK_SOURCE_ACTIVATION_FINGERPRINT: process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT,
   };
   if (env.url === undefined) delete process.env.BUYBACK_SOURCE_URL;
   else process.env.BUYBACK_SOURCE_URL = env.url;
@@ -25,8 +26,21 @@ function loadSource(env = {}) {
   else process.env.BUYBACK_SOURCE_POLICY_ACK = env.policyAck;
   if (env.approvals === undefined) delete process.env.BUYBACK_SOURCE_APPROVALS_JSON;
   else process.env.BUYBACK_SOURCE_APPROVALS_JSON = env.approvals;
+  if (env.activation === undefined || env.activation === 'auto') {
+    delete process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT;
+  } else {
+    process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT = env.activation;
+  }
   delete require.cache[MODULE];
-  const source = require('./buyback_source');
+  let source = require('./buyback_source');
+  if (env.activation === 'auto') {
+    const fingerprint = source.activationFingerprint(
+      env.activationNow || Date.parse('2026-09-20T08:00:00Z'),
+    );
+    process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT = fingerprint || '';
+    delete require.cache[MODULE];
+    source = require('./buyback_source');
+  }
   return {
     source,
     restore() {
@@ -44,6 +58,7 @@ function approvedEnv(overrides = {}) {
     url: 'https://partner.example/quotes',
     cacheTtl: 0,
     policyAck: 'approved-feed-and-price-display-v1',
+    activation: 'auto',
     approvals: JSON.stringify([{
       provider_id: 'clevertronic',
       approval_reference: 'partner-contract-2026-01',
@@ -95,6 +110,23 @@ function approvedEnv(overrides = {}) {
 
   loaded = loadSource(approvedEnv({ policyAck: 'affiliate-link-only' }));
   assert.strictEqual(loaded.source.configured(), false, 'affiliate access is not price-display approval');
+  loaded.restore();
+
+  loaded = loadSource(approvedEnv({ activation: '' }));
+  assert.strictEqual(
+    loaded.source.configured(),
+    false,
+    'rights alone must not activate a feed before representative validation',
+  );
+  assert.strictEqual(
+    loaded.source.sourceStatus().readiness,
+    'missing_or_stale_validation',
+  );
+  assert.match(
+    loaded.source.activationFingerprint(),
+    /^[a-f0-9]{64}$/,
+    'a rights-approved pre-activation source must expose a non-secret validation fingerprint',
+  );
   loaded.restore();
 
   loaded = loadSource(approvedEnv({ approvals: '[]' }));
@@ -365,8 +397,10 @@ function approvedEnv(overrides = {}) {
     cache_ttl_seconds: 0,
     minimum_match_confidence: 0.9,
     rights_gate: 'approved',
+    activation_gate: 'validated',
     readiness: 'ready',
-    approval_model: 'per_provider_hosts_and_affiliate_rights_v3',
+    approval_model: 'per_provider_hosts_affiliate_and_activation_v4',
+    activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: 2,
   });
   loaded.restore();
@@ -465,8 +499,20 @@ function approvedEnv(overrides = {}) {
     'Apple iPhone 15 Pro 256 GB', 'like_new',
     { now: cachedNow + 31000, fetchImpl: approvalExpiryFetch },
   );
-  assert.strictEqual(approvalExpiryFetchCalls, 2, 'cache must not outlive the quoted provider rights');
-  assert.strictEqual(afterApprovalExpiry.items.length, 0, 'an expired provider must disappear even while another approval remains current');
+  assert.strictEqual(
+    approvalExpiryFetchCalls,
+    1,
+    'a changed approval set must invalidate activation before another partner request',
+  );
+  assert.deepStrictEqual(afterApprovalExpiry, {
+    configured: false,
+    items: [],
+    best: null,
+  });
+  assert.strictEqual(
+    loaded.source.sourceStatus(cachedNow + 31000).readiness,
+    'missing_or_stale_validation',
+  );
   loaded.restore();
 
   loaded = loadSource(approvedEnv({ cacheTtl: 60000 }));

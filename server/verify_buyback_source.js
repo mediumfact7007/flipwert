@@ -23,7 +23,10 @@ async function verifyBuybackSource({
   }
 
   const status = source.sourceStatus();
-  if (!status.configured) {
+  const pendingActivation = !status.configured &&
+    status.readiness === 'missing_or_stale_validation' &&
+    typeof source.fetchBuybackOffersForVerification === 'function';
+  if (!status.configured && !pendingActivation) {
     return {
       ok: false,
       reason: 'source_not_ready',
@@ -31,10 +34,10 @@ async function verifyBuybackSource({
     };
   }
 
-  const result = await source.fetchBuybackOffers(
-    normalizedQuery,
-    normalizedCondition,
-  );
+  const fetchOffers = pendingActivation
+    ? source.fetchBuybackOffersForVerification.bind(source)
+    : source.fetchBuybackOffers.bind(source);
+  const result = await fetchOffers(normalizedQuery, normalizedCondition);
   if (result.unavailable === true) {
     return { ok: false, reason: 'source_unavailable', readiness: 'ready' };
   }
@@ -61,9 +64,12 @@ async function verifyBuybackSource({
     .map((item) => Date.parse(String(item.checked_at || '')))
     .filter(Number.isFinite);
 
+  const activationFingerprint = typeof source.activationFingerprint === 'function'
+    ? source.activationFingerprint()
+    : null;
   return {
     ok: true,
-    readiness: 'ready',
+    readiness: status.configured ? 'ready' : 'validation_passed_activation_required',
     condition: normalizedCondition,
     offer_count: items.length,
     provider_count: providers.length,
@@ -71,6 +77,10 @@ async function verifyBuybackSource({
     newest_checked_at: checkedTimes.length
       ? new Date(Math.max(...checkedTimes)).toISOString()
       : null,
+    ...(typeof activationFingerprint === 'string' &&
+      /^[a-f0-9]{64}$/.test(activationFingerprint)
+      ? { activation_fingerprint: activationFingerprint }
+      : {}),
   };
 }
 
@@ -109,9 +119,14 @@ async function verifyBuybackSourceMatrix({
     .map((result) => Date.parse(String(result.newest_checked_at || '')))
     .filter(Number.isFinite);
 
+  const activationFingerprints = [...new Set(results
+    .map((result) => result.activation_fingerprint)
+    .filter(Boolean))];
   return {
     ok: true,
-    readiness: 'ready',
+    readiness: results.every((result) => result.readiness === 'ready')
+      ? 'ready'
+      : 'validation_passed_activation_required',
     case_count: results.length,
     offer_count: results.reduce((sum, result) => sum + result.offer_count, 0),
     provider_count: providerIds.length,
@@ -119,6 +134,9 @@ async function verifyBuybackSourceMatrix({
     newest_checked_at: checkedTimes.length
       ? new Date(Math.max(...checkedTimes)).toISOString()
       : null,
+    ...(activationFingerprints.length === 1
+      ? { activation_fingerprint: activationFingerprints[0] }
+      : {}),
   };
 }
 
