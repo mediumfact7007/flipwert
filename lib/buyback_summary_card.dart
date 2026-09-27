@@ -93,7 +93,7 @@ class BuybackComparisonCard extends StatelessWidget {
           const SizedBox(height: 14),
           _ExitRow(title: _de ? 'Privat verkaufen' : 'Sell privately', value: _money(summary.privateMarketValue), detail: '${_de ? 'Gewinn' : 'Profit'} ${_money(summary.privateMargin)} · ROI ${_roi(summary.privateRoi)}', emphasized: !noProfitableExit && !instantBetter && !equalProfit, emphasisLabel: profitLabel),
           const Divider(height: 22),
-          _ExitRow(title: _de ? 'Sofortankauf' : 'Instant buyback', value: instantValue, detail: '${summary.offer.providerName} · ${_de ? 'Gewinn' : 'Profit'} ${_money(summary.instantMargin)} · ROI ${_roi(summary.instantRoi)}', emphasized: !noProfitableExit && instantBetter, emphasisLabel: profitLabel),
+          _ExitRow(title: _de ? 'Sofortankauf' : 'Instant buyback', value: instantValue, detail: '${summary.offer.providerName} · ${_de ? 'Geldauszahlung' : 'Money payout'} · ${_de ? 'Gewinn' : 'Profit'} ${_money(summary.instantMargin)} · ROI ${_roi(summary.instantRoi)}', emphasized: !noProfitableExit && instantBetter, emphasisLabel: profitLabel),
           if (summary.offer.hasMandatoryDeductions) ...[
             const SizedBox(height: 6),
             Text(

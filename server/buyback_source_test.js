@@ -252,7 +252,7 @@ function approvedEnv(overrides = {}) {
             provider_id: 'clevertronic', provider_name: 'Clevertronic', product_id: 'iphone-15-pro-256',
             matched_title: 'Apple iPhone 15 Pro 256 GB', condition: 'like_new', price: 615, currency: 'EUR',
             offer_url: 'https://partner.example/offer/123', checked_at: '2026-09-20T07:55:00Z',
-            price_kind: 'indicative_buyback', requires_inspection: true, match_confidence: 0.98,
+            price_kind: 'indicative_buyback', payout_type: 'cash', requires_inspection: true, match_confidence: 0.98,
           }] };
         },
       };
@@ -278,7 +278,7 @@ function approvedEnv(overrides = {}) {
           provider_id: 'clevertronic', provider_name: 'Clevertronic', product_id: 'iphone-15-pro-256',
           matched_title: 'Apple iPhone 15 Pro 256 GB', condition: 'like_new', price: 615,
           currency: 'EUR', offer_url: 'https://partner.example/offer/good',
-          checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback',
+          checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback', payout_type: 'cash',
           match_confidence: 0.98,
         };
         return { items: [good, {
@@ -288,11 +288,13 @@ function approvedEnv(overrides = {}) {
           ...good, condition: 'used_good', price: 850,
         }, {
           ...good, offer_url: 'https://unapproved-offer.example/offer/redirected', price: 999,
+        }, {
+          ...good, provider_id: 'store-credit', payout_type: 'store_credit', price: 999,
         }] };
       },
     }),
   });
-  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions and offer hosts must not enter the comparison');
+  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions, offer hosts and non-cash payouts must not enter the comparison');
   assert.strictEqual(mixed.items[0].condition, 'like_new', 'only the explicitly requested condition may reach the app');
   assert.strictEqual(mixed.best.provider_id, 'clevertronic');
 
@@ -309,7 +311,7 @@ function approvedEnv(overrides = {}) {
             condition: 'like_new', price: 620, currency: 'EUR',
             offer_url: 'https://partner.example/offer/affiliate',
             checked_at: '2026-09-20T07:55:00Z',
-            price_kind: 'indicative_buyback', match_confidence: 0.98,
+            price_kind: 'indicative_buyback', payout_type: 'cash', match_confidence: 0.98,
             affiliate_link: true,
           }] };
         },
@@ -339,7 +341,7 @@ function approvedEnv(overrides = {}) {
             condition: 'like_new', price: 620, currency: 'EUR',
             offer_url: 'https://partner.example/offer/affiliate',
             checked_at: '2026-09-20T07:55:00Z',
-            price_kind: 'indicative_buyback', match_confidence: 0.98,
+            price_kind: 'indicative_buyback', payout_type: 'cash', match_confidence: 0.98,
             affiliate_link: true,
           }] };
         },
@@ -377,7 +379,7 @@ function approvedEnv(overrides = {}) {
           provider_name: 'Approved provider', product_id: 'iphone-15-pro-256',
           matched_title: 'Apple iPhone 15 Pro 256 GB', condition: 'like_new', price: 615,
           currency: 'EUR', offer_url: 'https://partner.example/offer/good',
-          checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback',
+          checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback', payout_type: 'cash',
           requires_inspection: true, match_confidence: 0.98,
         };
         return { items: [
@@ -438,7 +440,7 @@ function approvedEnv(overrides = {}) {
         product_id: 'iphone-15-pro-256', matched_title: 'Apple iPhone 15 Pro 256 GB',
         condition: 'like_new', price: 615, currency: 'EUR',
         offer_url: 'https://partner.example/offer/cached',
-        checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback',
+        checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback', payout_type: 'cash',
         requires_inspection: true, match_confidence: 0.98,
       }] };
     },

@@ -15,6 +15,7 @@ const rawOffer = (overrides = {}) => ({
   offer_url: 'https://provider.example/offer/123',
   checked_at: '2026-09-27T11:55:00Z',
   price_kind: 'indicative_buyback',
+  payout_type: 'cash',
   requires_inspection: true,
   match_confidence: 0.98,
   ...overrides,
@@ -35,6 +36,8 @@ assert.equal(unchanged.mandatory_deductions_eur, 0);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: -1 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 620 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 700 }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: 'store_credit' }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: undefined }), { now }), null);
 
 const highGross = normalizeBuybackOffer(rawOffer({ provider_id: 'gross', price: 650, mandatory_deductions_eur: 80 }), { now });
 const lowerGross = normalizeBuybackOffer(rawOffer({ provider_id: 'net', price: 620, mandatory_deductions_eur: 10 }), { now });

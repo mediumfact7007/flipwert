@@ -18,6 +18,7 @@ void main() {
       'offer_url': 'https://provider.example/offer/123',
       'checked_at': '2026-09-27T11:55:00Z',
       'price_kind': 'indicative_buyback',
+      'payout_type': 'cash',
       'requires_inspection': true,
       'match_confidence': 0.98,
     });
@@ -50,6 +51,7 @@ void main() {
         'offer_url': 'https://provider.example/offer/123',
         'checked_at': '2026-09-27T11:55:00Z',
         'price_kind': 'indicative_buyback',
+        'payout_type': 'cash',
         'match_confidence': 0.98,
       }),
       throwsFormatException,

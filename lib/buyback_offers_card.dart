@@ -148,6 +148,11 @@ class BuybackOffersCard extends StatelessWidget {
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(
+                    english ? 'Payout: money' : 'Auszahlung: Geld',
+                    key: ValueKey('buyback-payout-${offer.providerId}'),
+                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
                     english ? 'Checked: ${_checkedAt(offer.checkedAt)} · Match ${(offer.matchConfidence * 100).round()}%' : 'Geprüft: ${_checkedAt(offer.checkedAt)} · Treffer ${(offer.matchConfidence * 100).round()} %',
                     style: theme.textTheme.bodySmall,
                   ),

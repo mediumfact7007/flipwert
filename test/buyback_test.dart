@@ -3,7 +3,7 @@ import 'package:flipwert/buyback.dart';
 
 BuybackOffer offer({required double price, BuybackCondition condition = BuybackCondition.likeNew, double confidence = 0.98, bool uncertain = false, DateTime? checkedAt, Uri? offerUrl}) => BuybackOffer(providerId: 'provider-$price', providerName: 'Provider', productId: 'iphone-15-pro-256', matchedTitle: 'Apple iPhone 15 Pro 256 GB', condition: condition, price: price, currency: 'EUR', offerUrl: offerUrl ?? Uri.parse('https://example.com/offer'), checkedAt: checkedAt ?? DateTime.parse('2026-09-16T08:30:00+02:00'), requiresInspection: true, matchConfidence: confidence, conditionUncertain: uncertain);
 
-Map<String, dynamic> payload() => {'provider_id':'example','provider_name':'Example','product_id':'iphone-15-pro-256','matched_title':'Apple iPhone 15 Pro 256 GB','condition':'like_new','price':620,'currency':'EUR','offer_url':'https://example.com/offer','checked_at':'2026-09-16T08:30:00+02:00','price_kind':'indicative_buyback','requires_inspection':true,'match_confidence':0.98};
+Map<String, dynamic> payload() => {'provider_id':'example','provider_name':'Example','product_id':'iphone-15-pro-256','matched_title':'Apple iPhone 15 Pro 256 GB','condition':'like_new','price':620,'currency':'EUR','offer_url':'https://example.com/offer','checked_at':'2026-09-16T08:30:00+02:00','price_kind':'indicative_buyback','payout_type':'cash','requires_inspection':true,'match_confidence':0.98};
 
 void main() {
   test('condition wire values round-trip', () { for (final condition in BuybackCondition.values) { expect(BuybackConditionWire.tryParse(condition.wireValue), condition); } });
@@ -19,4 +19,5 @@ void main() {
   test('parses normalized adapter payload', () { final parsed=BuybackOffer.fromJson(payload()); expect(parsed.condition,BuybackCondition.likeNew); expect(parsed.price,620); expect(parsed.isEligibleForComparison,isTrue); });
   test('rejects unsafe offer URLs while parsing provider payloads', () { for(final url in ['http://example.com/offer','https://user:secret@example.com/offer','https://localhost/offer','https://localhost./offer','https://api.localhost/offer','https://192.168.1.20/offer','https://[fd12:3456::1]/offer','https://example.com:8443/offer']) { final json=payload()..['offer_url']=url; expect(()=>BuybackOffer.fromJson(json),throwsFormatException,reason:url); } });
   test('rejects non-buyback price kinds', () { final json=payload()..['price_kind']='asking_price'; expect(()=>BuybackOffer.fromJson(json),throwsFormatException); });
+  test('rejects store credit, vouchers and missing payout types', () { for (final payout in ['store_credit', 'voucher', null]) { final json=payload()..['payout_type']=payout; expect(()=>BuybackOffer.fromJson(json),throwsFormatException,reason:'$payout'); } });
 }

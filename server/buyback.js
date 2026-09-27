@@ -42,6 +42,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
       mandatoryDeductions >= listedPrice || price <= 0) return null;
   if (text(raw.currency, 8) !== 'EUR') return null;
   if (text(raw.price_kind, 40) !== 'indicative_buyback') return null;
+  if (text(raw.payout_type, 40) !== 'cash') return null;
   if (!Number.isFinite(confidence) || confidence < 0.9 || confidence > 1) return null;
   if (!hasExplicitTimeZone(checkedAtRaw) || !Number.isFinite(checkedAt) || checkedAt > now + 5 * 60 * 1000 || now - checkedAt > MAX_AGE_MS) return null;
   if (parsedUrl.protocol !== 'https:' || parsedUrl.username || parsedUrl.password) return null;
@@ -68,6 +69,7 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
     offer_url: parsedUrl.toString(),
     checked_at: new Date(checkedAt).toISOString(),
     price_kind: 'indicative_buyback',
+    payout_type: 'cash',
     requires_inspection: raw.requires_inspection !== false,
     match_confidence: confidence,
     affiliate_link: raw.affiliate_link === true,

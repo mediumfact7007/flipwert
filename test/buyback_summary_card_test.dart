@@ -106,6 +106,7 @@ void main() {
       find.byKey(const ValueKey('buyback-open-offer')),
     );
     expect(button.onPressed, isNotNull);
+    expect(find.textContaining('Geldauszahlung'), findsOneWidget);
   });
 
   testWidgets('shows the purchase basis used for both profit calculations', (

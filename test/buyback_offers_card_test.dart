@@ -39,6 +39,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Gewinn nach Gesamteinsatz: 120,00 €'), findsOneWidget);
+    expect(find.text('Auszahlung: Geld'), findsOneWidget);
   });
 
   testWidgets('shows independent provider quotes and purchase margins without a private sale value', (tester) async {
