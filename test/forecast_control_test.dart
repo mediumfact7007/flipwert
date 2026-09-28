@@ -75,6 +75,21 @@ void main() {
     );
   });
 
+  test('user base discount is used until category learning is available', () {
+    const row = ForecastObservation(
+      category: 'Kamera',
+      estimatedLikely: 700,
+      actualSalePrice: 690,
+    );
+
+    final result = forecastAccuracyByCategory(
+      const [row],
+      fallbackEbayDiscount: .18,
+    ).single;
+    expect(result.ebayDiscount, .18);
+    expect(result.ebayCalibrationSamples, 0);
+  });
+
   test('deal snapshot fields survive persistence and create an observation', () {
     final flip = V13Flip(
       id: 'forecast-1',

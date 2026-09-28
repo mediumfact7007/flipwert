@@ -736,6 +736,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
   String backend = '';
   double targetRoi = 35;
   double minProfit = 20;
+  double ebayDiscount = .10;
   UserPlan plan = UserPlan.free;
   V13TaxMode taxMode = V13TaxMode.privateSeller;
   List<V13Flip> flips = [];
@@ -763,6 +764,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
         backend = '';
         targetRoi = 35;
         minProfit = 20;
+        ebayDiscount = .10;
         plan = UserPlan.free;
         taxMode = V13TaxMode.privateSeller;
         flips = <V13Flip>[];
@@ -796,6 +798,9 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       backend = loadedBackend;
       targetRoi = (prefs.getDouble('roi_v13') ?? prefs.getDouble('roi_v10') ?? 35).clamp(10, 100).toDouble();
       minProfit = (prefs.getDouble('min_profit_v13') ?? prefs.getDouble('min_profit_v12') ?? 20).clamp(0, 500).toDouble();
+      ebayDiscount = (prefs.getDouble('ebay_discount_v13') ?? .10)
+          .clamp(0, .40)
+          .toDouble();
       plan = rawPlan <= 0 ? UserPlan.free : UserPlan.pro;
       taxMode = V13TaxMode.values[rawTax.clamp(0, V13TaxMode.values.length - 1)];
       flips = loadedFlips;
@@ -823,6 +828,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       await p.setString('backend_v13', backend);
       await p.setDouble('roi_v13', targetRoi);
       await p.setDouble('min_profit_v13', minProfit);
+      await p.setDouble('ebay_discount_v13', ebayDiscount);
       await p.setInt('plan_v13', plan == UserPlan.free ? 0 : 1);
       await p.setInt('tax_mode_v13', taxMode.index);
       await p.setStringList('flips_v13', flips.map((e) => jsonEncode(e.toJson())).toList());
@@ -876,6 +882,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
               backend: backend,
               targetRoi: targetRoi,
               minProfit: minProfit,
+              ebayDiscount: ebayDiscount,
               plan: plan,
               taxMode: taxMode,
               flips: flips,
@@ -909,6 +916,10 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
               },
               onMinProfit: (value) {
                 setState(() => minProfit = value.clamp(0, 500).toDouble());
+                _save();
+              },
+              onEbayDiscount: (value) {
+                setState(() => ebayDiscount = value.clamp(0, .40).toDouble());
                 _save();
               },
               onTaxMode: (value) {
@@ -945,6 +956,7 @@ class V13Shell extends StatefulWidget {
   final String backend;
   final double targetRoi;
   final double minProfit;
+  final double ebayDiscount;
   final UserPlan plan;
   final V13TaxMode taxMode;
   final List<V13Flip> flips;
@@ -959,6 +971,7 @@ class V13Shell extends StatefulWidget {
   final ValueChanged<bool> onLanguage;
   final ValueChanged<double> onRoi;
   final ValueChanged<double> onMinProfit;
+  final ValueChanged<double> onEbayDiscount;
   final ValueChanged<V13TaxMode> onTaxMode;
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
@@ -970,6 +983,7 @@ class V13Shell extends StatefulWidget {
     required this.backend,
     required this.targetRoi,
     required this.minProfit,
+    this.ebayDiscount = .10,
     required this.plan,
     required this.taxMode,
     required this.flips,
@@ -984,6 +998,7 @@ class V13Shell extends StatefulWidget {
     required this.onLanguage,
     required this.onRoi,
     required this.onMinProfit,
+    required this.onEbayDiscount,
     required this.onTaxMode,
     required this.onBackend,
     required this.onSources,
@@ -1061,6 +1076,7 @@ class _V13ShellState extends State<V13Shell> {
             backendBase: widget.backend,
             targetRoi: widget.targetRoi,
             minProfit: widget.minProfit,
+            ebayDiscount: widget.ebayDiscount,
             plan: widget.plan,
             taxMode: widget.taxMode,
             sources: widget.sources,
@@ -1098,6 +1114,7 @@ class _V13ShellState extends State<V13Shell> {
           backend: widget.backend,
           targetRoi: widget.targetRoi,
           minProfit: widget.minProfit,
+          ebayDiscount: widget.ebayDiscount,
           plan: widget.plan,
           taxMode: widget.taxMode,
           sources: widget.sources,
@@ -1105,6 +1122,7 @@ class _V13ShellState extends State<V13Shell> {
           onLanguage: widget.onLanguage,
           onRoi: widget.onRoi,
           onMinProfit: widget.onMinProfit,
+          onEbayDiscount: widget.onEbayDiscount,
           onTaxMode: widget.onTaxMode,
           onBackend: widget.onBackend,
           onSources: widget.onSources,
@@ -1137,6 +1155,7 @@ class _V13ShellState extends State<V13Shell> {
       V13FlipsPage(
         english: widget.english,
         plan: widget.plan,
+        ebayDiscount: widget.ebayDiscount,
         flips: widget.flips,
         monetization: widget.monetization,
         onUpdate: widget.onUpdateFlip,
@@ -1517,6 +1536,7 @@ class V13CheckPage extends StatefulWidget {
   )? buybackSearch;
   final double targetRoi;
   final double minProfit;
+  final double ebayDiscount;
   final UserPlan plan;
   final V13TaxMode taxMode;
   final List<PriceSource> sources;
@@ -1535,6 +1555,7 @@ class V13CheckPage extends StatefulWidget {
     this.buybackSearch,
     required this.targetRoi,
     required this.minProfit,
+    this.ebayDiscount = .10,
     required this.plan,
     required this.taxMode,
     required this.sources,
@@ -1888,6 +1909,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   double get learnedEbayDiscount => calibratedEbayDiscount(
         category: category,
         observations: v13ForecastObservations(widget.flips),
+        fallback: widget.ebayDiscount,
       );
 
   ResaleEstimate? get resaleEstimate => estimateResaleValue(
@@ -3012,6 +3034,7 @@ List<String> _riskTips(String category, bool english) {
 class V13FlipsPage extends StatefulWidget {
   final bool english;
   final UserPlan plan;
+  final double ebayDiscount;
   final List<V13Flip> flips;
   final V13Monetization monetization;
   final ValueChanged<V13Flip> onUpdate;
@@ -3021,7 +3044,7 @@ class V13FlipsPage extends StatefulWidget {
   final VoidCallback onPro;
   final String initialFilter;
 
-  const V13FlipsPage({super.key, required this.english, required this.plan, required this.flips, required this.monetization, required this.onUpdate, required this.onImportSales, required this.onDelete, required this.onRecheck, required this.onPro, this.initialFilter = 'open'});
+  const V13FlipsPage({super.key, required this.english, required this.plan, this.ebayDiscount = .10, required this.flips, required this.monetization, required this.onUpdate, required this.onImportSales, required this.onDelete, required this.onRecheck, required this.onPro, this.initialFilter = 'open'});
   @override
   State<V13FlipsPage> createState() => _V13FlipsPageState();
 }
@@ -3073,7 +3096,10 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
     final days = sold.map((e) => e.daysToSell).whereType<int>().toList();
     final avgDays = days.isEmpty ? null : days.reduce((a, b) => a + b) / days.length;
     final forecastRows = v13ForecastObservations(sold);
-    final forecastAccuracy = forecastAccuracyByCategory(forecastRows);
+    final forecastAccuracy = forecastAccuracyByCategory(
+      forecastRows,
+      fallbackEbayDiscount: widget.ebayDiscount,
+    );
     final latestForecast = forecastRows.isEmpty ? null : forecastRows.first;
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
@@ -3374,6 +3400,7 @@ class V13SettingsPage extends StatefulWidget {
   final String backend;
   final double targetRoi;
   final double minProfit;
+  final double ebayDiscount;
   final UserPlan plan;
   final V13TaxMode taxMode;
   final List<PriceSource> sources;
@@ -3381,12 +3408,13 @@ class V13SettingsPage extends StatefulWidget {
   final ValueChanged<bool> onLanguage;
   final ValueChanged<double> onRoi;
   final ValueChanged<double> onMinProfit;
+  final ValueChanged<double> onEbayDiscount;
   final ValueChanged<V13TaxMode> onTaxMode;
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
   final ValueChanged<UserPlan> onPlanPreview;
 
-  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview});
+  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview});
   @override
   State<V13SettingsPage> createState() => _V13SettingsPageState();
 }
@@ -3394,6 +3422,7 @@ class V13SettingsPage extends StatefulWidget {
 class _V13SettingsPageState extends State<V13SettingsPage> {
   late double roi;
   late double minProfit;
+  late double ebayDiscount;
   late bool english;
   String t(String de, String en) => english ? en : de;
 
@@ -3402,6 +3431,7 @@ class _V13SettingsPageState extends State<V13SettingsPage> {
     super.initState();
     roi = widget.targetRoi;
     minProfit = widget.minProfit;
+    ebayDiscount = widget.ebayDiscount;
     english = widget.english;
   }
 
@@ -3417,6 +3447,10 @@ class _V13SettingsPageState extends State<V13SettingsPage> {
             const Divider(),
             Row(children: [Text(t('Mindestgewinn', 'Minimum profit'), style: const TextStyle(fontWeight: FontWeight.w900)), const Spacer(), Text(v13Euro(minProfit), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: _v13Primary))]),
             Slider(value: minProfit, min: 0, max: 100, divisions: 20, onChanged: (v) => setState(() => minProfit = v), onChangeEnd: widget.onMinProfit),
+            const Divider(),
+            Row(children: [Text(t('eBay-Angebotsabschlag', 'eBay asking discount'), style: const TextStyle(fontWeight: FontWeight.w900)), const Spacer(), Text('${(ebayDiscount * 100).toStringAsFixed(0)} %', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: _v13Primary))]),
+            Slider(key: const ValueKey('ebay-discount-slider'), value: ebayDiscount, min: 0, max: .40, divisions: 40, onChanged: (v) => setState(() => ebayDiscount = v), onChangeEnd: widget.onEbayDiscount),
+            Text(t('Ausgangswert für aktive eBay-Angebote. Echte Verkäufe justieren ihn je Kategorie automatisch nach.', 'Base value for active eBay listings. Actual sales automatically refine it per category.'), style: const TextStyle(fontSize: 10.5, color: Color(0xFF7B7F8C))),
           ])),
           const SizedBox(height: 18),
           _V13Section(title: 'Flipwert PRO'),
