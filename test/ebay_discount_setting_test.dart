@@ -1,4 +1,5 @@
 import 'package:flipwert/source_registry.dart';
+import 'package:flipwert/scanner_page.dart';
 import 'package:flipwert/v13_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
