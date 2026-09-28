@@ -23,6 +23,8 @@ import 'deal_alert_toggle.dart';
 import 'dual_exit.dart';
 import 'dual_exit_card.dart';
 import 'deal_alert_result_card.dart';
+import 'forecast_accuracy_card.dart';
+import 'forecast_control.dart';
 import 'manual_buyback_quote_card.dart';
 
 
@@ -271,6 +273,11 @@ class V13Flip {
   final String buybackConditionAtCheck;
   final DateTime? buybackCheckedAt;
   final String buybackQuoteKindAtCheck;
+  final double forecastLikelyAtBuy;
+  final double forecastLowAtBuy;
+  final double forecastHighAtBuy;
+  final double ebayReferenceAtBuy;
+  final double ebayDiscountAtBuy;
 
   const V13Flip({
     required this.id,
@@ -299,6 +306,11 @@ class V13Flip {
     this.buybackConditionAtCheck = '',
     this.buybackCheckedAt,
     this.buybackQuoteKindAtCheck = '',
+    this.forecastLikelyAtBuy = 0,
+    this.forecastLowAtBuy = 0,
+    this.forecastHighAtBuy = 0,
+    this.ebayReferenceAtBuy = 0,
+    this.ebayDiscountAtBuy = 0,
   })  : assert(buybackSafetyReserve >= 0),
         checkedAt = checkedAt ?? createdAt;
 
@@ -345,6 +357,11 @@ class V13Flip {
         buybackConditionAtCheck: buybackConditionAtCheck,
         buybackCheckedAt: buybackCheckedAt,
         buybackQuoteKindAtCheck: buybackQuoteKindAtCheck,
+        forecastLikelyAtBuy: forecastLikelyAtBuy,
+        forecastLowAtBuy: forecastLowAtBuy,
+        forecastHighAtBuy: forecastHighAtBuy,
+        ebayReferenceAtBuy: ebayReferenceAtBuy,
+        ebayDiscountAtBuy: ebayDiscountAtBuy,
       );
 
   Map<String, dynamic> toJson() => {
@@ -374,6 +391,11 @@ class V13Flip {
         'buybackConditionAtCheck': buybackConditionAtCheck,
         'buybackCheckedAt': buybackCheckedAt?.toUtc().toIso8601String(),
         'buybackQuoteKindAtCheck': buybackQuoteKindAtCheck,
+        'forecastLikelyAtBuy': forecastLikelyAtBuy,
+        'forecastLowAtBuy': forecastLowAtBuy,
+        'forecastHighAtBuy': forecastHighAtBuy,
+        'ebayReferenceAtBuy': ebayReferenceAtBuy,
+        'ebayDiscountAtBuy': ebayDiscountAtBuy,
       };
 
   factory V13Flip.fromJson(Map<String, dynamic> j) {
@@ -419,9 +441,35 @@ class V13Flip {
           : buybackPrice > 0
               ? 'live_provider'
               : '',
+      forecastLikelyAtBuy:
+          (j['forecastLikelyAtBuy'] as num?)?.toDouble() ?? 0,
+      forecastLowAtBuy:
+          (j['forecastLowAtBuy'] as num?)?.toDouble() ?? 0,
+      forecastHighAtBuy:
+          (j['forecastHighAtBuy'] as num?)?.toDouble() ?? 0,
+      ebayReferenceAtBuy:
+          (j['ebayReferenceAtBuy'] as num?)?.toDouble() ?? 0,
+      ebayDiscountAtBuy:
+          (j['ebayDiscountAtBuy'] as num?)?.toDouble() ?? 0,
     );
   }
 }
+
+List<ForecastObservation> v13ForecastObservations(Iterable<V13Flip> flips) =>
+    flips
+        .where((flip) =>
+            flip.status == 'Sold' &&
+            flip.forecastLikelyAtBuy > 0 &&
+            flip.actualSell > 0)
+        .map((flip) => ForecastObservation(
+              category: flip.category,
+              estimatedLikely: flip.forecastLikelyAtBuy,
+              estimatedLow: flip.forecastLowAtBuy,
+              estimatedHigh: flip.forecastHighAtBuy,
+              actualSalePrice: flip.actualSell,
+              ebayAskingReference: flip.ebayReferenceAtBuy,
+            ))
+        .toList();
 
 class V13PersonalStats {
   final int sample;
@@ -1837,6 +1885,11 @@ class _V13CheckPageState extends State<V13CheckPage> {
             .toList(),
       );
 
+  double get learnedEbayDiscount => calibratedEbayDiscount(
+        category: category,
+        observations: v13ForecastObservations(widget.flips),
+      );
+
   ResaleEstimate? get resaleEstimate => estimateResaleValue(
         ResaleEstimateInput(
           article: query.text,
@@ -1856,6 +1909,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
               .toList(),
           activeEbayAskingPrices: ebayAskingValues,
           buybackFloor: buybackMedian,
+          ebayAskingDiscount: learnedEbayDiscount,
         ),
       );
 
@@ -2379,6 +2433,11 @@ class _V13CheckPageState extends State<V13CheckPage> {
           : manualQuote != null
               ? 'manual_user'
               : '',
+      forecastLikelyAtBuy: resaleEstimate?.likely ?? 0,
+      forecastLowAtBuy: resaleEstimate?.low ?? 0,
+      forecastHighAtBuy: resaleEstimate?.high ?? 0,
+      ebayReferenceAtBuy: _median(ebayAskingValues) ?? 0,
+      ebayDiscountAtBuy: resaleEstimate?.appliedEbayDiscount ?? 0,
     );
   }
 
@@ -3013,6 +3072,9 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
     final capital = open.fold<double>(0, (a, b) => a + b.buy + b.costs);
     final days = sold.map((e) => e.daysToSell).whereType<int>().toList();
     final avgDays = days.isEmpty ? null : days.reduce((a, b) => a + b) / days.length;
+    final forecastRows = v13ForecastObservations(sold);
+    final forecastAccuracy = forecastAccuracyByCategory(forecastRows);
+    final latestForecast = forecastRows.isEmpty ? null : forecastRows.first;
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
       children: [
@@ -3034,6 +3096,14 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
         if (sold.length >= 2) ...[
           const SizedBox(height: 10),
           _V13PersonalInsight(english: widget.english, sold: sold, pro: widget.plan != UserPlan.free, onPro: widget.onPro),
+        ],
+        if (forecastAccuracy.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          ForecastAccuracyCard(
+            categories: forecastAccuracy,
+            latest: latestForecast,
+            english: widget.english,
+          ),
         ],
         const SizedBox(height: 13),
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: SegmentedButton<String>(segments: [ButtonSegment(value: 'saved', icon: const Icon(Icons.bookmark_outline_rounded, size: 16), label: Text(t('Merkliste', 'Saved'))), ButtonSegment(value: 'open', label: Text(t('Offen', 'Open'))), ButtonSegment(value: 'sold', label: Text(t('Verkauft', 'Sold'))), ButtonSegment(value: 'archived', icon: const Icon(Icons.archive_outlined, size: 16), label: Text(t('Archiv', 'Archive'))), ButtonSegment(value: 'all', label: Text(t('Alle', 'All')))], selected: {filter}, onSelectionChanged: (v) => setState(() => filter = v.first))),
