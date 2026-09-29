@@ -53,4 +53,25 @@ void main() {
     expect(result.rows, isEmpty);
     expect(result.errors.single, contains('Zeile 2'));
   });
+  test('creates stable identity for repeated sale imports', () {
+    const csv =
+        'Artikel;Kategorie;Einkaufspreis;Verkaufspreis;Kaufdatum;Verkaufsdatum;Plattform;Nebenkosten\n'
+        'iPhone 15 Pro;Smartphone;800,00;1.050,00;01.09.2026;20.09.2026;eBay;19,90';
+    final first = parseSalesCsv(csv).rows.single;
+    final second = parseSalesCsv(csv).rows.single;
+    expect(salesCsvRowIdentity(first), salesCsvRowIdentity(second));
+    expect(salesCsvRowIdentity(first), startsWith('csv-'));
+  });
+
+  test('identity changes when a material sale field changes', () {
+    final first = parseSalesCsv(
+      'Artikel;Kategorie;Einkaufspreis;Verkaufspreis;Kaufdatum;Verkaufsdatum;Plattform;Nebenkosten\n'
+      'Pixel 9;Smartphone;500;650;01.09.2026;10.09.2026;eBay;10',
+    ).rows.single;
+    final second = parseSalesCsv(
+      'Artikel;Kategorie;Einkaufspreis;Verkaufspreis;Kaufdatum;Verkaufsdatum;Plattform;Nebenkosten\n'
+      'Pixel 9;Smartphone;500;675;01.09.2026;10.09.2026;eBay;10',
+    ).rows.single;
+    expect(salesCsvRowIdentity(first), isNot(salesCsvRowIdentity(second)));
+  });
 }

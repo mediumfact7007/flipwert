@@ -3063,8 +3063,47 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
     final picked=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:const ['csv'],withData:true); if(picked==null||picked.files.isEmpty||!mounted)return;
     final bytes=picked.files.single.bytes; if(bytes==null||bytes.length>5*1024*1024){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('CSV konnte nicht gelesen werden oder ist größer als 5 MB.','CSV could not be read or exceeds 5 MB.'))));return;}
     String content;try{content=utf8.decode(bytes);}catch(_){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(t('CSV muss UTF-8 kodiert sein.','CSV must use UTF-8 encoding.'))));return;}
-    final parsed=parseSalesCsv(content);if(parsed.rows.isNotEmpty){final stamp=DateTime.now().microsecondsSinceEpoch;final imported=<V13Flip>[];for(var i=0;i<parsed.rows.length;i++){final row=parsed.rows[i];imported.add(V13Flip(id:'csv-$stamp-$i',name:row.article,category:row.category,buy:row.purchasePrice,expectedAtBuy:0,costs:row.costs,sourceCount:0,confidence:'Eigener Verkauf',status:'Sold',createdAt:row.purchaseDate,checkedAt:row.purchaseDate,soldAt:row.saleDate,actualSell:row.salePrice,soldPlatform:row.platform));}widget.onImportSales(imported);}
-    if(!mounted)return;final message=parsed.rows.isEmpty?(parsed.errors.isEmpty?t('Keine Verkäufe gefunden.','No sales found.'):parsed.errors.first):'${parsed.rows.length} '+t('Verkäufe importiert','sales imported')+(parsed.errors.isEmpty?'.':' · ${parsed.errors.length} '+t('Zeilen übersprungen.','rows skipped.'));ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));
+    final parsed = parseSalesCsv(content);
+    var importedCount = 0;
+    var duplicateCount = 0;
+    if (parsed.rows.isNotEmpty) {
+      final knownIds = widget.flips.map((flip) => flip.id).toSet();
+      final imported = <V13Flip>[];
+      for (final row in parsed.rows) {
+        final id = salesCsvRowIdentity(row);
+        if (!knownIds.add(id)) {
+          duplicateCount++;
+          continue;
+        }
+        imported.add(V13Flip(
+          id: id,
+          name: row.article,
+          category: row.category,
+          buy: row.purchasePrice,
+          expectedAtBuy: 0,
+          costs: row.costs,
+          sourceCount: 0,
+          confidence: 'Eigener Verkauf',
+          status: 'Sold',
+          createdAt: row.purchaseDate,
+          checkedAt: row.purchaseDate,
+          soldAt: row.saleDate,
+          actualSell: row.salePrice,
+          soldPlatform: row.platform,
+        ));
+      }
+      importedCount = imported.length;
+      if (imported.isNotEmpty) widget.onImportSales(imported);
+    }
+    if (!mounted) return;
+    final message = parsed.rows.isEmpty
+        ? (parsed.errors.isEmpty ? t('Keine Verkäufe gefunden.', 'No sales found.') : parsed.errors.first)
+        : importedCount == 0 && duplicateCount > 0
+            ? t('Keine neuen Verkäufe · $duplicateCount bereits vorhanden.', 'No new sales · $duplicateCount already imported.')
+            : '$importedCount '+t('Verkäufe importiert','sales imported')+
+                (duplicateCount > 0 ? ' · $duplicateCount '+t('Duplikate übersprungen.','duplicates skipped.') : '')+
+                (parsed.errors.isEmpty ? '.' : ' · ${parsed.errors.length} '+t('Zeilen fehlerhaft.','invalid rows.'));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));
   }
 
   @override

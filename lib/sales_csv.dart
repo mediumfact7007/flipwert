@@ -219,3 +219,30 @@ SalesCsvImport parseSalesCsv(String input) {
   }
   return SalesCsvImport(List.unmodifiable(rows), List.unmodifiable(errors));
 }
+
+
+String salesCsvRowIdentity(SalesCsvRow row) {
+  String text(String value) => value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  String money(double value) => value.toStringAsFixed(2);
+  String date(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+  final canonical = [
+    text(row.article),
+    text(row.category),
+    money(row.purchasePrice),
+    money(row.salePrice),
+    date(row.purchaseDate),
+    date(row.saleDate),
+    text(row.platform),
+    money(row.costs),
+  ].join('|');
+
+  // Stable FNV-1a fingerprint. It is deliberately local/non-secret: its only
+  // purpose is to make repeated imports of the same sale idempotent.
+  var hash = 0xcbf29ce484222325;
+  for (final byte in canonical.codeUnits) {
+    hash ^= byte;
+    hash = (hash * 0x100000001b3) & 0x7fffffffffffffff;
+  }
+  return 'csv-${hash.toRadixString(16).padLeft(16, '0')}';
+}
