@@ -29,6 +29,41 @@ void main() {
     expect(status.sources['kleinanzeigen']?.mode, 'official_search_link');
   });
 
+  test('buyback is live only after rights, validation and providers are ready', () {
+    final ready = MarketBackendStatus.fromJson({
+      'sources': {
+        'buyback': {
+          'configured': true,
+          'mode': 'approved_partner_adapter',
+          'rights_gate': 'approved',
+          'activation_gate': 'validated',
+          'readiness': 'ready',
+          'approved_provider_count': 2,
+        },
+      },
+    });
+    expect(ready.isLive('buyback'), isTrue);
+    expect(ready.isBuybackRightsApproved, isTrue);
+    expect(ready.isBuybackValidated, isTrue);
+    expect(ready.buyback?.approvedProviderCount, 2);
+
+    final stale = MarketBackendStatus.fromJson({
+      'sources': {
+        'buyback': {
+          'configured': true,
+          'mode': 'approved_partner_adapter',
+          'rights_gate': 'approved',
+          'activation_gate': 'missing_or_stale',
+          'readiness': 'missing_or_stale_validation',
+          'approved_provider_count': 2,
+        },
+      },
+    });
+    expect(stale.isLive('buyback'), isFalse);
+    expect(stale.isBuybackRightsApproved, isTrue);
+    expect(stale.isBuybackValidated, isFalse);
+  });
+
   test('derives status endpoint from the configured Flipwert adapter', () {
     final sources = SourceRegistry.builtIns();
     final endpoint = MarketStatusClient.endpointFor(sources);

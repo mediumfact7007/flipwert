@@ -10,6 +10,10 @@ class SourceRuntimeStatus {
   final String estimate;
   final String environment;
   final String dataKind;
+  final String rightsGate;
+  final String activationGate;
+  final String readiness;
+  final int approvedProviderCount;
 
   const SourceRuntimeStatus({
     required this.configured,
@@ -17,6 +21,10 @@ class SourceRuntimeStatus {
     this.estimate = '',
     this.environment = '',
     this.dataKind = '',
+    this.rightsGate = '',
+    this.activationGate = '',
+    this.readiness = '',
+    this.approvedProviderCount = 0,
   });
 
   bool get isSandbox => environment.toLowerCase() == 'sandbox';
@@ -29,6 +37,10 @@ class SourceRuntimeStatus {
         estimate: json['estimate']?.toString() ?? '',
         environment: json['environment']?.toString() ?? '',
         dataKind: json['data_kind']?.toString() ?? '',
+        rightsGate: json['rights_gate']?.toString() ?? '',
+        activationGate: json['activation_gate']?.toString() ?? '',
+        readiness: json['readiness']?.toString() ?? '',
+        approvedProviderCount: int.tryParse(json['approved_provider_count']?.toString() ?? '') ?? 0,
       );
 }
 
@@ -57,8 +69,25 @@ class MarketBackendStatus {
     final source = sources[sourceId];
     if (!reachable || source == null || !source.configured) return false;
     if (sourceId == 'ebay_de' && source.isSandbox) return false;
+    if (sourceId == 'buyback') {
+      return source.rightsGate == 'approved' &&
+          source.activationGate == 'validated' &&
+          source.readiness == 'ready' &&
+          source.approvedProviderCount > 0;
+    }
     return true;
   }
+
+  SourceRuntimeStatus? get buyback => sources['buyback'];
+
+  bool get isBuybackRightsApproved =>
+      reachable && buyback?.rightsGate == 'approved';
+
+  bool get isBuybackValidated =>
+      isBuybackRightsApproved &&
+      buyback?.activationGate == 'validated' &&
+      buyback?.readiness == 'ready' &&
+      (buyback?.approvedProviderCount ?? 0) > 0;
 
   factory MarketBackendStatus.fromJson(Map<String, dynamic> json) {
     final rawSources = json['sources'];

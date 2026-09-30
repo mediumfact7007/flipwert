@@ -3605,13 +3605,32 @@ class _V13SourcesPageState extends State<V13SourcesPage> {
         'eBay Sandbox connected. Test data is never used for buy decisions or MAX prices.',
       );
     }
+    final buyback = status.buyback;
+    final buybackDetail = buyback == null
+        ? ''
+        : status.isBuybackValidated
+            ? t(
+                'Sofort-Ankauf: Rechte + Feed validiert · ${buyback.approvedProviderCount} Anbieter freigegeben.',
+                'Buyback: rights + feed validated · ${buyback.approvedProviderCount} providers approved.',
+              )
+            : status.isBuybackRightsApproved
+                ? t(
+                    'Sofort-Ankauf: Anbieterrechte bestätigt, Feed-Validierung noch ausstehend.',
+                    'Buyback: provider rights approved, feed validation still pending.',
+                  )
+                : t(
+                    'Sofort-Ankauf: deaktiviert, bis Anbieterrechte und Feed-Validierung vollständig sind.',
+                    'Buyback: disabled until provider rights and feed validation are complete.',
+                  );
     if (live.isEmpty) {
-      return t(
-        'Live-Daten sind vorbereitet. eBay/Amazon brauchen noch die Server-Zugangsdaten.',
-        'Live data is prepared. eBay/Amazon still need server credentials.',
+      final market = t(
+        'Live-Marktdaten sind vorbereitet; nicht konfigurierte Quellen liefern keine Preise.',
+        'Live market data is prepared; unconfigured sources provide no prices.',
       );
+      return buybackDetail.isEmpty ? market : '$market $buybackDetail';
     }
-    return '${t('Live verbunden', 'Live connected')}: ${live.join(', ')}';
+    final market = '${t('Live verbunden', 'Live connected')}: ${live.join(', ')}.';
+    return buybackDetail.isEmpty ? market : '$market $buybackDetail';
   }
 
   @override
