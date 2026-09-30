@@ -129,9 +129,12 @@ function matchesBuybackQuery(query, offer) {
 
   const meaningful = [...new Set(searched.filter((part) => part.length > 1 && !NOISE.has(part)))];
   if (meaningful.length < 2) return false;
-  // Listing titles contain seller prose; tolerate it while requiring the
-  // actual product terms (including generation and storage) to be present.
-  return meaningful.filter((part) => title.includes(part)).length / meaningful.length >= 0.75;
+  // LIVE buyback prices must identify the exact requested product, not just a
+  // mostly similar title. Noise/prose has already been removed above, so every
+  // remaining query token must be represented by the provider title. Failing
+  // closed here deliberately prefers no LIVE price over a wrong SKU price
+  // (for example a colour/material or accessory token that changes the SKU).
+  return meaningful.every((part) => title.includes(part));
 }
 
 module.exports = { matchesBuybackQuery };
