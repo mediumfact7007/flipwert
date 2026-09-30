@@ -115,6 +115,26 @@ async function verifyBuybackSourceMatrix({
 
   const providerIds = [...new Set(results.flatMap((result) =>
     result.provider_ids || []))].sort();
+
+  // Activation is configuration-wide. Every approved provider must have been
+  // observed in this validation matrix before the configuration can go live.
+  if (typeof source.approvedProviderIds === 'function') {
+    const approved = source.approvedProviderIds()
+      .map((value) => String(value || '').trim().toLowerCase())
+      .filter(Boolean)
+      .sort();
+    const missing = approved.filter((providerId) => !providerIds.includes(providerId));
+    if (missing.length) {
+      return {
+        ok: false,
+        reason: 'approved_provider_not_verified',
+        missing_provider_ids: missing,
+        verified_provider_ids: providerIds,
+        readiness: 'validation_incomplete',
+      };
+    }
+  }
+
   const checkedTimes = results
     .map((result) => Date.parse(String(result.newest_checked_at || '')))
     .filter(Number.isFinite);

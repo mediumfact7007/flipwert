@@ -198,6 +198,60 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
     },
   );
 
+  const incompleteProviderMatrixSource = {
+    sourceStatus: () => ({ configured: false, readiness: 'missing_or_stale_validation' }),
+    approvedProviderIds: () => ['clevertronic', 'zoxs'],
+    activationFingerprint: () => 'b'.repeat(64),
+    fetchBuybackOffersForVerification: async (_query, condition) => ({
+      configured: true,
+      items: [{
+        provider_id: 'zoxs',
+        condition,
+        checked_at: '2026-09-24T08:00:00Z',
+      }],
+      best: null,
+    }),
+  };
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+      ],
+      source: incompleteProviderMatrixSource,
+    }),
+    {
+      ok: false,
+      reason: 'approved_provider_not_verified',
+      missing_provider_ids: ['clevertronic'],
+      verified_provider_ids: ['zoxs'],
+      readiness: 'validation_incomplete',
+    },
+  );
+
+  const completeProviderMatrixSource = {
+    ...incompleteProviderMatrixSource,
+    fetchBuybackOffersForVerification: async (query, condition) => ({
+      configured: true,
+      items: [{
+        provider_id: query.startsWith('iPhone') ? 'zoxs' : 'clevertronic',
+        condition,
+        checked_at: '2026-09-24T08:00:00Z',
+      }],
+      best: null,
+    }),
+  };
+  const completeProviderMatrix = await verifyBuybackSourceMatrix({
+    cases: [
+      { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+      { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+    ],
+    source: completeProviderMatrixSource,
+  });
+  assert.strictEqual(completeProviderMatrix.ok, true);
+  assert.deepStrictEqual(completeProviderMatrix.provider_ids, ['clevertronic', 'zoxs']);
+  assert.strictEqual(completeProviderMatrix.activation_fingerprint, 'b'.repeat(64));
+
   const failingMatrixSource = {
     sourceStatus: () => ({ configured: true, readiness: 'ready' }),
     fetchBuybackOffers: async (_query, condition) => ({

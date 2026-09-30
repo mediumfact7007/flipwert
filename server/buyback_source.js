@@ -133,6 +133,10 @@ function hasCurrentApproval(now = Date.now()) {
   return currentSourceApprovals(now).size > 0;
 }
 
+function approvedProviderIds(now = Date.now()) {
+  return [...currentSourceApprovals(now).keys()].sort();
+}
+
 function hasPublicSourceHost(hostname) {
   const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
   if (!host || host === 'localhost' || host.endsWith('.local') || host === '::' || host === '::1') return false;
@@ -359,6 +363,7 @@ module.exports = {
   fetchBuybackOffersForVerification,
   sourceStatus,
   hasCurrentApproval,
+  approvedProviderIds,
   sourceReadiness,
   activationFingerprint: sourceConfigFingerprint,
 };
