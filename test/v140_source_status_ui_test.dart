@@ -13,6 +13,7 @@ void main() {
     expect(app, contains('MarketStatusClient.fetch(items)'));
     expect(app, contains("'Browser-Suche'"));
     expect(app, contains("'Noch nicht verbunden'"));
-    expect(app, contains("'Live-Daten sind vorbereitet."));
+    expect(app, contains("'Live-Marktdaten sind vorbereitet; nicht konfigurierte Quellen liefern keine Preise.'"));
+    expect(app, contains("'Sofort-Ankauf: Anbieterrechte bestätigt, Feed-Validierung noch ausstehend.'"));
   });
 }
