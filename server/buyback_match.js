@@ -10,6 +10,7 @@ function tokens(value) {
   const normalized = String(value || '').normalize('NFKD').toLowerCase()
     .replace(/\bplay\s*station\s*5\b/g, 'ps5')
     .replace(/\bps\s*5\b/g, 'ps5')
+    .replace(/ß/g, 'ss')
     .replace(/\bpromax\b/g, 'pro max')
     .replace(/\bwi[\s-]?fi\b|\bwlan\b/g, 'wifi')
     .replace(/\b4g\b/g, 'lte')
