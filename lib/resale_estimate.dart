@@ -65,11 +65,60 @@ class ResaleEstimate {
   });
 }
 
-String _normalizedModel(String value) => value
-    .toLowerCase()
-    .replaceAll(RegExp(r'[^a-z0-9äöüß]+'), ' ')
-    .replaceAll(RegExp(r'\s+'), ' ')
-    .trim();
+const _modelBrandTokens = {
+  'apple', 'samsung', 'google', 'sony', 'microsoft', 'nintendo', 'xiaomi',
+  'huawei', 'honor', 'oneplus', 'motorola', 'lenovo', 'asus', 'acer', 'hp',
+  'dell', 'lg', 'oppo', 'vivo', 'nokia',
+};
+
+const _modelNoiseTokens = {
+  'neu', 'neuwertig', 'gebraucht', 'zustand', 'gut', 'sehr', 'akzeptabel',
+  'ovp', 'originalverpackung', 'unlocked', 'simlock', 'ohne', 'mit',
+  'schwarz', 'black', 'weiss', 'white', 'blau', 'blue', 'gruen', 'green',
+  'rot', 'red', 'gold', 'silber', 'silver', 'grau', 'gray', 'grey',
+  'titan', 'titanium',
+};
+
+List<String> _modelTokens(String value) {
+  final normalized = value
+      .toLowerCase()
+      .replaceAll('ä', 'ae')
+      .replaceAll('ö', 'oe')
+      .replaceAll('ü', 'ue')
+      .replaceAll('ß', 'ss')
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim();
+  if (normalized.isEmpty) return const [];
+
+  final raw = normalized.split(RegExp(r'\s+'));
+  final result = <String>[];
+  for (var i = 0; i < raw.length; i++) {
+    var token = raw[i];
+    if (RegExp(r'^\d+$').hasMatch(token) &&
+        i + 1 < raw.length &&
+        const {'mb', 'gb', 'tb'}.contains(raw[i + 1])) {
+      token += raw[++i];
+    }
+    if (_modelBrandTokens.contains(token) || _modelNoiseTokens.contains(token)) {
+      continue;
+    }
+    result.add(token);
+  }
+  result.sort();
+  return result;
+}
+
+bool resaleSameModel(String left, String right) {
+  final leftTokens = _modelTokens(left);
+  final rightTokens = _modelTokens(right);
+  if (leftTokens.length < 2 || leftTokens.length != rightTokens.length) {
+    return false;
+  }
+  for (var i = 0; i < leftTokens.length; i++) {
+    if (leftTokens[i] != rightTokens[i]) return false;
+  }
+  return true;
+}
 
 List<double> _prices(Iterable<double> values) => values
     .where((value) => value.isFinite && value > 0 && value <= 100000)
@@ -98,7 +147,6 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
     );
   }
 
-  final article = _normalizedModel(input.article);
   final category = input.category.trim().toLowerCase();
   final validSales = input.ownSales
       .where((sale) =>
@@ -109,7 +157,8 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
       .toList();
   final exactSales = validSales
       .where((sale) =>
-          article.isNotEmpty && _normalizedModel(sale.article) == article)
+          sale.category.trim().toLowerCase() == category &&
+          resaleSameModel(sale.article, input.article))
       .toList();
   final categorySales = validSales
       .where((sale) => sale.category.trim().toLowerCase() == category)

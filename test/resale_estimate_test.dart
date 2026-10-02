@@ -16,6 +16,24 @@ ResaleSaleSample sale(
     );
 
 void main() {
+  test('model matching tolerates listing noise but keeps variants strict', () {
+    expect(
+      resaleSameModel(
+        'Apple iPhone 15 Pro 256 GB Weiß',
+        'iPhone 15 Pro 256GB, black, ohne Simlock',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleSameModel('Apple iPhone 15 Pro 256 GB', 'iPhone 15 Pro Max 256GB'),
+      isFalse,
+    );
+    expect(
+      resaleSameModel('Apple iPhone 15 Pro 256 GB', 'iPhone 15 Pro 128GB'),
+      isFalse,
+    );
+  });
+
   test('own exact-model sales carry the highest weight', () {
     final estimate = estimateResaleValue(ResaleEstimateInput(
       article: 'Apple iPhone 15 Pro 256 GB',
@@ -37,6 +55,23 @@ void main() {
     expect(estimate.high, greaterThan(estimate.likely));
     expect(estimate.confidence, ResaleEstimateConfidence.high);
     expect(estimate.estimatedDaysToSell, 10);
+  });
+
+  test('exact-model sales must belong to the same category and variant', () {
+    final estimate = estimateResaleValue(ResaleEstimateInput(
+      article: 'iPhone 15 Pro 256GB schwarz',
+      category: 'Smartphone',
+      ownSales: [
+        sale('Apple iPhone 15 Pro 256 GB Weiß', 'Smartphone', 800, 8),
+        sale('Apple iPhone 15 Pro Max 256 GB', 'Smartphone', 1200, 4),
+        sale('Apple iPhone 15 Pro 256 GB', 'Sonstiges', 50, 1),
+      ],
+    ))!;
+
+    expect(estimate.ownSalesScope, ResaleOwnSalesScope.exactModel);
+    expect(estimate.ownSalesUsed, 1);
+    expect(estimate.likely, 800);
+    expect(estimate.estimatedDaysToSell, 8);
   });
 
   test('adjustable eBay discount changes the market estimate', () {
