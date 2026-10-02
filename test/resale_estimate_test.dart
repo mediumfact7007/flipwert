@@ -132,6 +132,35 @@ void main() {
     expect(estimate.confidence, ResaleEstimateConfidence.medium);
   });
 
+  test('stale personal sales do not distort the current estimate', () {
+    final estimate = estimateResaleValue(ResaleEstimateInput(
+      article: 'Google Pixel 9 256 GB',
+      category: 'Smartphone',
+      asOf: DateTime(2026, 10, 3),
+      ownSales: [
+        ResaleSaleSample(
+          article: 'Google Pixel 9 256 GB',
+          category: 'Smartphone',
+          salePrice: 900,
+          purchaseDate: DateTime(2023, 8, 1),
+          saleDate: DateTime(2023, 8, 10),
+        ),
+        ResaleSaleSample(
+          article: 'Samsung Galaxy S24 256 GB',
+          category: 'Smartphone',
+          salePrice: 500,
+          purchaseDate: DateTime(2026, 8, 1),
+          saleDate: DateTime(2026, 8, 20),
+        ),
+      ],
+    ))!;
+
+    expect(estimate.ownSalesScope, ResaleOwnSalesScope.category);
+    expect(estimate.ownSalesUsed, 1);
+    expect(estimate.likely, 500);
+    expect(estimate.estimatedDaysToSell, 19);
+  });
+
   test('returns no estimate without usable evidence', () {
     expect(
       estimateResaleValue(const ResaleEstimateInput(

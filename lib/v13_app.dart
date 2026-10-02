@@ -1932,6 +1932,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
           activeEbayAskingPrices: ebayAskingValues,
           buybackFloor: buybackMedian,
           ebayAskingDiscount: learnedEbayDiscount,
+          asOf: DateTime.now(),
         ),
       );
 

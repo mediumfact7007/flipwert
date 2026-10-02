@@ -30,6 +30,8 @@ class ResaleEstimateInput {
   final List<double> activeEbayAskingPrices;
   final double? buybackFloor;
   final double ebayAskingDiscount;
+  final DateTime? asOf;
+  final Duration ownSaleMaxAge;
 
   const ResaleEstimateInput({
     required this.article,
@@ -38,6 +40,8 @@ class ResaleEstimateInput {
     this.activeEbayAskingPrices = const [],
     this.buybackFloor,
     this.ebayAskingDiscount = .10,
+    this.asOf,
+    this.ownSaleMaxAge = const Duration(days: 730),
   });
 }
 
@@ -146,6 +150,13 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
       'must be at least 0 and below 1',
     );
   }
+  if (input.ownSaleMaxAge.isNegative) {
+    throw ArgumentError.value(
+      input.ownSaleMaxAge,
+      'ownSaleMaxAge',
+      'must not be negative',
+    );
+  }
 
   final category = input.category.trim().toLowerCase();
   final validSales = input.ownSales
@@ -153,7 +164,13 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
           sale.salePrice.isFinite &&
           sale.salePrice > 0 &&
           sale.salePrice <= 100000 &&
-          !sale.saleDate.isBefore(sale.purchaseDate))
+          !sale.saleDate.isBefore(sale.purchaseDate) &&
+          (input.asOf == null ||
+              (!sale.saleDate.isAfter(input.asOf!) &&
+                  input.asOf!
+                          .difference(sale.saleDate)
+                          .compareTo(input.ownSaleMaxAge) <=
+                      0)))
       .toList();
   final exactSales = validSales
       .where((sale) =>
