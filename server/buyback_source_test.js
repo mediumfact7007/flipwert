@@ -269,6 +269,23 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(result.best.provider_id, 'clevertronic');
   assert.strictEqual(result.best.price, 615);
   assert.strictEqual(result.best.affiliate_link, false);
+
+  const lateVariantQuery = `${'Apple iPhone 15 Pro '.padEnd(165, 'x')} 256 GB`;
+  assert.ok(lateVariantQuery.length > 160 && lateVariantQuery.length <= 180);
+  let forwardedLateVariant;
+  await loaded.source.fetchBuybackOffers(lateVariantQuery, 'like_new', {
+    now,
+    fetchImpl: async (url) => {
+      forwardedLateVariant = new URL(url.toString()).searchParams.get('q');
+      return { ok: true, async json() { return { items: [] }; } };
+    },
+  });
+  assert.strictEqual(
+    forwardedLateVariant,
+    lateVariantQuery,
+    'the partner query must retain variant attributes after character 160',
+  );
+
   const mixed = await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
     now,
     fetchImpl: async () => ({
