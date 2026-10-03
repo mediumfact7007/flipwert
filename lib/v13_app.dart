@@ -1507,9 +1507,20 @@ class V13MarketConfidence {
 V13MarketConfidence v13MarketConfidence(
   List<SourceListing> listings, {
   bool manualOverride = false,
+  String? query,
 }) {
+  final normalizedQuery = query?.trim() ?? '';
   final live = listings
-      .where((e) => e.live && (e.role == 'resale' || e.role == 'local') && e.total.isFinite && e.total > 0)
+      .where(
+        (e) =>
+            e.live &&
+            (e.role == 'resale' || e.role == 'local') &&
+            e.total.isFinite &&
+            e.total > 0 &&
+            (e.sourceId != 'ebay_de' ||
+                normalizedQuery.isEmpty ||
+                resaleListingMatchesQuery(normalizedQuery, e.title)),
+      )
       .toList();
   final raw = live.map((e) => e.total).toList();
   final cleaned = v13CleanMarketValues(raw);
@@ -1981,6 +1992,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   V13MarketConfidence get marketConfidence => v13MarketConfidence(
         listings,
         manualOverride: manualCommitted != null && manualCommitted! > 0,
+        query: query.text,
       );
   String get confidence => marketConfidence.label(widget.english);
 

@@ -8,12 +8,13 @@ SourceListing comp(
   double price, {
   String source = 'ebay_de',
   bool live = true,
+  String title = 'Test listing',
 }) =>
     SourceListing(
       sourceId: source,
       sourceName: source,
       role: 'resale',
-      title: 'Test listing',
+      title: title,
       price: price,
       shipping: 0,
       url: 'https://example.test/item',
@@ -74,6 +75,21 @@ void main() {
     ]);
     expect(result.liveCount, 5);
     expect(result.removedOutliers, 1);
+  });
+
+  test('wrong eBay variants do not inflate market confidence', () {
+    final result = v13MarketConfidence(
+      [
+        comp(800, title: 'Apple iPhone 15 Pro 256GB Weiß'),
+        comp(1000, title: 'Apple iPhone 15 Pro Max 256GB'),
+        comp(700, title: 'Apple iPhone 15 Pro 128GB'),
+      ],
+      query: 'Apple iPhone 15 Pro 256 GB',
+    );
+
+    expect(result.liveCount, 1);
+    expect(result.sourceCount, 1);
+    expect(result.score, lessThan(45));
   });
 
   test('small widely spread sample stays low confidence', () {
