@@ -34,6 +34,30 @@ void main() {
     );
   });
 
+  test('eBay title matching accepts noise but rejects device variants', () {
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Apple iPhone 15 Pro 256GB Smartphone Weiß TOP Zustand',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Apple iPhone 15 Pro Max 256 GB',
+      ),
+      isFalse,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Apple iPhone 15 Pro 128 GB',
+      ),
+      isFalse,
+    );
+  });
+
   test('own exact-model sales carry the highest weight', () {
     final estimate = estimateResaleValue(ResaleEstimateInput(
       article: 'Apple iPhone 15 Pro 256 GB',

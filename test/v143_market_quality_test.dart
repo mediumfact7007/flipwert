@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flipwert/main.dart';
+import 'package:flipwert/source_registry.dart';
 
 void main() {
   test('removes a severe low accessory-price outlier', () {
@@ -35,5 +36,27 @@ void main() {
       520,
     ]);
     expect(cleaned, [500, 510, 520]);
+  });
+
+  test('eBay forecast values keep only the requested exact variant', () {
+    SourceListing listing(String title, double price) => SourceListing(
+          sourceId: 'ebay_de',
+          sourceName: 'eBay DE',
+          role: 'resale',
+          title: title,
+          price: price,
+          shipping: 0,
+          url: 'https://www.ebay.de/itm/$price',
+          condition: 'Gebraucht',
+          live: true,
+        );
+
+    final values = v13EbayAskingValues([
+      listing('Apple iPhone 15 Pro 256GB Weiß TOP Zustand', 800),
+      listing('Apple iPhone 15 Pro Max 256GB', 1000),
+      listing('Apple iPhone 15 Pro 128GB', 700),
+    ], 'Apple iPhone 15 Pro 256 GB');
+
+    expect(values, [800]);
   });
 }

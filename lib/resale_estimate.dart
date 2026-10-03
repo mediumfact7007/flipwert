@@ -124,6 +124,31 @@ bool resaleSameModel(String left, String right) {
   return true;
 }
 
+bool resaleListingMatchesQuery(String query, String listingTitle) {
+  final queryTokens = _modelTokens(query);
+  final listingTokens = _modelTokens(listingTitle);
+  if (queryTokens.length < 2 || listingTokens.length < 2) return false;
+
+  final listingSet = listingTokens.toSet();
+  if (!queryTokens.every(listingSet.contains)) return false;
+
+  final storage = RegExp(r'^\d+(?:mb|gb|tb)$');
+  final queryStorage = queryTokens.where(storage.hasMatch).toSet();
+  final listingStorage = listingTokens.where(storage.hasMatch).toSet();
+  if (queryStorage.length != listingStorage.length ||
+      !queryStorage.containsAll(listingStorage)) {
+    return false;
+  }
+
+  const variants = {'pro', 'max', 'plus', 'ultra', 'mini', 'se', 'fe'};
+  for (final variant in variants) {
+    if (queryTokens.contains(variant) != listingTokens.contains(variant)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 List<double> _prices(Iterable<double> values) => values
     .where((value) => value.isFinite && value > 0 && value <= 100000)
     .toList()
