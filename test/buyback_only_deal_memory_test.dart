@@ -174,6 +174,7 @@ void main() {
       expect(find.textContaining('Jetzt: ZOXS · 340,00 €'), findsOneWidget);
       expect(find.textContaining('Gewinn jetzt: 60,00 €'), findsOneWidget);
       expect(find.text('+40,00 €'), findsOneWidget);
+      expect(find.text('CHECK ÜBERNEHMEN'), findsOneWidget);
 
       monetization.dispose();
     },

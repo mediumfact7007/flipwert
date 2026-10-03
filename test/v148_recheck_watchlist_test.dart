@@ -100,6 +100,8 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(remember, findsOneWidget);
+    expect(find.text('CHECK ÜBERNEHMEN'), findsOneWidget);
+    expect(find.text('MERKEN'), findsNothing);
     final rememberButton = tester.widget<OutlinedButton>(remember);
     expect(rememberButton.onPressed, isNotNull);
     rememberButton.onPressed!();
