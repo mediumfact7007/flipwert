@@ -83,7 +83,7 @@ const _modelNoiseTokens = {
   'titan', 'titanium',
 };
 
-List<String> _modelTokens(String value) {
+List<String> _rawSearchTokens(String value) {
   final normalized = value
       .toLowerCase()
       .replaceAll('ä', 'ae')
@@ -94,7 +94,11 @@ List<String> _modelTokens(String value) {
       .trim();
   if (normalized.isEmpty) return const [];
 
-  final raw = normalized.split(RegExp(r'\s+'));
+  return normalized.split(RegExp(r'\s+'));
+}
+
+List<String> _modelTokens(String value) {
+  final raw = _rawSearchTokens(value);
   final result = <String>[];
   for (var i = 0; i < raw.length; i++) {
     var token = raw[i];
@@ -112,6 +116,68 @@ List<String> _modelTokens(String value) {
   return result;
 }
 
+bool _hasUnexpectedListingQualifier(String query, String listingTitle) {
+  final queryTokens = _rawSearchTokens(query).toSet();
+  final listingTokens = _rawSearchTokens(listingTitle);
+  final listingSet = listingTokens.toSet();
+
+  const damaged = {
+    'defekt',
+    'defektes',
+    'broken',
+    'damaged',
+    'cracked',
+    'kaputt',
+    'bastler',
+    'reparatur',
+    'repair',
+    'parts',
+    'ersatzteil',
+    'displaybruch',
+    'wasserschaden',
+  };
+  if (damaged.any(
+    (token) => listingSet.contains(token) && !queryTokens.contains(token),
+  )) {
+    return true;
+  }
+
+  const accessories = {
+    'huelle',
+    'handyhuelle',
+    'schutzhuelle',
+    'handytasche',
+    'case',
+    'handycase',
+    'cover',
+    'panzerglas',
+    'schutzfolie',
+    'protector',
+    'display',
+    'akku',
+    'battery',
+    'halterung',
+    'holder',
+    'dock',
+    'armband',
+    'strap',
+    'ladegeraet',
+    'charger',
+    'kabel',
+    'cable',
+    'adapter',
+    'netzteil',
+  };
+  final unexpectedAccessories = listingSet
+      .where(accessories.contains)
+      .where((token) => !queryTokens.contains(token));
+  if (unexpectedAccessories.isEmpty) return false;
+
+  return listingSet.contains('fuer') ||
+      listingSet.contains('for') ||
+      accessories.contains(listingTokens.first);
+}
+
 bool resaleSameModel(String left, String right) {
   final leftTokens = _modelTokens(left);
   final rightTokens = _modelTokens(right);
@@ -125,6 +191,7 @@ bool resaleSameModel(String left, String right) {
 }
 
 bool resaleListingMatchesQuery(String query, String listingTitle) {
+  if (_hasUnexpectedListingQualifier(query, listingTitle)) return false;
   final queryTokens = _modelTokens(query);
   final listingTokens = _modelTokens(listingTitle);
   if (queryTokens.length < 2 || listingTokens.length < 2) return false;

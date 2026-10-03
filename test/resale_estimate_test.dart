@@ -58,6 +58,30 @@ void main() {
     );
   });
 
+  test('eBay title matching rejects accessories and unexpected damage', () {
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Hülle für Apple iPhone 15 Pro 256GB mit MagSafe',
+      ),
+      isFalse,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Apple iPhone 15 Pro 256GB defekt für Bastler',
+      ),
+      isFalse,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256 GB',
+        'Apple iPhone 15 Pro 256GB mit Hülle und OVP',
+      ),
+      isTrue,
+    );
+  });
+
   test('own exact-model sales carry the highest weight', () {
     final estimate = estimateResaleValue(ResaleEstimateInput(
       article: 'Apple iPhone 15 Pro 256 GB',
