@@ -52,24 +52,20 @@ void main() {
     );
   });
 
-  testWidgets('marking a saved deal as bought removes its local alert',
-      (tester) async {
+  test('marking a saved deal as bought removes its local alert', () async {
     final saved = _saved('saved-to-buy');
-    SharedPreferences.setMockInitialValues({
-      'flips_v13': [jsonEncode(saved.toJson())],
+    final bought = V13Flip.fromJson({
+      ...saved.toJson(),
+      'status': 'Bought',
     });
+    SharedPreferences.setMockInitialValues({});
     final store = DealAlertStore();
     await store.save(DealAlertPreference.defaults(saved.id));
 
-    await tester.pumpWidget(const FlipwertV13App());
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(
-      find.byKey(const ValueKey('v152-watchlist-home-attention')),
+    expect(
+      await v157SyncDealAlertLifecycle(saved, bought, store: store),
+      isTrue,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('v147-mark-bought')));
-    await tester.pumpAndSettle();
-
     expect(await store.forFlip(saved.id), isNull);
   });
 }

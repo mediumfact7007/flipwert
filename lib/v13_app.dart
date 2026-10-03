@@ -915,14 +915,10 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
               onUpdateFlip: (item) {
                 final i = flips.indexWhere((e) => e.id == item.id);
                 if (i >= 0) {
-                  final removeAlert = flips[i].isSaved &&
-                      !item.isSaved &&
-                      !item.isArchived;
+                  final previous = flips[i];
                   setState(() => flips[i] = item);
                   _save();
-                  if (removeAlert) {
-                    unawaited(DealAlertStore().remove(item.id));
-                  }
+                  unawaited(v157SyncDealAlertLifecycle(previous, item));
                 }
               },
               onDeleteFlip: (id) {
@@ -3896,4 +3892,15 @@ IconData _sourceIcon(String id) {
     case 'backmarket': return Icons.autorenew_rounded;
     default: return Icons.open_in_new_rounded;
   }
+}
+Future<bool> v157SyncDealAlertLifecycle(
+  V13Flip previous,
+  V13Flip current, {
+  DealAlertStore? store,
+}) {
+  final removeAlert = previous.isSaved &&
+      !current.isSaved &&
+      !current.isArchived;
+  if (!removeAlert) return Future<bool>.value(true);
+  return (store ?? DealAlertStore()).remove(current.id);
 }
