@@ -74,6 +74,17 @@ double v13Money(String raw) {
   return parsed == null || !parsed.isFinite || parsed < 0 ? 0 : parsed;
 }
 
+double? v13ResolveExpectedSale({
+  double? manualOverride,
+  double? marketEstimate,
+  double? snapshotFallback,
+}) {
+  for (final value in [manualOverride, marketEstimate, snapshotFallback]) {
+    if (value != null && value.isFinite && value > 0) return value;
+  }
+  return null;
+}
+
 enum V13InputKind { text, url, ean, asin }
 
 class V13SearchInput {
@@ -1643,6 +1654,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   final Set<String> failed = {};
   bool manualMode = false;
   double? manualCommitted;
+  double? snapshotExpectedFallback;
   bool deepUnlocked = false;
   bool deepLoading = false;
   bool savedBought = false;
@@ -1720,7 +1732,9 @@ class _V13CheckPageState extends State<V13CheckPage> {
       listings = [];
       pending.clear();
       failed.clear();
-      manualCommitted = preserveSnapshotFallback &&
+      manualCommitted = null;
+      snapshotExpectedFallback = preserveSnapshotFallback &&
+              widget.existingSnapshot!.expectedAtBuy.isFinite &&
               widget.existingSnapshot!.expectedAtBuy > 0
           ? widget.existingSnapshot!.expectedAtBuy
           : null;
@@ -1994,8 +2008,11 @@ class _V13CheckPageState extends State<V13CheckPage> {
       );
 
   double? get baseExpectedSale {
-    if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
-    return resaleEstimate?.likely;
+    return v13ResolveExpectedSale(
+      manualOverride: manualCommitted,
+      marketEstimate: resaleEstimate?.likely,
+      snapshotFallback: snapshotExpectedFallback,
+    );
   }
 
   double? get expectedSale => baseExpectedSale;
@@ -2038,8 +2055,11 @@ class _V13CheckPageState extends State<V13CheckPage> {
       qualityMarketListings.map((e) => e.total).toList();
 
   double? get conservativeExit {
-    if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
-    return resaleEstimate?.low;
+    return v13ResolveExpectedSale(
+      manualOverride: manualCommitted,
+      marketEstimate: resaleEstimate?.low,
+      snapshotFallback: snapshotExpectedFallback,
+    );
   }
 
   double? _sourceMedian(String id) => _median(_clean((id == 'ebay_de'
