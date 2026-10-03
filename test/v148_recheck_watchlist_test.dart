@@ -113,6 +113,11 @@ void main() {
     expect(updated!.buy, 205);
     expect(updated!.expectedAtBuy, 350);
     expect(updated!.checkedAt.isAfter(oldCheck), isTrue);
+    expect(find.byKey(const ValueKey('v159-recheck-baseline-accepted')), findsOneWidget);
+    expect(
+      find.text('Prüfstand übernommen. Künftige Deal-Alarme vergleichen mit diesen Werten.'),
+      findsOneWidget,
+    );
     expect(find.text('Deal aktualisiert.'), findsOneWidget);
     monetization.dispose();
   });

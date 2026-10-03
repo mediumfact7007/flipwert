@@ -2396,7 +2396,8 @@ class _V13CheckPageState extends State<V13CheckPage> {
               ),
             ),
           ],
-          if (widget.existingSnapshot?.isSaved == true &&
+          if (!savedWatch &&
+              widget.existingSnapshot?.isSaved == true &&
               ((expectedSale != null &&
                   (widget.existingSnapshot!.maxBuyAtCheck > 0 ||
                       widget.existingSnapshot!.profitAtCheck != 0 ||
@@ -2435,6 +2436,31 @@ class _V13CheckPageState extends State<V13CheckPage> {
                   widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider' &&
                       widget.existingSnapshot!.buybackPriceAtCheck > 0 &&
                       currentComparableBuybackOffer != null,
+            ),
+          ],
+          if (savedWatch && widget.existingSnapshot?.isSaved == true) ...[
+            const SizedBox(height: 8),
+            Container(
+              key: const ValueKey('v159-recheck-baseline-accepted'),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F7F1),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0x33087F5B)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF087F5B), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t(
+                      'Prüfstand übernommen. Künftige Deal-Alarme vergleichen mit diesen Werten.',
+                      'Check accepted. Future deal alerts compare against these values.',
+                    ),
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF175B47)),
+                  ),
+                ),
+              ]),
             ),
           ],
           const SizedBox(height: 8),
@@ -2691,10 +2717,10 @@ class _V14ConfidenceCard extends StatelessWidget {
               minHeight: 7,
               backgroundColor: const Color(0xFFEDEEF4),
               valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
             ),
-          ),
-        ],
-        const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 8),
         Text(confidence.note(english), style: const TextStyle(fontSize: 10.8, height: 1.35, color: Color(0xFF686C79))),
       ]),
     );

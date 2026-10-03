@@ -124,6 +124,7 @@ void main() {
         buybackQuoteKindAtCheck: 'live_provider',
       );
       final monetization = V13Monetization(onProUnlocked: () {});
+      V13Flip? updated;
 
       await tester.pumpWidget(MaterialApp(
         home: V13CheckPage(
@@ -139,6 +140,7 @@ void main() {
           monetization: monetization,
           onHistory: (_) {},
           onAddFlip: (_) {},
+          onUpdateFlip: (value) => updated = value,
           buybackSearch: (query, condition) async => BuybackSearchResult(
             configured: true,
             live: true,
@@ -175,6 +177,21 @@ void main() {
       expect(find.textContaining('Gewinn jetzt: 60,00 €'), findsOneWidget);
       expect(find.text('+40,00 €'), findsOneWidget);
       expect(find.text('CHECK ÜBERNEHMEN'), findsOneWidget);
+
+      final accept = find.byKey(const ValueKey('buyback-only-remember-deal'));
+      await tester.scrollUntilVisible(
+        accept,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(accept);
+      await tester.pump();
+
+      expect(updated, isNotNull);
+      expect(updated!.id, saved.id);
+      expect(updated!.buybackPriceAtCheck, 340);
+      expect(updated!.buybackProviderAtCheck, 'ZOXS');
+      expect(find.byKey(const ValueKey('v159-recheck-baseline-accepted')), findsOneWidget);
 
       monetization.dispose();
     },
