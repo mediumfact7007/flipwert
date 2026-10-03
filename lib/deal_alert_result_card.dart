@@ -71,6 +71,11 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
     return t('$amount € Gewinn', '$amount € profit');
   }
 
+  String _signed(double value, String unit) {
+    final prefix = value > 0 ? '+' : '';
+    return '$prefix${value.toStringAsFixed(0)} $unit';
+  }
+
   @override
   Widget build(BuildContext context) {
     final preference = _preference;
@@ -85,7 +90,12 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
       currentBuybackProfit: widget.currentBuybackProfit,
       verifiedBuybackComparison: widget.verifiedBuybackComparison,
     );
-    if (!evaluation.triggered) return const SizedBox.shrink();
+    final hasVerifiedBuybackComparison = widget.verifiedBuybackComparison &&
+        widget.previousBuybackProfit != null &&
+        widget.currentBuybackProfit != null;
+    if (!widget.hasPrivateComparison && !hasVerifiedBuybackComparison) {
+      return const SizedBox.shrink();
+    }
 
     final reasons = <String>[];
     if (evaluation.becameProfitable) {
@@ -103,6 +113,20 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
     if (evaluation.buybackProfitThresholdReached) {
       reasons.add('${t('LIVE-Ankaufgewinn', 'LIVE buyback profit')} +${evaluation.buybackProfitIncrease.toStringAsFixed(0)} €');
     }
+    if (!evaluation.triggered) {
+      if (widget.hasPrivateComparison) {
+        reasons.add(
+          '${t('Privatgewinn', 'Private profit')} ${_signed(evaluation.profitIncrease, '€')} · '
+          'ROI ${_signed(evaluation.roiIncrease, '%-Pkt.')}',
+        );
+      }
+      if (hasVerifiedBuybackComparison) {
+        reasons.add(
+          '${t('LIVE-Ankaufgewinn', 'LIVE buyback profit')} '
+          '${_signed(evaluation.buybackProfitIncrease, '€')}',
+        );
+      }
+    }
     final comparisonLines = <String>[];
     if (widget.hasPrivateComparison) {
       comparisonLines.add(
@@ -110,7 +134,7 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
         '${t('Privat jetzt', 'Private now')}: ${_profitState(widget.currentProfit)} · ROI ${widget.currentRoi.toStringAsFixed(0)} %',
       );
     }
-    if (widget.verifiedBuybackComparison && widget.previousBuybackProfit != null && widget.currentBuybackProfit != null) {
+    if (hasVerifiedBuybackComparison) {
       comparisonLines.add(
         '${t('LIVE-Ankauf vorher', 'LIVE buyback before')}: ${_profitState(widget.previousBuybackProfit!)}\n'
         '${t('LIVE-Ankauf jetzt', 'LIVE buyback now')}: ${_profitState(widget.currentBuybackProfit!)}',
@@ -121,20 +145,28 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
         '${t('Dein Alarm', 'Your alert')}: +${preference.minProfitIncrease.toStringAsFixed(0)} € ${t('Privatgewinn', 'private profit')}, '
         '+${preference.minBuybackProfitIncrease.toStringAsFixed(0)} € ${t('LIVE-Ankaufgewinn', 'LIVE buyback profit')} ${t('oder', 'or')} '
         '+${preference.minRoiIncrease.toStringAsFixed(0)} %-Pkt. ROI';
+    final triggered = evaluation.triggered;
+    final accent = triggered ? const Color(0xFF087F5B) : const Color(0xFF5F6470);
+    final background = triggered ? const Color(0xFFF0F8F4) : const Color(0xFFF6F7F9);
 
     return Container(
-      key: const ValueKey('v153-deal-alert-result'),
+      key: ValueKey(triggered ? 'v153-deal-alert-result' : 'v157-deal-alert-checked'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F8F4),
+        color: background,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x33087F5B)),
+        border: Border.all(color: triggered ? const Color(0x33087F5B) : const Color(0x22000000)),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Icon(Icons.notifications_active_rounded, color: Color(0xFF087F5B), size: 21),
+        Icon(triggered ? Icons.notifications_active_rounded : Icons.notifications_none_rounded, color: accent, size: 21),
         const SizedBox(width: 9),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(t('DEAL-ALARM AUSGELÖST', 'DEAL ALERT TRIGGERED'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF087F5B))),
+          Text(
+            triggered
+                ? t('DEAL-ALARM AUSGELÖST', 'DEAL ALERT TRIGGERED')
+                : t('DEAL-ALARM GEPRÜFT', 'DEAL ALERT CHECKED'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: accent),
+          ),
           const SizedBox(height: 4),
           Text(reasons.join(' · '), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
           const SizedBox(height: 3),
@@ -142,7 +174,12 @@ class _DealAlertResultCardState extends State<DealAlertResultCard> {
           const SizedBox(height: 4),
           Text(threshold, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF52605A))),
           const SizedBox(height: 3),
-          Text(t('Dein gespeichertes Alarmkriterium wurde erreicht.', 'Your saved alert criterion was reached.'), style: const TextStyle(fontSize: 10.5, color: Color(0xFF626B67))),
+          Text(
+            triggered
+                ? t('Dein gespeichertes Alarmkriterium wurde erreicht.', 'Your saved alert criterion was reached.')
+                : t('Das gespeicherte Alarmkriterium ist noch nicht erreicht.', 'The saved alert criterion has not been reached yet.'),
+            style: const TextStyle(fontSize: 10.5, color: Color(0xFF626B67)),
+          ),
           const SizedBox(height: 2),
           Text(t('Lokaler Recheck-Hinweis – aktuell keine Push-Nachricht.', 'Local recheck notice — currently no push notification.'), style: const TextStyle(fontSize: 9.8, color: Color(0xFF7B837F))),
         ])),

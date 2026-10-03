@@ -84,5 +84,32 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('v153-deal-alert-result')), findsNothing);
+    expect(find.byKey(const ValueKey('v157-deal-alert-checked')), findsNothing);
+  });
+
+  testWidgets('recheck confirms an enabled alert was evaluated below threshold',
+      (tester) async {
+    final store = _FixedAlertStore(
+      DealAlertPreference.defaults('flip-1').copyWith(
+        minProfitIncrease: 10,
+        minRoiIncrease: 10,
+      ),
+    );
+    await tester.pumpWidget(_host(DealAlertResultCard(
+      flipId: 'flip-1',
+      english: false,
+      previousProfit: 30,
+      currentProfit: 33,
+      previousRoi: 20,
+      currentRoi: 22,
+      store: store,
+    )));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('v157-deal-alert-checked')), findsOneWidget);
+    expect(find.text('DEAL-ALARM GEPRÜFT'), findsOneWidget);
+    expect(find.textContaining('Privatgewinn +3 € · ROI +2 %-Pkt.'), findsOneWidget);
+    expect(find.textContaining('noch nicht erreicht'), findsOneWidget);
+    expect(find.byKey(const ValueKey('v153-deal-alert-result')), findsNothing);
   });
 }
