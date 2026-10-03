@@ -44,10 +44,11 @@ class DualExitCard extends StatelessWidget {
         parts.add(
             '${estimate.ownSalesUsed} own $label${estimate.ownSalesUsed == 1 ? '' : 's'}');
       } else {
-        final label = exact ? 'Modellverkauf' : 'Kategorieverkauf';
+        final singular = exact ? 'Modellverkauf' : 'Kategorieverkauf';
+        final plural = exact ? 'Modellverkäufe' : 'Kategorieverkäufe';
         parts.add(estimate.ownSalesUsed == 1
-            ? '1 eigener $label'
-            : '${estimate.ownSalesUsed} eigene ${label}e');
+            ? '1 eigener $singular'
+            : '${estimate.ownSalesUsed} eigene $plural');
       }
     }
     if (estimate.activeEbayListingsUsed > 0) {
