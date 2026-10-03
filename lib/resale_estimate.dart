@@ -129,6 +129,21 @@ List<double> _prices(Iterable<double> values) => values
     .toList()
   ..sort();
 
+List<double> _withoutPriceOutliers(Iterable<double> values) {
+  final sorted = _prices(values);
+  if (sorted.length < 4) return sorted;
+
+  final firstQuartile = _quantile(sorted, .25);
+  final thirdQuartile = _quantile(sorted, .75);
+  final interquartileRange = thirdQuartile - firstQuartile;
+  final lowerBound = firstQuartile - interquartileRange * 1.5;
+  final upperBound = thirdQuartile + interquartileRange * 1.5;
+  final filtered = sorted
+      .where((price) => price >= lowerBound && price <= upperBound)
+      .toList();
+  return filtered.length >= 2 ? filtered : sorted;
+}
+
 double _quantile(List<double> sorted, double quantile) {
   if (sorted.length == 1) return sorted.single;
   final position = (sorted.length - 1) * quantile;
@@ -186,8 +201,9 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
       : categorySales.isNotEmpty
           ? ResaleOwnSalesScope.category
           : ResaleOwnSalesScope.none;
-  final ownPrices = _prices(selectedSales.map((sale) => sale.salePrice));
-  final ebayPrices = _prices(input.activeEbayAskingPrices)
+  final ownPrices =
+      _withoutPriceOutliers(selectedSales.map((sale) => sale.salePrice));
+  final ebayPrices = _withoutPriceOutliers(input.activeEbayAskingPrices)
       .map((price) => price * (1 - discount))
       .toList();
   final floor = input.buybackFloor != null &&
@@ -230,7 +246,10 @@ ResaleEstimate? estimateResaleValue(ResaleEstimateInput input) {
       : ownPrices.length >= 2 || ebayPrices.length >= 5
           ? ResaleEstimateConfidence.medium
           : ResaleEstimateConfidence.low;
-  final saleDays = selectedSales.map((sale) => sale.daysToSell).toList()
+  final saleDays = selectedSales
+      .where((sale) => ownPrices.contains(sale.salePrice))
+      .map((sale) => sale.daysToSell)
+      .toList()
     ..sort();
   final estimatedDays = saleDays.isEmpty
       ? null

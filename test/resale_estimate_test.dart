@@ -161,6 +161,28 @@ void main() {
     expect(estimate.estimatedDaysToSell, 19);
   });
 
+  test('obvious price outliers do not dominate the resale forecast', () {
+    final estimate = estimateResaleValue(ResaleEstimateInput(
+      article: 'Apple iPhone 15 Pro 256 GB',
+      category: 'Smartphone',
+      ownSales: [
+        sale('Apple iPhone 15 Pro 256 GB', 'Smartphone', 500, 8),
+        sale('Apple iPhone 15 Pro 256 GB', 'Smartphone', 520, 10),
+        sale('Apple iPhone 15 Pro 256 GB', 'Smartphone', 540, 12),
+        sale('Apple iPhone 15 Pro 256 GB', 'Smartphone', 5000, 1),
+      ],
+      activeEbayAskingPrices: const [600, 620, 640, 6000],
+      ebayAskingDiscount: .10,
+    ))!;
+
+    expect(estimate.ownSalesUsed, 3);
+    expect(estimate.activeEbayListingsUsed, 3);
+    expect(estimate.likely, closeTo(531.4, .001));
+    expect(estimate.high, closeTo(541.1, .001));
+    expect(estimate.estimatedDaysToSell, 10);
+    expect(estimate.confidence, ResaleEstimateConfidence.high);
+  });
+
   test('returns no estimate without usable evidence', () {
     expect(
       estimateResaleValue(const ResaleEstimateInput(
