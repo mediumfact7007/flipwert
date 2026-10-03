@@ -59,4 +59,60 @@ void main() {
 
     expect(values, [800]);
   });
+
+  test('all visible market evidence uses the same exact variant set', () {
+    SourceListing listing({
+      required String source,
+      required String title,
+      required double price,
+      String role = 'resale',
+    }) =>
+        SourceListing(
+          sourceId: source,
+          sourceName: source,
+          role: role,
+          title: title,
+          price: price,
+          shipping: 0,
+          url: 'https://example.test/$price',
+          condition: 'Gebraucht',
+          live: true,
+        );
+
+    final comparable = v13ComparableMarketListings([
+      listing(
+        source: 'ebay_de',
+        title: 'Apple iPhone 15 Pro 256GB Weiß',
+        price: 800,
+      ),
+      listing(
+        source: 'ebay_de',
+        title: 'Apple iPhone 15 Pro Max 256GB',
+        price: 1000,
+      ),
+      listing(
+        source: 'ebay_de',
+        title: 'Apple iPhone 15 Pro 128GB',
+        price: 700,
+      ),
+      listing(
+        source: 'partner_live',
+        title: 'Partner comparison',
+        price: 790,
+        role: 'local',
+      ),
+      listing(
+        source: 'retail_reference',
+        title: 'Retail reference',
+        price: 1100,
+        role: 'retail',
+      ),
+    ], 'Apple iPhone 15 Pro 256 GB');
+
+    expect(comparable.map((item) => item.total), [800, 790]);
+    expect(comparable.map((item) => item.sourceId), [
+      'ebay_de',
+      'partner_live',
+    ]);
+  });
 }

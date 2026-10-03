@@ -1447,16 +1447,30 @@ List<double> v13EbayAskingValues(
   String query,
 ) =>
     v13CleanMarketValues(
-      listings
-          .where((item) =>
-              item.live &&
-              item.sourceId == 'ebay_de' &&
-              (item.role == 'resale' || item.role == 'local') &&
-              resaleListingMatchesQuery(query, item.title))
+      v13ComparableMarketListings(listings, query)
+          .where((item) => item.sourceId == 'ebay_de')
           .map((item) => item.total)
-          .where((value) => value > 0 && value.isFinite)
           .toList(),
     );
+
+List<SourceListing> v13ComparableMarketListings(
+  Iterable<SourceListing> listings,
+  String query,
+) {
+  final normalizedQuery = query.trim();
+  return listings
+      .where(
+        (item) =>
+            item.live &&
+            (item.role == 'resale' || item.role == 'local') &&
+            item.total.isFinite &&
+            item.total > 0 &&
+            (item.sourceId != 'ebay_de' ||
+                normalizedQuery.isEmpty ||
+                resaleListingMatchesQuery(normalizedQuery, item.title)),
+      )
+      .toList();
+}
 
 class V13MarketConfidence {
   final int score;
@@ -1509,19 +1523,7 @@ V13MarketConfidence v13MarketConfidence(
   bool manualOverride = false,
   String? query,
 }) {
-  final normalizedQuery = query?.trim() ?? '';
-  final live = listings
-      .where(
-        (e) =>
-            e.live &&
-            (e.role == 'resale' || e.role == 'local') &&
-            e.total.isFinite &&
-            e.total > 0 &&
-            (e.sourceId != 'ebay_de' ||
-                normalizedQuery.isEmpty ||
-                resaleListingMatchesQuery(normalizedQuery, e.title)),
-      )
-      .toList();
+  final live = v13ComparableMarketListings(listings, query ?? '');
   final raw = live.map((e) => e.total).toList();
   final cleaned = v13CleanMarketValues(raw);
   final used = cleaned.length;
@@ -1916,7 +1918,10 @@ class _V13CheckPageState extends State<V13CheckPage> {
 
   List<double> _clean(List<double> raw) => v13CleanMarketValues(raw);
 
-  double? get activeMedian => _median(_clean(_valuesFor({'resale', 'local'})));
+  List<SourceListing> get comparableMarketListings =>
+      v13ComparableMarketListings(listings, query.text);
+
+  double? get activeMedian => _median(resaleValues);
   double? get retailMedian => _median(_clean(_valuesFor({'retail', 'refurb'})));
   double? get buybackMedian => _median(_clean(_valuesFor({'buyback'})));
   String get category => v13Category(query.text);
@@ -1996,14 +2001,20 @@ class _V13CheckPageState extends State<V13CheckPage> {
       );
   String get confidence => marketConfidence.label(widget.english);
 
-  List<double> get resaleValues => _clean(_valuesFor({'resale', 'local'}));
+  List<double> get resaleValues =>
+      _clean(comparableMarketListings.map((e) => e.total).toList());
 
   double? get conservativeExit {
     if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
     return resaleEstimate?.low;
   }
 
-  double? _sourceMedian(String id) => _median(_clean(listings.where((e) => e.live && e.sourceId == id).map((e) => e.total).where((e) => e > 0).toList()));
+  double? _sourceMedian(String id) => _median(_clean((id == 'ebay_de'
+          ? comparableMarketListings.where((e) => e.sourceId == id)
+          : listings.where((e) => e.live && e.sourceId == id))
+      .map((e) => e.total)
+      .where((e) => e > 0 && e.isFinite)
+      .toList()));
 
   List<PriceSource> get visibleSources {
     final input = widget.sources.where((s) => s.enabled).toList();
@@ -2063,8 +2074,8 @@ class _V13CheckPageState extends State<V13CheckPage> {
           _V154LiveListingPreview(
             english: widget.english,
             showEmpty: query.text.trim().isNotEmpty && pending.isEmpty,
-            listings: listings
-                .where((e) => e.live && (e.role == 'resale' || e.role == 'local') && e.url.trim().isNotEmpty)
+            listings: comparableMarketListings
+                .where((e) => e.url.trim().isNotEmpty)
                 .take(6)
                 .toList(),
           ),
