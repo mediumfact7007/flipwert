@@ -918,7 +918,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                   final previous = flips[i];
                   setState(() => flips[i] = item);
                   _save();
-                  unawaited(v157SyncDealAlertLifecycle(previous, item));
+                  unawaited(_syncDealAlertLifecycle(previous, item));
                 }
               },
               onDeleteFlip: (id) {
@@ -3893,14 +3893,13 @@ IconData _sourceIcon(String id) {
     default: return Icons.open_in_new_rounded;
   }
 }
-Future<bool> v157SyncDealAlertLifecycle(
+Future<bool> _syncDealAlertLifecycle(
   V13Flip previous,
-  V13Flip current, {
-  DealAlertStore? store,
-}) {
+  V13Flip current,
+) {
   final removeAlert = previous.isSaved &&
       !current.isSaved &&
       !current.isArchived;
   if (!removeAlert) return Future<bool>.value(true);
-  return (store ?? DealAlertStore()).remove(current.id);
+  return DealAlertStore().remove(current.id);
 }

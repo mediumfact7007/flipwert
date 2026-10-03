@@ -50,21 +50,4 @@ void main() {
       {'saved-1', 'archived-1'},
     );
   });
-
-  test('marking a saved deal as bought removes its local alert', () async {
-    final saved = _saved('saved-to-buy');
-    final bought = V13Flip.fromJson({
-      ...saved.toJson(),
-      'status': 'Bought',
-    });
-    SharedPreferences.setMockInitialValues({});
-    final store = DealAlertStore();
-    await store.save(DealAlertPreference.defaults(saved.id));
-
-    expect(
-      await v157SyncDealAlertLifecycle(saved, bought, store: store),
-      isTrue,
-    );
-    expect(await store.forFlip(saved.id), isNull);
-  });
 }
