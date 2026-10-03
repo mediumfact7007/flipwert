@@ -76,16 +76,19 @@ also match a successful representative validation fingerprint. Renew or disable 
 flags as a substitute for the underlying written rights. Keep this JSON and all
 credentials in deployment configuration, not in the APK or repository.
 
-Before enabling the mobile client against a newly approved source, run one
-exact product/condition probe from the deployed server environment:
+For diagnostics, one exact product/condition probe can be run from the
+deployed server environment. A single probe never returns an activation
+fingerprint and cannot activate LIVE prices:
 
 ```bash
 BUYBACK_VERIFY_QUERY="Apple iPhone 15 Pro 256 GB" \\
 BUYBACK_VERIFY_CONDITION="like_new" npm run verify:buyback-source
 ```
 
-For provider activation, prefer a small representative matrix covering distinct
-models, storage/connectivity variants and conditions:
+Provider activation requires a representative matrix with at least three
+unique cases, two distinct products and two distinct conditions. Cover further
+models and storage/connectivity variants whenever the approved feed contains
+them:
 
 ```bash
 BUYBACK_VERIFY_CASES_JSON='[
@@ -95,8 +98,9 @@ BUYBACK_VERIFY_CASES_JSON='[
 ]' npm run verify:buyback-source
 ```
 
-The matrix is limited to 20 cases, runs sequentially to respect partner limits
-and fails closed when any case has no fresh exact-condition offer. Output
+The matrix is limited to 20 cases, rejects duplicate or insufficient coverage,
+runs sequentially to respect partner limits and fails closed when any case has
+no fresh exact-condition offer. Output
 identifies only the failing case index and reason; it never prints the query,
 price, destination URL, token or approval reference.
 

@@ -3,6 +3,10 @@
 const { CONDITIONS } = require('./buyback');
 const defaultSource = require('./buyback_source');
 
+const MIN_MATRIX_CASES = 3;
+const MIN_MATRIX_PRODUCTS = 2;
+const MIN_MATRIX_CONDITIONS = 2;
+
 function cleanQuery(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 160);
 }
@@ -11,6 +15,7 @@ async function verifyBuybackSource({
   query,
   condition,
   source = defaultSource,
+  includeActivationFingerprint = false,
 } = {}) {
   const normalizedQuery = cleanQuery(query);
   const normalizedCondition = String(condition || '').trim();
@@ -64,7 +69,8 @@ async function verifyBuybackSource({
     .map((item) => Date.parse(String(item.checked_at || '')))
     .filter(Number.isFinite);
 
-  const activationFingerprint = typeof source.activationFingerprint === 'function'
+  const activationFingerprint = includeActivationFingerprint &&
+    typeof source.activationFingerprint === 'function'
     ? source.activationFingerprint()
     : null;
   return {
@@ -88,18 +94,53 @@ async function verifyBuybackSourceMatrix({
   cases,
   source = defaultSource,
 } = {}) {
-  if (!Array.isArray(cases) || cases.length < 1 || cases.length > 20 ||
+  if (!Array.isArray(cases) || cases.length < MIN_MATRIX_CASES || cases.length > 20 ||
       cases.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
     return { ok: false, reason: 'invalid_cases' };
   }
 
+  const normalizedCases = cases.map((item) => ({
+    query: cleanQuery(item.query),
+    condition: String(item.condition || '').trim(),
+  }));
+  if (normalizedCases.some((item) =>
+    item.query.length < 3 || !CONDITIONS.has(item.condition))) {
+    return { ok: false, reason: 'invalid_cases' };
+  }
+
+  // A repeated successful lookup is not representative validation. Require
+  // distinct products and conditions before exposing the activation token so
+  // a single SKU/state cannot accidentally unlock every approved LIVE feed.
+  const pairs = normalizedCases.map((item) =>
+    `${item.query.toLowerCase()}\u0000${item.condition}`);
+  const productCount = new Set(normalizedCases.map((item) =>
+    item.query.toLowerCase())).size;
+  const conditionCount = new Set(normalizedCases.map((item) =>
+    item.condition)).size;
+  if (new Set(pairs).size !== pairs.length ||
+      productCount < MIN_MATRIX_PRODUCTS ||
+      conditionCount < MIN_MATRIX_CONDITIONS) {
+    return {
+      ok: false,
+      reason: 'insufficient_matrix_coverage',
+      readiness: 'validation_incomplete',
+      required_case_count: MIN_MATRIX_CASES,
+      required_product_count: MIN_MATRIX_PRODUCTS,
+      required_condition_count: MIN_MATRIX_CONDITIONS,
+      actual_case_count: cases.length,
+      actual_product_count: productCount,
+      actual_condition_count: conditionCount,
+    };
+  }
+
   const results = [];
-  for (let index = 0; index < cases.length; index += 1) {
-    const item = cases[index];
+  for (let index = 0; index < normalizedCases.length; index += 1) {
+    const item = normalizedCases[index];
     const result = await verifyBuybackSource({
       query: item.query,
       condition: item.condition,
       source,
+      includeActivationFingerprint: true,
     });
     if (!result.ok) {
       return {

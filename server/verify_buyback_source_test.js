@@ -69,7 +69,6 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
       provider_count: 1,
       provider_ids: ['zoxs'],
       newest_checked_at: '2026-09-24T08:00:00.000Z',
-      activation_fingerprint: 'a'.repeat(64),
     },
   );
 
@@ -164,6 +163,79 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
     await verifyBuybackSourceMatrix({ cases: [] }),
     { ok: false, reason: 'invalid_cases' },
   );
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+      ],
+    }),
+    { ok: false, reason: 'invalid_cases' },
+    'activation requires at least three representative cases',
+  );
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'iPhone 15 Pro 256 GB', condition: 'used_good' },
+        { query: 'iPhone 15 Pro 256 GB', condition: 'very_good' },
+      ],
+    }),
+    {
+      ok: false,
+      reason: 'insufficient_matrix_coverage',
+      readiness: 'validation_incomplete',
+      required_case_count: 3,
+      required_product_count: 2,
+      required_condition_count: 2,
+      actual_case_count: 3,
+      actual_product_count: 1,
+      actual_condition_count: 3,
+    },
+    'one product cannot validate the full LIVE source',
+  );
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'like_new' },
+        { query: 'Apple iPad Air M2 256 GB Wi-Fi', condition: 'like_new' },
+      ],
+    }),
+    {
+      ok: false,
+      reason: 'insufficient_matrix_coverage',
+      readiness: 'validation_incomplete',
+      required_case_count: 3,
+      required_product_count: 2,
+      required_condition_count: 2,
+      actual_case_count: 3,
+      actual_product_count: 3,
+      actual_condition_count: 1,
+    },
+    'one condition cannot validate the full LIVE source',
+  );
+  assert.deepStrictEqual(
+    await verifyBuybackSourceMatrix({
+      cases: [
+        { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
+        { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+        { query: ' iPhone   15 Pro 256 GB ', condition: 'like_new' },
+      ],
+    }),
+    {
+      ok: false,
+      reason: 'insufficient_matrix_coverage',
+      readiness: 'validation_incomplete',
+      required_case_count: 3,
+      required_product_count: 2,
+      required_condition_count: 2,
+      actual_case_count: 3,
+      actual_product_count: 2,
+      actual_condition_count: 2,
+    },
+    'formatting variants of the same case cannot inflate matrix coverage',
+  );
 
   const matrixSource = {
     sourceStatus: () => ({ configured: true, readiness: 'ready' }),
@@ -184,14 +256,15 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
       cases: [
         { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
         { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+        { query: 'Apple iPad Air M2 256 GB Wi-Fi', condition: 'very_good' },
       ],
       source: matrixSource,
     }),
     {
       ok: true,
       readiness: 'ready',
-      case_count: 2,
-      offer_count: 2,
+      case_count: 3,
+      offer_count: 3,
       provider_count: 2,
       provider_ids: ['clevertronic', 'zoxs'],
       newest_checked_at: '2026-09-24T08:05:00.000Z',
@@ -217,6 +290,7 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
       cases: [
         { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
         { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+        { query: 'Apple iPad Air M2 256 GB Wi-Fi', condition: 'very_good' },
       ],
       source: incompleteProviderMatrixSource,
     }),
@@ -245,6 +319,7 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
     cases: [
       { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
       { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+      { query: 'Apple iPad Air M2 256 GB Wi-Fi', condition: 'very_good' },
     ],
     source: completeProviderMatrixSource,
   });
@@ -267,6 +342,7 @@ function fakeSource({ status, result, verificationResult, activationFingerprint 
       cases: [
         { query: 'iPhone 15 Pro 256 GB', condition: 'like_new' },
         { query: 'Samsung Galaxy S24 Ultra 512 GB', condition: 'used_good' },
+        { query: 'Apple iPad Air M2 256 GB Wi-Fi', condition: 'very_good' },
       ],
       source: failingMatrixSource,
     }),
