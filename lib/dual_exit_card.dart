@@ -35,6 +35,38 @@ class DualExitCard extends StatelessWidget {
         ResaleEstimateConfidence.low => english ? 'Low' : 'Niedrig',
       };
 
+  String _evidence(ResaleEstimate estimate) {
+    final parts = <String>[];
+    if (estimate.ownSalesUsed > 0) {
+      final exact = estimate.ownSalesScope == ResaleOwnSalesScope.exactModel;
+      if (english) {
+        final label = exact ? 'model sale' : 'category sale';
+        parts.add(
+            '${estimate.ownSalesUsed} own $label${estimate.ownSalesUsed == 1 ? '' : 's'}');
+      } else {
+        final label = exact ? 'Modellverkauf' : 'Kategorieverkauf';
+        parts.add(estimate.ownSalesUsed == 1
+            ? '1 eigener $label'
+            : '${estimate.ownSalesUsed} eigene ${label}e');
+      }
+    }
+    if (estimate.activeEbayListingsUsed > 0) {
+      final count = estimate.activeEbayListingsUsed;
+      parts.add(english
+          ? '$count active eBay listing${count == 1 ? '' : 's'}'
+          : '$count aktive eBay-${count == 1 ? 'Anzeige' : 'Angebote'}');
+      final percent = estimate.appliedEbayDiscount * 100;
+      final formatted = percent == percent.roundToDouble()
+          ? percent.toStringAsFixed(0)
+          : percent.toStringAsFixed(1).replaceAll('.', ',');
+      parts.add(english ? '$formatted% discount' : '$formatted % Abschlag');
+    }
+    if (parts.isEmpty) {
+      return english ? 'Buyback floor only' : 'Nur Ankauf-Untergrenze';
+    }
+    return parts.join(' · ');
+  }
+
   Widget _exitPanel({
     required BuildContext context,
     required Key key,
@@ -177,6 +209,11 @@ class DualExitCard extends StatelessWidget {
                         Text(
                           '${english ? 'Reliability' : 'Verlässlichkeit'}: ${_confidence(estimate.confidence)}',
                           key: const ValueKey('market-exit-confidence'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          '${english ? 'Basis' : 'Datengrundlage'}: ${_evidence(estimate)}',
+                          key: const ValueKey('market-exit-evidence'),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         if (estimate.estimatedDaysToSell != null)
