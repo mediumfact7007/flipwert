@@ -51,6 +51,11 @@ function approvedHosts(value) {
   return hosts;
 }
 
+function providerName(value) {
+  const normalized = String(value || '').trim().replace(/\s+/g, ' ');
+  return normalized.length >= 2 && normalized.length <= 120 ? normalized : null;
+}
+
 function currentProviderApprovals(now = Date.now()) {
   if (!BUYBACK_SOURCE_APPROVALS_JSON) return new Map();
   let rows;
@@ -66,12 +71,14 @@ function currentProviderApprovals(now = Date.now()) {
   for (const row of rows) {
     if (!row || typeof row !== 'object' || Array.isArray(row)) return new Map();
     const providerId = String(row.provider_id || '').trim().toLowerCase();
+    const approvedProviderName = providerName(row.provider_name);
     const reference = String(row.approval_reference || '').trim();
     const reviewedAt = explicitTimestamp(row.reviewed_at);
     const validUntil = explicitTimestamp(row.valid_until);
     const feedHosts = approvedHosts(row.feed_hosts);
     const offerHosts = approvedHosts(row.offer_hosts);
-    if (!PROVIDER_ID_PATTERN.test(providerId) || seenProviderIds.has(providerId) ||
+    if (!PROVIDER_ID_PATTERN.test(providerId) || approvedProviderName === null ||
+        seenProviderIds.has(providerId) ||
         !reference || reference.length > 160 || reviewedAt === null ||
         validUntil === null || feedHosts === null || offerHosts === null) {
       return new Map();
@@ -82,6 +89,7 @@ function currentProviderApprovals(now = Date.now()) {
         row.offer_links !== true || row.provider_identity_display !== true) continue;
     approvals.set(providerId, {
       providerId,
+      providerName: approvedProviderName,
       approvalReference: reference,
       reviewedAt,
       validUntil,
@@ -117,6 +125,7 @@ function sourceConfigFingerprint(now = Date.now()) {
     .sort((a, b) => a.providerId.localeCompare(b.providerId))
     .map((approval) => ({
       provider_id: approval.providerId,
+      provider_name: approval.providerName,
       approval_reference: approval.approvalReference,
       reviewed_at: new Date(approval.reviewedAt).toISOString(),
       valid_until: new Date(approval.validUntil).toISOString(),
@@ -314,6 +323,8 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
       const providerId = String(item?.provider_id || '').trim().toLowerCase();
       const approval = allowedProviders.get(providerId);
       return approval?.feedHosts.has(endpoint.hostname.toLowerCase()) === true &&
+        providerName(item?.provider_name)?.toLowerCase() ===
+          approval.providerName.toLowerCase() &&
         hasApprovedOfferUrl(item?.offer_url, approval.offerHosts) &&
         (item?.affiliate_link === undefined ||
           item?.affiliate_link === false ||
@@ -351,7 +362,7 @@ function sourceStatus(now = Date.now()) {
     rights_gate: rightsReady ? 'approved' : 'not_approved_or_expired',
     activation_gate: isConfigured ? 'validated' : 'missing_or_stale',
     readiness,
-    approval_model: 'per_provider_hosts_affiliate_and_activation_v4',
+    approval_model: 'per_provider_identity_hosts_affiliate_and_activation_v5',
     activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: isConfigured ? approvals.size : 0,
   };

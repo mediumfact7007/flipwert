@@ -61,6 +61,7 @@ function approvedEnv(overrides = {}) {
     activation: 'auto',
     approvals: JSON.stringify([{
       provider_id: 'clevertronic',
+      provider_name: 'Clevertronic',
       approval_reference: 'partner-contract-2026-01',
       reviewed_at: '2026-09-01T10:00:00Z',
       valid_until: '2099-12-31T23:59:59Z',
@@ -122,10 +123,24 @@ function approvedEnv(overrides = {}) {
     loaded.source.sourceStatus().readiness,
     'missing_or_stale_validation',
   );
+  const baselineFingerprint = loaded.source.activationFingerprint();
   assert.match(
-    loaded.source.activationFingerprint(),
+    baselineFingerprint,
     /^[a-f0-9]{64}$/,
     'a rights-approved pre-activation source must expose a non-secret validation fingerprint',
+  );
+  loaded.restore();
+
+  const renamedProviderApproval = JSON.parse(approvedEnv().approvals);
+  renamedProviderApproval[0].provider_name = 'Clevertronic Partner';
+  loaded = loadSource(approvedEnv({
+    activation: '',
+    approvals: JSON.stringify(renamedProviderApproval),
+  }));
+  assert.notStrictEqual(
+    loaded.source.activationFingerprint(),
+    baselineFingerprint,
+    'changing the approved visible provider identity must invalidate activation',
   );
   loaded.restore();
 
@@ -137,8 +152,19 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(loaded.source.configured(), false, 'malformed approval metadata must fail closed');
   loaded.restore();
 
+  const missingProviderName = JSON.parse(approvedEnv().approvals);
+  delete missingProviderName[0].provider_name;
+  loaded = loadSource(approvedEnv({ approvals: JSON.stringify(missingProviderName) }));
+  assert.strictEqual(
+    loaded.source.configured(),
+    false,
+    'an approval must bind the provider ID to its visible name',
+  );
+  loaded.restore();
+
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([{
-    provider_id: 'clevertronic', approval_reference: 'expired-contract',
+    provider_id: 'clevertronic', provider_name: 'Clevertronic',
+    approval_reference: 'expired-contract',
     reviewed_at: '2019-01-01T00:00:00Z', valid_until: '2020-01-01T00:00:00Z',
     feed_access: true, price_display: true, offer_links: true,
     provider_identity_display: true, affiliate_links: false,
@@ -150,7 +176,8 @@ function approvedEnv(overrides = {}) {
 
   for (const missingRight of ['feed_access', 'price_display', 'offer_links', 'provider_identity_display']) {
     const approval = {
-      provider_id: 'clevertronic', approval_reference: 'limited-contract',
+      provider_id: 'clevertronic', provider_name: 'Clevertronic',
+      approval_reference: 'limited-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
       provider_identity_display: true, affiliate_links: false,
@@ -164,7 +191,8 @@ function approvedEnv(overrides = {}) {
   }
 
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([{
-    provider_id: 'clevertronic', approval_reference: 'future-review',
+    provider_id: 'clevertronic', provider_name: 'Clevertronic',
+    approval_reference: 'future-review',
     reviewed_at: '2099-01-01T00:00:00Z', valid_until: '2099-12-31T23:59:59Z',
     feed_access: true, price_display: true, offer_links: true,
     provider_identity_display: true, affiliate_links: false,
@@ -175,7 +203,8 @@ function approvedEnv(overrides = {}) {
   loaded.restore();
 
   const duplicateApproval = {
-    provider_id: 'clevertronic', approval_reference: 'duplicate-contract',
+    provider_id: 'clevertronic', provider_name: 'Clevertronic',
+    approval_reference: 'duplicate-contract',
     reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
     feed_access: true, price_display: true, offer_links: true,
     provider_identity_display: true, affiliate_links: false,
@@ -306,12 +335,14 @@ function approvedEnv(overrides = {}) {
         }, {
           ...good, offer_url: 'https://unapproved-offer.example/offer/redirected', price: 999,
         }, {
+          ...good, provider_name: 'Different Brand', price: 998,
+        }, {
           ...good, provider_id: 'store-credit', payout_type: 'store_credit', price: 999,
         }] };
       },
     }),
   });
-  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions, offer hosts and non-cash payouts must not enter the comparison');
+  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions, provider names, offer hosts and non-cash payouts must not enter the comparison');
   assert.strictEqual(mixed.items[0].condition, 'like_new', 'only the explicitly requested condition may reach the app');
   assert.strictEqual(mixed.best.provider_id, 'clevertronic');
 
@@ -371,7 +402,8 @@ function approvedEnv(overrides = {}) {
 
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([
     {
-      provider_id: 'clevertronic', approval_reference: 'clevertronic-contract',
+      provider_id: 'clevertronic', provider_name: 'Clevertronic',
+      approval_reference: 'clevertronic-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
       provider_identity_display: true, affiliate_links: false,
@@ -379,7 +411,8 @@ function approvedEnv(overrides = {}) {
       offer_hosts: ['partner.example'],
     },
     {
-      provider_id: 'zoxs', approval_reference: 'zoxs-contract',
+      provider_id: 'zoxs', provider_name: 'ZOXS',
+      approval_reference: 'zoxs-contract',
       reviewed_at: '2026-09-02T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
       provider_identity_display: true, affiliate_links: false,
@@ -393,7 +426,7 @@ function approvedEnv(overrides = {}) {
       ok: true,
       async json() {
         const offer = {
-          provider_name: 'Approved provider', product_id: 'iphone-15-pro-256',
+          provider_name: 'Clevertronic', product_id: 'iphone-15-pro-256',
           matched_title: 'Apple iPhone 15 Pro 256 GB', condition: 'like_new', price: 615,
           currency: 'EUR', offer_url: 'https://partner.example/offer/good',
           checked_at: '2026-09-20T07:55:00Z', price_kind: 'indicative_buyback', payout_type: 'cash',
@@ -418,7 +451,7 @@ function approvedEnv(overrides = {}) {
     rights_gate: 'approved',
     activation_gate: 'validated',
     readiness: 'ready',
-    approval_model: 'per_provider_hosts_affiliate_and_activation_v4',
+    approval_model: 'per_provider_identity_hosts_affiliate_and_activation_v5',
     activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: 2,
   });
@@ -426,7 +459,8 @@ function approvedEnv(overrides = {}) {
 
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([
     {
-      provider_id: 'clevertronic', approval_reference: 'expired-clevertronic-contract',
+      provider_id: 'clevertronic', provider_name: 'Clevertronic',
+      approval_reference: 'expired-clevertronic-contract',
       reviewed_at: '2019-01-01T00:00:00Z', valid_until: '2020-01-01T00:00:00Z',
       feed_access: true, price_display: true, offer_links: true,
       provider_identity_display: true, affiliate_links: false,
@@ -434,7 +468,8 @@ function approvedEnv(overrides = {}) {
       offer_hosts: ['partner.example'],
     },
     {
-      provider_id: 'zoxs', approval_reference: 'current-zoxs-contract',
+      provider_id: 'zoxs', provider_name: 'ZOXS',
+      approval_reference: 'current-zoxs-contract',
       reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
       feed_access: true, price_display: true, offer_links: true,
       provider_identity_display: true, affiliate_links: false,
@@ -487,7 +522,8 @@ function approvedEnv(overrides = {}) {
     cacheTtl: 60000,
     approvals: JSON.stringify([
       {
-        provider_id: 'clevertronic', approval_reference: 'short-clevertronic-contract',
+        provider_id: 'clevertronic', provider_name: 'Clevertronic',
+        approval_reference: 'short-clevertronic-contract',
         reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2026-09-20T08:00:30Z',
         feed_access: true, price_display: true, offer_links: true,
         provider_identity_display: true, affiliate_links: false,
@@ -495,7 +531,8 @@ function approvedEnv(overrides = {}) {
         offer_hosts: ['partner.example'],
       },
       {
-        provider_id: 'zoxs', approval_reference: 'current-zoxs-contract',
+        provider_id: 'zoxs', provider_name: 'ZOXS',
+        approval_reference: 'current-zoxs-contract',
         reviewed_at: '2026-09-01T10:00:00Z', valid_until: '2099-12-31T23:59:59Z',
         feed_access: true, price_display: true, offer_links: true,
         provider_identity_display: true, affiliate_links: false,

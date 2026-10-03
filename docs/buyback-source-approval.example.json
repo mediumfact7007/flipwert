@@ -1,6 +1,7 @@
 [
   {
     "provider_id": "example-provider",
+    "provider_name": "Example Provider",
     "approval_reference": "contract-or-feed-terms-reference",
     "reviewed_at": "2026-09-24T00:00:00Z",
     "valid_until": "2027-09-24T00:00:00Z",

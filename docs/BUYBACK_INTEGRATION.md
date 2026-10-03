@@ -67,8 +67,9 @@ Required fields: provider, matched product, normalized condition, price/currency
 - A new search invalidates an in-flight buyback request and rechecks the selected condition for the new product, so a late response cannot be attached to another deal.
 - Provider credentials, partner tokens and feed secrets stay server-side.
 - Every provider approval is bound to explicit feed hosts and offer-link hosts.
-  A valid provider ID alone cannot authorize data from another feed or redirect
-  users to an unapproved destination.
+  It also binds the provider ID to the approved visible provider name. A valid
+  provider ID alone cannot authorize another brand, data from another feed or
+  redirect users to an unapproved destination.
 - Affiliate/advertising links require a separate explicit provider approval.
   A feed item marked `affiliate_link: true` is discarded unless that right is
   current; accepted commercial links are labelled visibly in the app.

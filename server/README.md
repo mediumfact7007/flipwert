@@ -53,7 +53,7 @@ BUYBACK_SOURCE_TIMEOUT_MS=6000
 BUYBACK_SOURCE_CACHE_TTL_MS=60000
 BUYBACK_SOURCE_POLICY_ACK=approved-feed-and-price-display-v1
 BUYBACK_SOURCE_ACTIVATION_FINGERPRINT=
-BUYBACK_SOURCE_APPROVALS_JSON=[{"provider_id":"zoxs","approval_reference":"internal-contract-reference","reviewed_at":"2026-09-24T00:00:00Z","valid_until":"2027-12-31T23:59:59Z","feed_access":true,"price_display":true,"offer_links":true,"provider_identity_display":true,"feed_hosts":["partner-adapter.example"],"offer_hosts":["www.zoxs.de"]}]
+BUYBACK_SOURCE_APPROVALS_JSON=[{"provider_id":"zoxs","provider_name":"ZOXS","approval_reference":"internal-contract-reference","reviewed_at":"2026-09-24T00:00:00Z","valid_until":"2027-12-31T23:59:59Z","feed_access":true,"price_display":true,"offer_links":true,"provider_identity_display":true,"feed_hosts":["partner-adapter.example"],"offer_hosts":["www.zoxs.de"]}]
 ```
 
 The adapter must return the normalized fields documented in
@@ -62,7 +62,8 @@ condition identity, EUR price, confidence and HTTPS offer URL. Affiliate or
 deep-link access alone is not permission to scrape or republish prices.
 The backend fails closed unless the exact policy acknowledgement and at least one
 current per-provider approval record are present. Each record separately confirms
-feed access, price display, offer links and provider-identity display, with an
+feed access, price display, offer links and provider-identity display, and binds
+the provider ID to the exact visible provider name, with an
 internal approval reference, reviewed/expiry timestamps, exact adapter/feed
 hosts and exact permitted offer-link hosts. Feed rows for other, expired or
 partially approved providers are discarded even if the adapter returns them.
