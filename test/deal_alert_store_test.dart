@@ -139,4 +139,32 @@ void main() {
     expect(loaded.single.minProfitIncrease, 10);
     expect(loaded.single.minRoiIncrease, 10);
   });
+
+  test('retainOnly removes orphaned and completed deal alerts', () async {
+    final store = DealAlertStore();
+    expect(await store.save(DealAlertPreference.defaults('saved-1')), isTrue);
+    expect(await store.save(DealAlertPreference.defaults('archived-1')), isTrue);
+    expect(await store.save(DealAlertPreference.defaults('deleted-1')), isTrue);
+    expect(await store.save(DealAlertPreference.defaults('bought-1')), isTrue);
+
+    expect(
+      await store.retainOnly([' saved-1 ', 'archived-1', '', '   ']),
+      isTrue,
+    );
+
+    final loaded = await store.load();
+    expect(
+      loaded.map((item) => item.flipId).toSet(),
+      {'saved-1', 'archived-1'},
+    );
+  });
+
+  test('retainOnly clears storage when no alert-eligible deals remain',
+      () async {
+    final store = DealAlertStore();
+    expect(await store.save(DealAlertPreference.defaults('deleted-1')), isTrue);
+
+    expect(await store.retainOnly(const []), isTrue);
+    expect(await store.load(), isEmpty);
+  });
 }

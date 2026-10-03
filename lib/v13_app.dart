@@ -19,6 +19,7 @@ import 'buyback_summary_card.dart';
 import 'buyback_offers_card.dart';
 import 'buyback_provider_links_card.dart';
 import 'buyback_recheck_card.dart';
+import 'deal_alert_store.dart';
 import 'deal_alert_toggle.dart';
 import 'dual_exit.dart';
 import 'dual_exit_card.dart';
@@ -801,6 +802,11 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
     }
     final loadedBackend = prefs.getString('backend_v13') ?? prefs.getString('backend_v10') ?? '';
     final loadedSources = await SourceRegistry.load(backendBase: loadedBackend);
+    await DealAlertStore().retainOnly(
+      loadedFlips
+          .where((flip) => flip.isSaved || flip.isArchived)
+          .map((flip) => flip.id),
+    );
     final rawPlan = prefs.getInt('plan_v13') ?? prefs.getInt('plan_preview_v10') ?? 0;
     final rawTax = prefs.getInt('tax_mode_v13') ?? 0;
     if (!mounted) return;
@@ -909,13 +915,20 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
               onUpdateFlip: (item) {
                 final i = flips.indexWhere((e) => e.id == item.id);
                 if (i >= 0) {
+                  final removeAlert = flips[i].isSaved &&
+                      !item.isSaved &&
+                      !item.isArchived;
                   setState(() => flips[i] = item);
                   _save();
+                  if (removeAlert) {
+                    unawaited(DealAlertStore().remove(item.id));
+                  }
                 }
               },
               onDeleteFlip: (id) {
                 setState(() => flips.removeWhere((e) => e.id == id));
                 _save();
+                unawaited(DealAlertStore().remove(id));
               },
               onLanguage: (value) {
                 setState(() => english = value);

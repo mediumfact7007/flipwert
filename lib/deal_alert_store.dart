@@ -125,4 +125,28 @@ class DealAlertStore {
       );
     });
   }
+
+  /// Removes preferences that no longer belong to a saved or archived deal.
+  ///
+  /// This repairs orphaned entries left by older app versions while keeping
+  /// archived watchlist items ready for a later restore.
+  Future<bool> retainOnly(Iterable<String> flipIds) {
+    final retainedIds = flipIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    return _mutate(() async {
+      final all = await load();
+      final next = all
+          .where((item) => retainedIds.contains(item.flipId))
+          .toList();
+      if (next.length == all.length) return true;
+      final prefs = await SharedPreferences.getInstance();
+      if (next.isEmpty) return prefs.remove(_storageKey);
+      return prefs.setString(
+        _storageKey,
+        jsonEncode(next.map((item) => item.toJson()).toList()),
+      );
+    });
+  }
 }
