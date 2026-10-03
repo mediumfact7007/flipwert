@@ -77,6 +77,21 @@ void main() {
     expect(result.removedOutliers, 1);
   });
 
+  test('an outlier-only source does not inflate source diversity', () {
+    final result = v13MarketConfidence([
+      comp(24.99, source: 'accessory_noise'),
+      comp(599),
+      comp(620),
+      comp(630),
+      comp(650),
+      comp(680),
+    ]);
+
+    expect(result.liveCount, 5);
+    expect(result.sourceCount, 1);
+    expect(result.removedOutliers, 1);
+  });
+
   test('wrong eBay variants do not inflate market confidence', () {
     final result = v13MarketConfidence(
       [

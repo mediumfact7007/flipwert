@@ -1472,6 +1472,35 @@ List<SourceListing> v13ComparableMarketListings(
       .toList();
 }
 
+List<SourceListing> v13CleanMarketListings(
+  Iterable<SourceListing> listings,
+) {
+  final candidates = listings
+      .where((item) => item.total.isFinite && item.total > 0)
+      .toList();
+  final retainedCounts = <double, int>{};
+  for (final value in v13CleanMarketValues(
+    candidates.map((item) => item.total).toList(),
+  )) {
+    retainedCounts[value] = (retainedCounts[value] ?? 0) + 1;
+  }
+
+  final retained = <SourceListing>[];
+  for (final item in candidates) {
+    final count = retainedCounts[item.total] ?? 0;
+    if (count <= 0) continue;
+    retained.add(item);
+    retainedCounts[item.total] = count - 1;
+  }
+  return retained;
+}
+
+List<SourceListing> v13QualityMarketListings(
+  Iterable<SourceListing> listings,
+  String query,
+) =>
+    v13CleanMarketListings(v13ComparableMarketListings(listings, query));
+
 class V13MarketConfidence {
   final int score;
   final int liveCount;
@@ -1525,9 +1554,10 @@ V13MarketConfidence v13MarketConfidence(
 }) {
   final live = v13ComparableMarketListings(listings, query ?? '');
   final raw = live.map((e) => e.total).toList();
-  final cleaned = v13CleanMarketValues(raw);
-  final used = cleaned.length;
-  final sources = live.map((e) => e.sourceId).toSet().length;
+  final cleanedListings = v13QualityMarketListings(listings, query ?? '');
+  final cleaned = cleanedListings.map((e) => e.total).toList();
+  final used = cleanedListings.length;
+  final sources = cleanedListings.map((e) => e.sourceId).toSet().length;
   final removed = raw.length > used ? raw.length - used : 0;
   if (raw.isEmpty) {
     return V13MarketConfidence(score: 0, liveCount: 0, sourceCount: 0, removedOutliers: 0, manual: manualOverride);
@@ -1921,6 +1951,9 @@ class _V13CheckPageState extends State<V13CheckPage> {
   List<SourceListing> get comparableMarketListings =>
       v13ComparableMarketListings(listings, query.text);
 
+  List<SourceListing> get qualityMarketListings =>
+      v13QualityMarketListings(listings, query.text);
+
   double? get activeMedian => _median(resaleValues);
   double? get retailMedian => _median(_clean(_valuesFor({'retail', 'refurb'})));
   double? get buybackMedian => _median(_clean(_valuesFor({'buyback'})));
@@ -2002,7 +2035,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
   String get confidence => marketConfidence.label(widget.english);
 
   List<double> get resaleValues =>
-      _clean(comparableMarketListings.map((e) => e.total).toList());
+      qualityMarketListings.map((e) => e.total).toList();
 
   double? get conservativeExit {
     if (manualCommitted != null && manualCommitted! > 0) return manualCommitted;
@@ -2074,7 +2107,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
           _V154LiveListingPreview(
             english: widget.english,
             showEmpty: query.text.trim().isNotEmpty && pending.isEmpty,
-            listings: comparableMarketListings
+            listings: qualityMarketListings
                 .where((e) => e.url.trim().isNotEmpty)
                 .take(6)
                 .toList(),

@@ -115,4 +115,30 @@ void main() {
       'partner_live',
     ]);
   });
+
+  test('quality market listings remove the outlier listing itself', () {
+    SourceListing listing(String source, double price) => SourceListing(
+          sourceId: source,
+          sourceName: source,
+          role: 'local',
+          title: 'Comparison',
+          price: price,
+          shipping: 0,
+          url: 'https://example.test/$price',
+          condition: 'Gebraucht',
+          live: true,
+        );
+
+    final quality = v13QualityMarketListings([
+      listing('accessory_noise', 24.99),
+      listing('partner_live', 599),
+      listing('partner_live', 620),
+      listing('partner_live', 630),
+      listing('partner_live', 650),
+      listing('partner_live', 680),
+    ], 'Apple iPhone 15 Pro 256 GB');
+
+    expect(quality.map((item) => item.total), [599, 620, 630, 650, 680]);
+    expect(quality.map((item) => item.sourceId).toSet(), {'partner_live'});
+  });
 }
