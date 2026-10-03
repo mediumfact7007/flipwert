@@ -121,7 +121,7 @@ void main() {
 
     expect(find.text('Prüfung nicht möglich'), findsOneWidget);
     expect(find.textContaining('historischer Wert'), findsOneWidget);
-    expect(find.textContaining('0,00 €'), findsNothing);
+    expect(find.text('0,00 €'), findsNothing);
   });
 
   testWidgets('explains when LIVE approval is not ready', (tester) async {

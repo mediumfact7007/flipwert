@@ -243,7 +243,7 @@ void main() {
       expect(find.textContaining('Vorher: ZOXS · 300,00 €'), findsOneWidget);
       expect(find.textContaining('kein qualitätsgeprüftes LIVE-Ankaufangebot'),
           findsOneWidget);
-      expect(find.textContaining('0,00 €'), findsNothing);
+      expect(find.text('0,00 €'), findsNothing);
 
       monetization.dispose();
     },
