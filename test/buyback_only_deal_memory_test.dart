@@ -179,4 +179,74 @@ void main() {
     },
   );
 
+  testWidgets(
+    'saved LIVE buyback shows that a matching offer disappeared',
+    (tester) async {
+      final now = DateTime.now();
+      final saved = V13Flip(
+        id: 'buyback-gone-1',
+        name: 'Apple iPhone 15 Pro 256 GB',
+        category: 'Elektronik',
+        buy: 250,
+        expectedAtBuy: 0,
+        costs: 10,
+        buybackSafetyReserve: 20,
+        sourceCount: 0,
+        confidence: '',
+        status: 'Saved',
+        createdAt: now.subtract(const Duration(days: 1)),
+        checkedAt: now.subtract(const Duration(days: 1)),
+        maxBuyAtCheck: 0,
+        profitAtCheck: 0,
+        roiAtCheck: 0,
+        buybackPriceAtCheck: 300,
+        buybackProviderAtCheck: 'ZOXS',
+        buybackConditionAtCheck: 'very_good',
+        buybackCheckedAt: now.subtract(const Duration(days: 1)),
+        buybackQuoteKindAtCheck: 'live_provider',
+      );
+      final monetization = V13Monetization(onProUnlocked: () {});
+
+      await tester.pumpWidget(MaterialApp(
+        home: V13CheckPage(
+          english: false,
+          input: normalizeV13Search(saved.name),
+          targetRoi: 35,
+          minProfit: 20,
+          plan: UserPlan.free,
+          taxMode: V13TaxMode.privateSeller,
+          sources: const [],
+          flips: [saved],
+          existingSnapshot: saved,
+          monetization: monetization,
+          onHistory: (_) {},
+          onAddFlip: (_) {},
+          buybackSearch: (query, condition) async => const BuybackSearchResult(
+            configured: true,
+            live: false,
+            unavailable: false,
+            readiness: BuybackReadiness.ready,
+            offers: [],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final recheck = find.byKey(const ValueKey('buyback-recheck-card'));
+      await tester.scrollUntilVisible(
+        recheck,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(recheck, findsOneWidget);
+      expect(find.text('Aktuell kein Angebot'), findsOneWidget);
+      expect(find.textContaining('Vorher: ZOXS · 300,00 €'), findsOneWidget);
+      expect(find.textContaining('kein qualitätsgeprüftes LIVE-Ankaufangebot'),
+          findsOneWidget);
+      expect(find.textContaining('0,00 €'), findsNothing);
+
+      monetization.dispose();
+    },
+  );
+
 }

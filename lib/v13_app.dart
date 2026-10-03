@@ -1911,6 +1911,25 @@ class _V13CheckPageState extends State<V13CheckPage> {
     );
   }
 
+  BuybackRecheckAvailability get buybackRecheckAvailability {
+    if (currentComparableBuybackOffer != null) {
+      return BuybackRecheckAvailability.offer;
+    }
+    final result = buybackResult;
+    if (result?.unavailable == true) {
+      return BuybackRecheckAvailability.sourceUnavailable;
+    }
+    if (result?.readiness == BuybackReadiness.awaitingValidation ||
+        result?.readiness == BuybackReadiness.approvalsMissing ||
+        result?.readiness == BuybackReadiness.notConfigured) {
+      return BuybackRecheckAvailability.sourceNotReady;
+    }
+    if (result?.configured == true) {
+      return BuybackRecheckAvailability.noMatch;
+    }
+    return BuybackRecheckAvailability.sourceNotReady;
+  }
+
   DualExitComparison get dualExitComparison {
     final offer = currentComparableBuybackOffer;
     return buildDualExitComparison(
@@ -2326,12 +2345,14 @@ class _V13CheckPageState extends State<V13CheckPage> {
             if (widget.existingSnapshot?.isSaved == true &&
                 widget.existingSnapshot!.buybackPriceAtCheck > 0 &&
                 widget.existingSnapshot!.buybackQuoteKindAtCheck == 'live_provider' &&
-                currentComparableBuybackOffer != null) ...[
+                !buybackLoading &&
+                buybackResult != null) ...[
               const SizedBox(height: 8),
               BuybackRecheckCard(
                 previousProvider: widget.existingSnapshot!.buybackProviderAtCheck,
                 previousPrice: widget.existingSnapshot!.buybackPriceAtCheck,
-                currentOffer: currentComparableBuybackOffer!,
+                currentOffer: currentComparableBuybackOffer,
+                availability: buybackRecheckAvailability,
                 previousProfit:
                     widget.existingSnapshot!.buybackPriceAtCheck -
                         widget.existingSnapshot!.buy -
@@ -2340,7 +2361,7 @@ class _V13CheckPageState extends State<V13CheckPage> {
                 currentPurchasePrice:
                     buyPrice +
                         extraCosts +
-                        (currentComparableBuybackOffer!.requiresInspection
+                        (currentComparableBuybackOffer?.requiresInspection == true
                             ? buybackSafetyReserve
                             : 0),
                 english: widget.english,

@@ -80,4 +80,65 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('shows when a previous LIVE offer no longer has a match',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: BuybackRecheckCard(
+          previousProvider: 'ZOXS',
+          previousPrice: 300,
+          previousProfit: 50,
+          currentOffer: null,
+          currentPurchasePrice: 250,
+          availability: BuybackRecheckAvailability.noMatch,
+        ),
+      ),
+    ));
+
+    expect(find.text('Aktuell kein Angebot'), findsOneWidget);
+    expect(find.textContaining('Vorher: ZOXS · 300,00 €'), findsOneWidget);
+    expect(find.textContaining('kein qualitätsgeprüftes LIVE-Ankaufangebot'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('buyback-recheck-open-current')),
+        findsNothing);
+  });
+
+  testWidgets('does not treat a provider outage as a zero price',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: BuybackRecheckCard(
+          previousProvider: 'reBuy',
+          previousPrice: 280,
+          previousProfit: 40,
+          currentOffer: null,
+          currentPurchasePrice: 240,
+          availability: BuybackRecheckAvailability.sourceUnavailable,
+        ),
+      ),
+    ));
+
+    expect(find.text('Prüfung nicht möglich'), findsOneWidget);
+    expect(find.textContaining('historischer Wert'), findsOneWidget);
+    expect(find.textContaining('0,00 €'), findsNothing);
+  });
+
+  testWidgets('explains when LIVE approval is not ready', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: BuybackRecheckCard(
+          previousProvider: 'Partner',
+          previousPrice: 260,
+          previousProfit: 20,
+          currentOffer: null,
+          currentPurchasePrice: 240,
+          availability: BuybackRecheckAvailability.sourceNotReady,
+        ),
+      ),
+    ));
+
+    expect(find.text('LIVE-Quelle nicht bereit'), findsOneWidget);
+    expect(find.textContaining('keinen Ersatzpreis'), findsOneWidget);
+  });
 }
