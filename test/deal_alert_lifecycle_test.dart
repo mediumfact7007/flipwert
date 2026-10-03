@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flipwert/deal_alert.dart';
 import 'package:flipwert/deal_alert_store.dart';
 import 'package:flipwert/main.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
