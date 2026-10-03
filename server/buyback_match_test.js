@@ -2,7 +2,12 @@
 
 const assert = require('node:assert/strict');
 const { matchesBuybackQuery: matches } = require('./buyback_match');
-const offer = (matched_title, extra = {}) => ({ matched_title, product_id: 'internal-123', ...extra });
+const offer = (matched_title, extra = {}) => ({
+  matched_title,
+  product_id: 'internal-123',
+  condition: 'used_good',
+  ...extra,
+});
 
 assert.equal(matches('Apple iPhone 15 Pro 256 GB mit OVP', offer('Apple iPhone 15 Pro 256GB')), true);
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('iPhone 15 Pro Max 256GB')), false);
@@ -38,5 +43,10 @@ assert.equal(matches('Apple iPad Air M2 256 GB', offer('Apple iPad Air M2 256GB 
 assert.equal(matches('PlayStation 5 Slim Digital Edition', offer('Sony PS5 Slim Disc Edition')), false, 'console editions must not cross-match');
 assert.equal(matches('PlayStation 5 Slim ohne Laufwerk', offer('Sony PS5 Slim Digital Edition')), true, 'console edition aliases normalize consistently');
 assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Slim Disc Edition')), false, 'omitted console edition must remain ambiguous');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Hülle für Apple iPhone 15 Pro 256GB')), false, 'accessory-only titles must not become LIVE device matches');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB mit Hülle und Kabel')), true, 'bundled accessories after the device name remain valid');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Displaybruch')), false, 'damage in a non-defective condition is a conflicting mapping');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Display Bruch')), false, 'split damage wording must also fail closed');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Displaybruch', { condition: 'defective' })), true, 'damage wording is valid for the explicit defective condition');
 
 console.log('buyback_match_test: ok');

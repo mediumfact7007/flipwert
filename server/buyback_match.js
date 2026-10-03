@@ -5,9 +5,32 @@ const NOISE = new Set(['apple', 'samsung', 'google', 'mit', 'und', 'ohne', 'ovp'
 const FAMILIES = new Set(['iphone', 'ipad', 'galaxy', 'pixel', 'switch', 'macbook', 'playstation', 'ps5', 'ps4']);
 const CONNECTIVITY_VARIANTS = new Set(['wifi', 'cellular', 'lte', '5g']);
 const CONSOLE_EDITIONS = new Set(['digital', 'disc']);
+const DAMAGE_TERMS = new Set([
+  'defekt', 'kaputt', 'bastler', 'bastlergerat', 'displaybruch', 'glasbruch',
+  'bruch', 'wasserschaden', 'reparatur', 'ersatzteile', 'funktionsunfahig',
+  'broken', 'damaged', 'cracked', 'repair', 'parts',
+]);
+
+// A provider title may mention bundled accessories after the device name, but
+// an accessory sold "for" a device is not the requested device itself. This
+// guards approved partner feeds against accidental category/SKU leakage.
+function isAccessoryOnlyTitle(value) {
+  const normalized = tokens(value);
+  if (!normalized.length) return false;
+  const accessory = new Set([
+    'hulle', 'case', 'cover', 'schutzglas', 'panzerglas', 'display', 'akku',
+    'batterie', 'ladegerat', 'charger', 'kabel', 'cable', 'ersatzteil',
+    'replacement',
+  ]);
+  const firstAccessory = normalized.findIndex((part) => accessory.has(part));
+  if (firstAccessory < 0 || firstAccessory > 2) return false;
+  return normalized.slice(firstAccessory + 1, firstAccessory + 4)
+    .some((part) => part === 'fur' || part === 'for');
+}
 
 function tokens(value) {
   const normalized = String(value || '').normalize('NFKD').toLowerCase()
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\bplay\s*station\s*5\b/g, 'ps5')
     .replace(/\bps\s*5\b/g, 'ps5')
     .replace(/ß/g, 'ss')
@@ -67,6 +90,13 @@ function matchesBuybackQuery(query, offer) {
   const searched = tokens(query);
   const title = tokens(offer.matched_title);
   if (!searched.length || !title.length) return false;
+  if (isAccessoryOnlyTitle(offer.matched_title)) return false;
+
+  // The structured condition remains authoritative, but a conflicting damage
+  // marker in the visible provider title is evidence that the mapping is not
+  // trustworthy. Prefer no LIVE quote over a price for a damaged/parts unit.
+  if (offer.condition !== 'defective' &&
+      title.some((part) => DAMAGE_TERMS.has(part))) return false;
 
   // Numeric barcode searches need an explicit, checksum-valid EAN/GTIN. A
   // title or an unrelated internal product ID cannot establish barcode
