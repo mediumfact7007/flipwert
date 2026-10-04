@@ -15,6 +15,7 @@
     ],
     "offer_hosts": [
       "provider.example"
-    ]
+    ],
+    "max_cache_seconds": 60
   }
 ]

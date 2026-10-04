@@ -71,6 +71,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     }]),
     ...overrides,
   };
@@ -144,6 +145,19 @@ function approvedEnv(overrides = {}) {
   );
   loaded.restore();
 
+  const reducedCacheApproval = JSON.parse(approvedEnv().approvals);
+  reducedCacheApproval[0].max_cache_seconds = 15;
+  loaded = loadSource(approvedEnv({
+    activation: '',
+    approvals: JSON.stringify(reducedCacheApproval),
+  }));
+  assert.notStrictEqual(
+    loaded.source.activationFingerprint(),
+    baselineFingerprint,
+    'changing the contractual cache limit must invalidate activation',
+  );
+  loaded.restore();
+
   loaded = loadSource(approvedEnv({ approvals: '[]' }));
   assert.strictEqual(loaded.source.configured(), false, 'provider approvals are required');
   loaded.restore();
@@ -162,6 +176,22 @@ function approvedEnv(overrides = {}) {
   );
   loaded.restore();
 
+  for (const invalidCacheLimit of [undefined, -1, 301, 1.5, '60']) {
+    const invalidCacheApproval = JSON.parse(approvedEnv().approvals);
+    if (invalidCacheLimit === undefined) {
+      delete invalidCacheApproval[0].max_cache_seconds;
+    } else {
+      invalidCacheApproval[0].max_cache_seconds = invalidCacheLimit;
+    }
+    loaded = loadSource(approvedEnv({ approvals: JSON.stringify(invalidCacheApproval) }));
+    assert.strictEqual(
+      loaded.source.configured(),
+      false,
+      `invalid provider cache limit must fail closed: ${String(invalidCacheLimit)}`,
+    );
+    loaded.restore();
+  }
+
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([{
     provider_id: 'clevertronic', provider_name: 'Clevertronic',
     approval_reference: 'expired-contract',
@@ -170,6 +200,7 @@ function approvedEnv(overrides = {}) {
     provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
+    max_cache_seconds: 60,
   }]) }));
   assert.strictEqual(loaded.source.configured(), false, 'expired approval must fail closed');
   loaded.restore();
@@ -183,6 +214,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     };
     approval[missingRight] = false;
     loaded = loadSource(approvedEnv({ approvals: JSON.stringify([approval]) }));
@@ -198,6 +230,7 @@ function approvedEnv(overrides = {}) {
     provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
+    max_cache_seconds: 60,
   }]) }));
   assert.strictEqual(loaded.source.configured(), false, 'a future review timestamp must fail closed');
   loaded.restore();
@@ -210,6 +243,7 @@ function approvedEnv(overrides = {}) {
     provider_identity_display: true, affiliate_links: false,
     feed_hosts: ['partner.example'],
     offer_hosts: ['partner.example'],
+    max_cache_seconds: 60,
   };
   loaded = loadSource(approvedEnv({ approvals: JSON.stringify([duplicateApproval, duplicateApproval]) }));
   assert.strictEqual(loaded.source.configured(), false, 'duplicate provider approvals must fail closed');
@@ -409,6 +443,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     },
     {
       provider_id: 'zoxs', provider_name: 'ZOXS',
@@ -418,6 +453,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     },
   ]) }));
   const approvalFiltered = await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
@@ -451,7 +487,7 @@ function approvedEnv(overrides = {}) {
     rights_gate: 'approved',
     activation_gate: 'validated',
     readiness: 'ready',
-    approval_model: 'per_provider_identity_hosts_affiliate_and_activation_v5',
+    approval_model: 'per_provider_identity_hosts_affiliate_cache_and_activation_v6',
     activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: 2,
   });
@@ -466,6 +502,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     },
     {
       provider_id: 'zoxs', provider_name: 'ZOXS',
@@ -475,6 +512,7 @@ function approvedEnv(overrides = {}) {
       provider_identity_display: true, affiliate_links: false,
       feed_hosts: ['partner.example'],
       offer_hosts: ['partner.example'],
+      max_cache_seconds: 60,
     },
   ]) }));
   assert.strictEqual(loaded.source.configured(), true, 'one expired provider must not disable another current approval');
@@ -518,6 +556,64 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(cachedFetchCalls, 2, 'expired cache entries must refresh from the partner');
   loaded.restore();
 
+  const cappedCacheApproval = JSON.parse(approvedEnv().approvals);
+  cappedCacheApproval[0].max_cache_seconds = 15;
+  cappedCacheApproval.push({
+    ...cappedCacheApproval[0],
+    provider_id: 'zoxs',
+    provider_name: 'ZOXS',
+    approval_reference: 'zoxs-contract-2026-01',
+    max_cache_seconds: 10,
+  });
+  loaded = loadSource(approvedEnv({
+    cacheTtl: 60000,
+    approvals: JSON.stringify(cappedCacheApproval),
+  }));
+  let cappedCacheFetchCalls = 0;
+  const cappedCacheFetch = async () => {
+    cappedCacheFetchCalls += 1;
+    return cachedResponse();
+  };
+  await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
+    now: cachedNow,
+    fetchImpl: cappedCacheFetch,
+  });
+  await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
+    now: cachedNow + 9999,
+    fetchImpl: cappedCacheFetch,
+  });
+  assert.strictEqual(cappedCacheFetchCalls, 1, 'cache may be reused within the provider limit');
+  await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
+    now: cachedNow + 10001,
+    fetchImpl: cappedCacheFetch,
+  });
+  assert.strictEqual(cappedCacheFetchCalls, 2, 'the shortest provider limit must govern a shared feed');
+  assert.strictEqual(loaded.source.sourceStatus(cachedNow).cache_ttl_seconds, 10);
+  loaded.restore();
+
+  const noCacheApproval = JSON.parse(approvedEnv().approvals);
+  noCacheApproval[0].max_cache_seconds = 0;
+  loaded = loadSource(approvedEnv({
+    cacheTtl: 60000,
+    approvals: JSON.stringify(noCacheApproval),
+  }));
+  let noCacheFetchCalls = 0;
+  const noCacheFetch = async () => {
+    noCacheFetchCalls += 1;
+    return cachedResponse();
+  };
+  await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
+    now: cachedNow,
+    fetchImpl: noCacheFetch,
+  });
+  await loaded.source.fetchBuybackOffers('Apple iPhone 15 Pro 256 GB', 'like_new', {
+    now: cachedNow + 1,
+    fetchImpl: noCacheFetch,
+  });
+  assert.strictEqual(noCacheFetchCalls, 2, 'a zero provider limit must disable caching');
+  assert.strictEqual(loaded.source.sourceStatus(cachedNow).cache_ttl_seconds, 0);
+  loaded.restore();
+
   loaded = loadSource(approvedEnv({
     cacheTtl: 60000,
     approvals: JSON.stringify([
@@ -529,6 +625,7 @@ function approvedEnv(overrides = {}) {
         provider_identity_display: true, affiliate_links: false,
         feed_hosts: ['partner.example'],
         offer_hosts: ['partner.example'],
+        max_cache_seconds: 60,
       },
       {
         provider_id: 'zoxs', provider_name: 'ZOXS',
@@ -538,6 +635,7 @@ function approvedEnv(overrides = {}) {
         provider_identity_display: true, affiliate_links: false,
         feed_hosts: ['partner.example'],
         offer_hosts: ['partner.example'],
+        max_cache_seconds: 60,
       },
     ]),
   }));

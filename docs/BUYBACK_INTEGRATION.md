@@ -69,7 +69,8 @@ Required fields: provider, matched product, normalized condition, price/currency
 - Every provider approval is bound to explicit feed hosts and offer-link hosts.
   It also binds the provider ID to the approved visible provider name. A valid
   provider ID alone cannot authorize another brand, data from another feed or
-  redirect users to an unapproved destination.
+  redirect users to an unapproved destination. The approval also sets a maximum
+  server-side cache duration; zero disables caching for the shared feed.
 - Affiliate/advertising links require a separate explicit provider approval.
   A feed item marked `affiliate_link: true` is discarded unless that right is
   current; accepted commercial links are labelled visibly in the app.
@@ -77,11 +78,13 @@ Required fields: provider, matched product, normalized condition, price/currency
   of at least three unique cases, two products and two conditions succeeds. A
   single diagnostic probe cannot issue an activation fingerprint. The
   resulting configuration fingerprint is bound to the exact source URL,
-  approval references, validity dates, approved hosts and affiliate rights;
+  approval references, validity dates, approved hosts, affiliate rights and
+  cache limits;
   any change disables LIVE prices until the matrix is rerun and deliberately
   reactivated.
 - Repeated identical product/condition requests are coalesced and may use a
-  short server-side cache within the partner's rate limits. An outage is never
+  short server-side cache within the lowest current provider limit and the
+  server's stricter configured limit. An outage is never
   cached as a valid empty result, and cached quotes never outlive the normal
   freshness limit.
 

@@ -77,10 +77,13 @@ function currentProviderApprovals(now = Date.now()) {
     const validUntil = explicitTimestamp(row.valid_until);
     const feedHosts = approvedHosts(row.feed_hosts);
     const offerHosts = approvedHosts(row.offer_hosts);
+    const maxCacheSeconds = row.max_cache_seconds;
     if (!PROVIDER_ID_PATTERN.test(providerId) || approvedProviderName === null ||
         seenProviderIds.has(providerId) ||
         !reference || reference.length > 160 || reviewedAt === null ||
-        validUntil === null || feedHosts === null || offerHosts === null) {
+        validUntil === null || feedHosts === null || offerHosts === null ||
+        typeof maxCacheSeconds !== 'number' || !Number.isInteger(maxCacheSeconds) ||
+        maxCacheSeconds < 0 || maxCacheSeconds > 300) {
       return new Map();
     }
     seenProviderIds.add(providerId);
@@ -96,6 +99,7 @@ function currentProviderApprovals(now = Date.now()) {
       feedHosts,
       offerHosts,
       affiliateLinks: row.affiliate_links === true,
+      cacheTtlMs: maxCacheSeconds * 1000,
     });
   }
   return approvals;
@@ -132,6 +136,7 @@ function sourceConfigFingerprint(now = Date.now()) {
       feed_hosts: [...approval.feedHosts].sort(),
       offer_hosts: [...approval.offerHosts].sort(),
       affiliate_links: approval.affiliateLinks,
+      max_cache_seconds: approval.cacheTtlMs / 1000,
     }));
   return crypto.createHash('sha256')
     .update(JSON.stringify({ source_url: sourceUrl, providers }))
@@ -230,9 +235,19 @@ function cachedResult(key, now) {
   return entry.result;
 }
 
+function effectiveCacheTtlMs(now = Date.now()) {
+  const approvals = currentSourceApprovals(now);
+  if (!approvals.size) return 0;
+  return Math.min(
+    BUYBACK_SOURCE_CACHE_TTL_MS,
+    ...[...approvals.values()].map((approval) => approval.cacheTtlMs),
+  );
+}
+
 function cacheResult(key, result, now) {
-  if (BUYBACK_SOURCE_CACHE_TTL_MS <= 0 || result.unavailable === true) return;
-  let expiresAt = now + BUYBACK_SOURCE_CACHE_TTL_MS;
+  const cacheTtlMs = effectiveCacheTtlMs(now);
+  if (cacheTtlMs <= 0 || result.unavailable === true) return;
+  let expiresAt = now + cacheTtlMs;
   const approvals = currentSourceApprovals(now);
   for (const item of result.items) {
     const checkedAt = Date.parse(String(item.checked_at || ''));
@@ -278,7 +293,8 @@ async function fetchBuybackOffersInternal(
   }
 
   const key = cacheKey(normalizedQuery, normalizedCondition);
-  if (BUYBACK_SOURCE_CACHE_TTL_MS > 0) {
+  const cacheTtlMs = effectiveCacheTtlMs(now);
+  if (cacheTtlMs > 0) {
     const cached = cachedResult(key, now);
     if (cached) return cached;
     const pending = inFlightRequests.get(key);
@@ -289,7 +305,7 @@ async function fetchBuybackOffersInternal(
     fetchImpl,
     now,
   });
-  if (BUYBACK_SOURCE_CACHE_TTL_MS <= 0) return request;
+  if (cacheTtlMs <= 0) return request;
   inFlightRequests.set(key, request);
   try {
     const result = await request;
@@ -357,12 +373,12 @@ function sourceStatus(now = Date.now()) {
     mode: isConfigured ? 'approved_partner_adapter' : 'disabled',
     data_kind: 'indicative_buyback',
     max_age_hours: 24,
-    cache_ttl_seconds: BUYBACK_SOURCE_CACHE_TTL_MS / 1000,
+    cache_ttl_seconds: effectiveCacheTtlMs(now) / 1000,
     minimum_match_confidence: 0.9,
     rights_gate: rightsReady ? 'approved' : 'not_approved_or_expired',
     activation_gate: isConfigured ? 'validated' : 'missing_or_stale',
     readiness,
-    approval_model: 'per_provider_identity_hosts_affiliate_and_activation_v5',
+    approval_model: 'per_provider_identity_hosts_affiliate_cache_and_activation_v6',
     activation_model: 'configuration_fingerprint_v1',
     approved_provider_count: isConfigured ? approvals.size : 0,
   };

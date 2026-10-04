@@ -1,6 +1,6 @@
 # Datenquellen und Freigaben für Flipwert
 
-Stand: 23. September 2026. Technische Produktgrenzen, keine Rechtsfreigabe.
+Stand: 4. Oktober 2026. Technische Produktgrenzen, keine Rechtsfreigabe.
 
 | Quelle | Aktueller Abruf | Freigabe vor öffentlicher Preis-Anzeige |
 | --- | --- | --- |
@@ -24,7 +24,10 @@ Anbieter-/Markendarstellung getrennt. Affiliate-/Werbelinks benötigen eine
 zusätzliche ausdrückliche Freigabe und werden sichtbar gekennzeichnet. Der
 Datensatz bindet die interne Anbieter-ID an den freigegebenen sichtbaren
 Anbieternamen und enthält interne Referenz, Prüfdatum,
-Ablaufdatum sowie ausdrücklich genehmigte Feed- und Angebotslink-Hosts.
+Ablaufdatum, ausdrücklich genehmigte Feed- und Angebotslink-Hosts sowie die
+vertraglich erlaubte maximale Cache-Dauer. Null deaktiviert das Caching; bei
+mehreren Anbietern im selben Feed gilt technisch immer die kürzeste aktuelle
+Anbietergrenze oder eine noch strengere globale Servereinstellung.
 Freigaben gelten nur für den hinterlegten Feed-Host; abweichende Angebotslinks,
 abgelaufene, unvollständige oder nicht im Datensatz enthaltene Anbieter-IDs aus
 demselben Feed werden verworfen. Zusätzlich bleibt die Quelle gesperrt, bis eine repräsentative Matrix aus mindestens drei eindeutigen Fällen, zwei Produkten und zwei Zuständen erfolgreich geprüft wurde; ein einzelner Diagnoseabruf gibt keinen Aktivierungs-Fingerprint aus. Der dabei erzeugte Aktivierungs-Fingerprint ist an die konkrete Feed-URL und die aktuellen Freigabedaten gebunden; Änderungen oder auslaufende Rechte sperren LIVE-Preise bis zur erneuten Abnahme. Die Konfiguration bleibt serverseitig und dokumentiert nur die bewusste Aktivierung; sie ersetzt keinen Vertrag und keine juristische Prüfung.

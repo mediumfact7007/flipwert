@@ -53,7 +53,7 @@ BUYBACK_SOURCE_TIMEOUT_MS=6000
 BUYBACK_SOURCE_CACHE_TTL_MS=60000
 BUYBACK_SOURCE_POLICY_ACK=approved-feed-and-price-display-v1
 BUYBACK_SOURCE_ACTIVATION_FINGERPRINT=
-BUYBACK_SOURCE_APPROVALS_JSON=[{"provider_id":"zoxs","provider_name":"ZOXS","approval_reference":"internal-contract-reference","reviewed_at":"2026-09-24T00:00:00Z","valid_until":"2027-12-31T23:59:59Z","feed_access":true,"price_display":true,"offer_links":true,"provider_identity_display":true,"feed_hosts":["partner-adapter.example"],"offer_hosts":["www.zoxs.de"]}]
+BUYBACK_SOURCE_APPROVALS_JSON=[{"provider_id":"zoxs","provider_name":"ZOXS","approval_reference":"internal-contract-reference","reviewed_at":"2026-09-24T00:00:00Z","valid_until":"2027-12-31T23:59:59Z","feed_access":true,"price_display":true,"offer_links":true,"provider_identity_display":true,"feed_hosts":["partner-adapter.example"],"offer_hosts":["www.zoxs.de"],"max_cache_seconds":60}]
 ```
 
 The adapter must return the normalized fields documented in
@@ -65,7 +65,10 @@ current per-provider approval record are present. Each record separately confirm
 feed access, price display, offer links and provider-identity display, and binds
 the provider ID to the exact visible provider name, with an
 internal approval reference, reviewed/expiry timestamps, exact adapter/feed
-hosts and exact permitted offer-link hosts. Feed rows for other, expired or
+hosts, exact permitted offer-link hosts and the contractually permitted maximum
+cache duration. `max_cache_seconds: 0` disables caching; otherwise the effective
+TTL is the lower of this provider limit, every other approved provider limit in
+the shared feed and `BUYBACK_SOURCE_CACHE_TTL_MS`. Feed rows for other, expired or
 partially approved providers are discarded even if the adapter returns them.
 Use `docs/buyback-source-approval.example.json` as the non-secret template.
 The public `/v1/status` response exposes a `readiness` reason such as
