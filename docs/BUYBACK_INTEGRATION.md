@@ -73,6 +73,9 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
   searches require the provider to return a matching EAN/GTIN; ambiguous or
   broad searches yield no comparable price.
 - Missing data is shown as unavailable, never estimated as if it were a live provider quote.
+- A successful partner response must be either an item array or an object with
+  an item array. Malformed and unexpectedly oversized payloads are treated as
+  provider outages and are never cached as a valid zero-offer result.
 - Every offer must state all mandatory deductions explicitly, including a
   numeric zero when none apply. Flipwert compares and calculates profit from
   the resulting net cash payout, never from a gross headline amount.

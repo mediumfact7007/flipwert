@@ -14,6 +14,7 @@ const BUYBACK_SOURCE_CACHE_TTL_MS = Number.isFinite(configuredCacheTtlMs)
   ? Math.min(300000, Math.max(0, configuredCacheTtlMs))
   : 60000;
 const BUYBACK_SOURCE_CACHE_MAX = 200;
+const BUYBACK_SOURCE_MAX_ITEMS = 500;
 const BUYBACK_SOURCE_URL = String(process.env.BUYBACK_SOURCE_URL || '').trim();
 const BUYBACK_SOURCE_TOKEN = String(process.env.BUYBACK_SOURCE_TOKEN || '').trim();
 const BUYBACK_SOURCE_POLICY_ACK = String(process.env.BUYBACK_SOURCE_POLICY_ACK || '').trim();
@@ -221,6 +222,17 @@ function hasApprovedOfferUrl(value, allowedHosts) {
   }
 }
 
+function sourceItems(payload) {
+  const items = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === 'object' && !Array.isArray(payload) &&
+        Array.isArray(payload.items)
+      ? payload.items
+      : null;
+  if (items === null || items.length > BUYBACK_SOURCE_MAX_ITEMS) return null;
+  return items;
+}
+
 function cacheKey(query, condition) {
   return `${condition}:${query.toLowerCase()}`;
 }
@@ -337,7 +349,10 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
       return { configured: true, items: [], best: null, unavailable: true };
     }
     const payload = await response.json();
-    const rawItems = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+    const rawItems = sourceItems(payload);
+    if (rawItems === null) {
+      return { configured: true, items: [], best: null, unavailable: true };
+    }
     const allowedProviders = currentSourceApprovals(now);
     const normalizedItems = normalizeBuybackPayload(rawItems.filter((item) => {
       const providerId = String(item?.provider_id || '').trim().toLowerCase();

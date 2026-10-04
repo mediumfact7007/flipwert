@@ -285,6 +285,47 @@ function approvedEnv(overrides = {}) {
   assert.deepStrictEqual(outageResult, { configured: true, items: [], best: null, unavailable: true });
   loaded.restore();
 
+  loaded = loadSource(approvedEnv({ cacheTtl: 60000 }));
+  let malformedFetchCalls = 0;
+  const malformedFetch = async () => {
+    malformedFetchCalls += 1;
+    return { ok: true, async json() { return { error: 'temporary partner failure' }; } };
+  };
+  const malformedResult = await loaded.source.fetchBuybackOffers('iPhone 15', 'like_new', {
+    fetchImpl: malformedFetch,
+  });
+  assert.deepStrictEqual(
+    malformedResult,
+    { configured: true, items: [], best: null, unavailable: true },
+    'a malformed success response must be reported as unavailable, not as zero offers',
+  );
+  await loaded.source.fetchBuybackOffers('iPhone 15', 'like_new', {
+    fetchImpl: malformedFetch,
+  });
+  assert.strictEqual(malformedFetchCalls, 2, 'malformed partner responses must never be cached');
+
+  const oversizedResult = await loaded.source.fetchBuybackOffers('iPhone 15', 'like_new', {
+    fetchImpl: async () => ({
+      ok: true,
+      async json() { return { items: Array.from({ length: 501 }, () => ({})) }; },
+    }),
+  });
+  assert.deepStrictEqual(
+    oversizedResult,
+    { configured: true, items: [], best: null, unavailable: true },
+    'an unexpectedly large partner result must fail closed',
+  );
+
+  const validEmptyResult = await loaded.source.fetchBuybackOffers('iPhone 16', 'like_new', {
+    fetchImpl: async () => ({ ok: true, async json() { return { items: [] }; } }),
+  });
+  assert.deepStrictEqual(
+    validEmptyResult,
+    { configured: true, items: [], best: null },
+    'an explicit empty item list remains a valid zero-offer result',
+  );
+  loaded.restore();
+
   loaded = loadSource(approvedEnv({ timeout: 1 }));
   let timeoutSignal;
   const timeoutResult = await loaded.source.fetchBuybackOffers('iPhone 15', 'like_new', {
