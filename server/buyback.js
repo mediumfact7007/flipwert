@@ -24,12 +24,10 @@ function hasExplicitTimeZone(value) {
 function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   if (!raw || typeof raw !== 'object') return null;
   const condition = text(raw.condition, 32);
-  const listedPrice = Number(raw.price);
-  const mandatoryDeductions = raw.mandatory_deductions_eur === undefined
-    ? 0
-    : Number(raw.mandatory_deductions_eur);
+  const listedPrice = raw.price;
+  const mandatoryDeductions = raw.mandatory_deductions_eur;
   const price = Math.round((listedPrice - mandatoryDeductions) * 100) / 100;
-  const confidence = Number(raw.match_confidence);
+  const confidence = raw.match_confidence;
   const checkedAtRaw = text(raw.checked_at, 80);
   const checkedAt = Date.parse(checkedAtRaw);
   const expiresAtRaw = raw.expires_at === undefined || raw.expires_at === null

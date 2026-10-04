@@ -11,6 +11,7 @@ const rawOffer = (overrides = {}) => ({
   matched_title: 'Phone 256 GB',
   condition: 'like_new',
   price: 620,
+  mandatory_deductions_eur: 0,
   currency: 'EUR',
   offer_url: 'https://provider.example/offer/123',
   checked_at: '2026-09-27T11:55:00Z',
@@ -33,6 +34,10 @@ assert.ok(unchanged);
 assert.equal(unchanged.price, 620);
 assert.equal(unchanged.mandatory_deductions_eur, 0);
 
+assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: undefined }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: '0' }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ price: '620' }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ match_confidence: '0.98' }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: -1 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 620 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 700 }), { now }), null);

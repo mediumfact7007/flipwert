@@ -36,6 +36,7 @@ A backend/partner adapter should return normalized records such as:
   "matched_title": "Apple iPhone 15 Pro 256 GB",
   "condition": "like_new",
   "price": 620.00,
+  "mandatory_deductions_eur": 0.00,
   "currency": "EUR",
   "offer_url": "https://example.com/...",
   "checked_at": "2026-09-16T08:30:00+02:00",
@@ -46,7 +47,10 @@ A backend/partner adapter should return normalized records such as:
 }
 ```
 
-Required fields: provider, matched product, normalized condition, price/currency, destination URL, timestamp and price kind.
+Required fields: provider, matched product, normalized condition, numeric listed
+price, numeric mandatory deductions (explicitly `0` when none apply), currency,
+destination URL, timestamp and price kind. Numeric strings are rejected so an
+adapter cannot silently pass through an unvalidated or locale-formatted amount.
 
 ## Trust rules
 
@@ -69,6 +73,9 @@ Required fields: provider, matched product, normalized condition, price/currency
   searches require the provider to return a matching EAN/GTIN; ambiguous or
   broad searches yield no comparable price.
 - Missing data is shown as unavailable, never estimated as if it were a live provider quote.
+- Every offer must state all mandatory deductions explicitly, including a
+  numeric zero when none apply. Flipwert compares and calculates profit from
+  the resulting net cash payout, never from a gross headline amount.
 - A new search invalidates an in-flight buyback request and rechecks the selected condition for the new product, so a late response cannot be attached to another deal.
 - Provider credentials, partner tokens and feed secrets stay server-side.
 - Every provider approval is bound to explicit feed hosts and offer-link hosts.
