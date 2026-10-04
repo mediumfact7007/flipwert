@@ -593,6 +593,37 @@ function approvedEnv(overrides = {}) {
   assert.strictEqual(loaded.source.sourceStatus(cachedNow).cache_ttl_seconds, 10);
   loaded.restore();
 
+  loaded = loadSource(approvedEnv({ cacheTtl: 60000 }));
+  let expiringCacheFetchCalls = 0;
+  const expiringCacheFetch = async () => {
+    expiringCacheFetchCalls += 1;
+    const response = cachedResponse();
+    const originalJson = response.json;
+    response.json = async () => {
+      const payload = await originalJson();
+      payload.items[0].expires_at = '2026-09-20T08:00:15Z';
+      return payload;
+    };
+    return response;
+  };
+  const expiringFirst = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB', 'like_new',
+    { now: cachedNow, fetchImpl: expiringCacheFetch },
+  );
+  const expiringSecond = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB', 'like_new',
+    { now: cachedNow + 10000, fetchImpl: expiringCacheFetch },
+  );
+  assert.strictEqual(expiringCacheFetchCalls, 1, 'an unexpired offer may use the short cache');
+  assert.deepStrictEqual(expiringSecond, expiringFirst);
+  const afterOfferExpiry = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB', 'like_new',
+    { now: cachedNow + 16000, fetchImpl: expiringCacheFetch },
+  );
+  assert.strictEqual(expiringCacheFetchCalls, 2, 'an offer expiry must invalidate the cache');
+  assert.deepStrictEqual(afterOfferExpiry.items, [], 'an expired price must not be served after refresh');
+  loaded.restore();
+
   const noCacheApproval = JSON.parse(approvedEnv().approvals);
   noCacheApproval[0].max_cache_seconds = 0;
   loaded = loadSource(approvedEnv({

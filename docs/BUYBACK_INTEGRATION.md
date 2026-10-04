@@ -90,8 +90,8 @@ Required fields: provider, matched product, normalized condition, price/currency
 - Repeated identical product/condition requests are coalesced and may use a
   short server-side cache within the lowest current provider limit and the
   server's stricter configured limit. An outage is never
-  cached as a valid empty result, and cached quotes never outlive the normal
-  freshness limit.
+  cached as a valid empty result, and cached quotes never outlive their explicit
+  offer expiry, the normal freshness limit or the provider approval.
 
 ## Provider integration priority
 

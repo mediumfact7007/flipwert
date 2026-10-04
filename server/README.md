@@ -127,8 +127,9 @@ approval.
 
 Identical product/condition requests are coalesced and cached briefly on the
 server (60 seconds by default, never more than five minutes). Unavailable
-responses are not cached, and a cache entry can never outlive the 24-hour quote
-freshness boundary. Set a shorter TTL if the partner agreement requires it.
+responses are not cached, and a cache entry can never outlive an offer's
+explicit expiry, the 24-hour quote freshness boundary or the provider approval.
+The effective TTL is also capped by every provider's contractual cache limit.
 
 After deployment, open Flipwert -> **Mehr -> Erweitert: Flipwert-Server** and enter the HTTPS base URL, for example `https://your-service.example`.
 

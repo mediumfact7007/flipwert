@@ -254,6 +254,10 @@ function cacheResult(key, result, now) {
     if (Number.isFinite(checkedAt)) {
       expiresAt = Math.min(expiresAt, checkedAt + 24 * 60 * 60 * 1000);
     }
+    const offerExpiresAt = Date.parse(String(item.expires_at || ''));
+    if (Number.isFinite(offerExpiresAt)) {
+      expiresAt = Math.min(expiresAt, offerExpiresAt);
+    }
     const approval = approvals.get(String(item.provider_id || '').trim().toLowerCase());
     if (approval) expiresAt = Math.min(expiresAt, approval.validUntil);
   }
