@@ -371,12 +371,14 @@ function approvedEnv(overrides = {}) {
         }, {
           ...good, provider_name: 'Different Brand', price: 998,
         }, {
+          ...good, matched_title: 'Samsung iPhone 15 Pro 256 GB', price: 997,
+        }, {
           ...good, provider_id: 'store-credit', payout_type: 'store_credit', price: 999,
         }] };
       },
     }),
   });
-  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions, provider names, offer hosts and non-cash payouts must not enter the comparison');
+  assert.strictEqual(mixed.items.length, 1, 'wrong variants, conditions, manufacturers, provider names, offer hosts and non-cash payouts must not enter the comparison');
   assert.strictEqual(mixed.items[0].condition, 'like_new', 'only the explicitly requested condition may reach the app');
   assert.strictEqual(mixed.best.provider_id, 'clevertronic');
 

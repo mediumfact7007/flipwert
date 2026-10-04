@@ -3,6 +3,11 @@
 const VARIANTS = new Set(['pro', 'max', 'plus', 'ultra', 'mini', 'air', 'oled', 'lite', 'fe', 'slim']);
 const NOISE = new Set(['apple', 'samsung', 'google', 'mit', 'und', 'ohne', 'ovp', 'neu', 'gebraucht', 'top', 'zustand', 'versand', 'abholung', 'verkauf', 'original', 'inkl', 'in', 'der', 'das', 'die', 'the', 'with', 'for', 'new', 'used', 'black', 'white', 'schwarz', 'weiss']);
 const FAMILIES = new Set(['iphone', 'ipad', 'galaxy', 'pixel', 'switch', 'macbook', 'playstation', 'ps5', 'ps4']);
+const BRAND_FAMILIES = new Map([
+  ['apple', new Set(['iphone', 'ipad', 'macbook'])],
+  ['samsung', new Set(['galaxy'])],
+  ['google', new Set(['pixel'])],
+]);
 const CONNECTIVITY_VARIANTS = new Set(['wifi', 'cellular', 'lte', '5g']);
 const CONSOLE_EDITIONS = new Set(['digital', 'disc']);
 const DAMAGE_TERMS = new Set([
@@ -63,6 +68,23 @@ function hasExactDimension(searched, title, values) {
     requested.every((part) => offered.includes(part));
 }
 
+function hasCompatibleBrand(searched, title) {
+  const requested = [...BRAND_FAMILIES.keys()].filter((brand) => searched.includes(brand));
+  const offered = [...BRAND_FAMILIES.keys()].filter((brand) => title.includes(brand));
+  if (requested.length > 1 || offered.length > 1) return false;
+  if (requested.length && offered.length) return requested[0] === offered[0];
+
+  const implicitBrand = (brand, parts) =>
+    [...BRAND_FAMILIES.get(brand)].some((family) => parts.includes(family));
+  if (requested.length) {
+    return implicitBrand(requested[0], searched) && implicitBrand(requested[0], title);
+  }
+  if (offered.length) {
+    return implicitBrand(offered[0], searched) && implicitBrand(offered[0], title);
+  }
+  return true;
+}
+
 // EAN-8, UPC-A, EAN-13 and GTIN-14 share the same GS1 modulo-10 check
 // digit. Canonicalizing valid values to GTIN-14 lets a scanner's EAN-13 match
 // a partner's zero-padded GTIN-14 without accepting arbitrary numeric product
@@ -91,6 +113,7 @@ function matchesBuybackQuery(query, offer) {
   const title = tokens(offer.matched_title);
   if (!searched.length || !title.length) return false;
   if (isAccessoryOnlyTitle(offer.matched_title)) return false;
+  if (!hasCompatibleBrand(searched, title)) return false;
 
   // The structured condition remains authoritative, but a conflicting damage
   // marker in the visible provider title is evidence that the mapping is not

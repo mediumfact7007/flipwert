@@ -62,7 +62,12 @@ Required fields: provider, matched product, normalized condition, price/currency
   returns rows for the exact condition requested by the user. The app repeats
   this filter as a defensive boundary before display and comparison.
 - Low-confidence product matches must not participate in `best buyback` calculations.
-- The server checks provider titles against query model, variant and storage before accepting provider-reported match confidence. Barcode-only searches require the provider to return a matching EAN/GTIN or product ID; ambiguous or broad searches yield no comparable price.
+- The server checks provider titles against manufacturer, model, variant and
+  storage before accepting provider-reported match confidence. A conflicting
+  manufacturer is rejected; omission is allowed only where an exclusive family
+  such as iPhone, Galaxy or Pixel establishes it unambiguously. Barcode-only
+  searches require the provider to return a matching EAN/GTIN; ambiguous or
+  broad searches yield no comparable price.
 - Missing data is shown as unavailable, never estimated as if it were a live provider quote.
 - A new search invalidates an in-flight buyback request and rechecks the selected condition for the new product, so a late response cannot be attached to another deal.
 - Provider credentials, partner tokens and feed secrets stay server-side.

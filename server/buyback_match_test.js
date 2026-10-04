@@ -15,7 +15,14 @@ assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('iPhone 15 Pro 128GB'))
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('iPhone 14 Pro 256GB')), false);
 assert.equal(matches('Apple iPhone 15', offer('Apple iPhone 15 128GB')), false, 'unspecified storage must not claim an exact phone variant');
 assert.equal(matches('Samsung Galaxy S24 Ultra 512 GB', offer('Samsung Galaxy S24 Ultra 512GB')), true);
+assert.equal(matches('Samsung Galaxy S24 Ultra 512 GB', offer('Galaxy S24 Ultra 512GB')), true, 'brand may be implicit in its exclusive family');
 assert.equal(matches('Samsung Galaxy S24 Ultra 512 GB', offer('Galaxy S24 Plus 512GB')), false);
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Samsung iPhone 15 Pro 256GB')), false, 'a conflicting manufacturer must invalidate an otherwise exact family match');
+assert.equal(matches('Google Pixel 9 Pro 256 GB', offer('Samsung Pixel 9 Pro 256GB')), false, 'provider titles cannot reuse another manufacturer\'s exclusive family');
+assert.equal(matches('Google Pixel 9 Pro 256 GB', offer('Pixel 9 Pro 256GB')), true, 'an exclusive family can carry an omitted manufacturer name');
+assert.equal(matches('Apple Watch Ultra 2', offer('Samsung Watch Ultra 2')), false, 'generic product families require the requested manufacturer');
+assert.equal(matches('Apple Watch Ultra 2', offer('Watch Ultra 2')), false, 'a generic title without the requested manufacturer is ambiguous');
+assert.equal(matches('Apple Watch Ultra 2', offer('Apple Watch Ultra 2')), true);
 assert.equal(matches('Nintendo Switch OLED weiß', offer('Nintendo Switch OLED Konsole')), true);
 assert.equal(matches('Nintendo Switch OLED', offer('Nintendo Switch Lite')), false);
 assert.equal(matches('Bosch GSR 12V 15', offer('Bosch GSR 18V 21')), false);
