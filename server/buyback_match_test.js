@@ -54,6 +54,12 @@ assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Hülle für Apple iPho
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB mit Hülle und Kabel')), true, 'bundled accessories after the device name remain valid');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Displaybruch')), false, 'damage in a non-defective condition is a conflicting mapping');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Display Bruch')), false, 'split damage wording must also fail closed');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Wasser Schaden')), false, 'split water-damage wording must fail closed');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB ohne Funktion')), false, 'a non-functional device must not match a functional condition');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB startet nicht')), false, 'a device that does not start must not match a functional condition');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Face ID funktioniert nicht')), false, 'a failed device function must not match a functional condition');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB no power')), false, 'common English failure wording must fail closed');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Displaybruch', { condition: 'defective' })), true, 'damage wording is valid for the explicit defective condition');
+assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB ohne Funktion', { condition: 'defective' })), true, 'multi-word damage wording is valid for the explicit defective condition');
 
 console.log('buyback_match_test: ok');

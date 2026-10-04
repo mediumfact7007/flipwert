@@ -416,6 +416,8 @@ function approvedEnv(overrides = {}) {
         }, {
           ...good, matched_title: 'Samsung iPhone 15 Pro 256 GB', price: 997,
         }, {
+          ...good, matched_title: 'Apple iPhone 15 Pro 256 GB Wasser Schaden', price: 996,
+        }, {
           ...good, provider_id: 'store-credit', payout_type: 'store_credit', price: 999,
         }, {
           ...good, provider_id: 'missing-deductions', mandatory_deductions_eur: undefined,

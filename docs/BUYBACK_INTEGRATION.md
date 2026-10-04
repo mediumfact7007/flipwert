@@ -62,6 +62,10 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
   categories. Common spelling aliases such as `S24+`/`S24 Plus` and
   `PlayStation 5`/`PS5` are normalized before comparison.
 - Only compare offers with compatible normalized conditions.
+- Visible damage and failure wording is checked independently of the
+  provider's structured condition. Compound phrases such as `Wasser Schaden`,
+  `ohne Funktion`, `startet nicht` or `no power` cannot enter a functional
+  condition comparison.
 - A provider response may contain a full condition matrix, but the server only
   returns rows for the exact condition requested by the user. The app repeats
   this filter as a defensive boundary before display and comparison.

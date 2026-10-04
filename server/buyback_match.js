@@ -12,9 +12,27 @@ const CONNECTIVITY_VARIANTS = new Set(['wifi', 'cellular', 'lte', '5g']);
 const CONSOLE_EDITIONS = new Set(['digital', 'disc']);
 const DAMAGE_TERMS = new Set([
   'defekt', 'kaputt', 'bastler', 'bastlergerat', 'displaybruch', 'glasbruch',
-  'bruch', 'wasserschaden', 'reparatur', 'ersatzteile', 'funktionsunfahig',
-  'broken', 'damaged', 'cracked', 'repair', 'parts',
+  'displayschaden', 'pixelfehler', 'totalschaden', 'bootloop', 'bruch',
+  'wasserschaden', 'reparatur', 'ersatzteile', 'funktionsunfahig',
+  'broken', 'damage', 'damaged', 'cracked', 'repair', 'parts',
 ]);
+
+function hasDamageEvidence(parts) {
+  if (parts.some((part) => DAMAGE_TERMS.has(part))) return true;
+  const adjacent = (first, second) => parts.some(
+    (part, index) => part === first && parts[index + 1] === second,
+  );
+  return adjacent('wasser', 'schaden') ||
+    adjacent('ohne', 'funktion') ||
+    adjacent('nicht', 'funktionsfahig') ||
+    adjacent('geht', 'nicht') ||
+    adjacent('funktioniert', 'nicht') ||
+    adjacent('startet', 'nicht') ||
+    adjacent('bootet', 'nicht') ||
+    adjacent('water', 'damage') ||
+    adjacent('not', 'working') ||
+    adjacent('no', 'power');
+}
 
 // A provider title may mention bundled accessories after the device name, but
 // an accessory sold "for" a device is not the requested device itself. This
@@ -119,7 +137,7 @@ function matchesBuybackQuery(query, offer) {
   // marker in the visible provider title is evidence that the mapping is not
   // trustworthy. Prefer no LIVE quote over a price for a damaged/parts unit.
   if (offer.condition !== 'defective' &&
-      title.some((part) => DAMAGE_TERMS.has(part))) return false;
+      hasDamageEvidence(title)) return false;
 
   // Numeric barcode searches need an explicit, checksum-valid EAN/GTIN. A
   // title or an unrelated internal product ID cannot establish barcode
