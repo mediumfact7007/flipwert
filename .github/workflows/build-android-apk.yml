@@ -33,7 +33,7 @@ jobs:
           grep -q 'in_app_purchase: ^3.3.0' pubspec.yaml
           grep -q 'google_mobile_ads: ^9.1.0' pubspec.yaml
           grep -q 'e.live && roles.contains(e.role)' lib/v13_app.dart
-          grep -q 'status.isSandbox(source.id)' lib/v13_app.dart
+          grep -Rq --include='*.dart' 'status.isSandbox(source.id)' lib/
           grep -q 'class V13MarketConfidence' lib/v13_app.dart
           grep -q 'Platform.isAndroid || Platform.isIOS' lib/v13_app.dart
           grep -q 'if (shareSub != null) return;' lib/v13_app.dart
