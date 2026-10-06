@@ -1,10 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
+
+import 'source_text.dart';
 
 void main() {
   test('compact screen keeps breathing room below the target hint', () {
-    final app = File('lib/v13_app.dart').readAsStringSync();
+    final app = readLibDartSource();
 
     expect(app, contains("Ziel: ${r'${widget.targetRoi.toStringAsFixed(0)}'} % ROI + mindestens ${r'${v13Euro(widget.minProfit)}'} Gewinn."));
 

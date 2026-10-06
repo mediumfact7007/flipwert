@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'source_text.dart';
+
 void main() {
   test('V0.14.2 preserves the V0.14.1 extra-cost label clipping fix', () {
-    final app = File('lib/v13_app.dart').readAsStringSync();
+    final app = readLibDartSource();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('version: 0.14.2+25'));

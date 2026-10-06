@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'source_text.dart';
+
 void main() {
   test('billing remains lazy and isolated from normal app startup', () {
-    final app = File('lib/v13_app.dart').readAsStringSync();
+    final app = readLibDartSource();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('in_app_purchase: ^3.3.0'));

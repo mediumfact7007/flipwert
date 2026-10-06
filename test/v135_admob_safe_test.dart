@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'source_text.dart';
+
 void main() {
   test('AdMob stays explicit and isolated from normal startup', () {
-    final app = File('lib/v13_app.dart').readAsStringSync();
+    final app = readLibDartSource();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('google_mobile_ads: ^9.1.0'));
