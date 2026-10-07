@@ -73,6 +73,12 @@ function tokens(value) {
     .replace(/\bdisk\s+edition\b/g, 'disc')
     .replace(/\bdisc\s+edition\b/g, 'disc')
     .replace(/\bdigital\s+edition\b/g, 'digital')
+    .replace(/(\d{1,2}(?:[.,]\d)?)[\s-]*(?:zoll|inch(?:es)?)\b/g,
+      (_, size) => `${size.replace(',', '.')}inch`)
+    .replace(/(\d{1,2}(?:[.,]\d)?)\s*"/g,
+      (_, size) => `${size.replace(',', '.')}inch`)
+    .replace(/(\d+)\s*gb\s*(?:ram|arbeitsspeicher|ddr\d|lpddr\d[x]?)\b/g, '$1ram')
+    .replace(/\b(?:ram|arbeitsspeicher)\s*(\d+)\s*gb\b/g, '$1ram')
     .replace(/([a-z0-9])\+/g, '$1 plus')
     .replace(/(\d+)\s*(tb|gb)\b/g, (_, size, unit) => `${Number(size) * (unit === 'tb' ? 1024 : 1)}gb`)
     .replace(/(\d{2})\s*mm\b/g, '$1mm')
@@ -82,6 +88,19 @@ function tokens(value) {
 
 function storage(parts) {
   return parts.filter((part) => /^\d+gb$/.test(part));
+}
+
+function explicitRam(parts) {
+  return [...new Set(parts.filter((part) => /^\d+ram$/.test(part)))];
+}
+
+function screenSizes(parts) {
+  return [...new Set(parts.filter((part) => /^\d{1,2}(?:\.\d+)?inch$/.test(part)))];
+}
+
+function hasSameValues(requested, offered) {
+  return requested.length === offered.length &&
+    requested.every((part) => offered.includes(part));
 }
 
 function watchCaseSizes(parts) {
@@ -170,6 +189,13 @@ function matchesBuybackQuery(query, offer) {
   if (criticalIdentity(searched).some((part) => !title.includes(part))) return false;
 
   const family = searched.find((part) => FAMILIES.has(part));
+
+  // Explicit RAM and labelled screen size are price-defining hardware
+  // dimensions. Contextual normalization keeps release years and storage
+  // capacities separate, while an omitted dimension remains ambiguous rather
+  // than inheriting a provider SKU's price.
+  if (!hasSameValues(explicitRam(searched), explicitRam(title)) ||
+      !hasSameValues(screenSizes(searched), screenSizes(title))) return false;
 
   // Storage is an exact variant dimension even for products outside the
   // explicitly modelled families (for example Steam Deck or laptops). Do not

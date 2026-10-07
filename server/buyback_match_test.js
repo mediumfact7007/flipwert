@@ -48,6 +48,14 @@ assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 1 TB')), f
 assert.equal(matches('Steam Deck OLED 512 GB', offer('Steam Deck OLED 512GB')), true, 'exact generic storage variant should match');
 assert.equal(matches('Steam Deck OLED', offer('Steam Deck OLED 512GB')), false, 'ambiguous generic storage must not become an exact LIVE SKU');
 assert.equal(matches('Nintendo Switch OLED', offer('Nintendo Switch OLED 64GB Konsole')), true, 'console family keeps inherent-storage exception');
+assert.equal(matches('Apple MacBook Pro 14 Zoll M3 16 GB RAM 512 GB', offer('Apple MacBook Pro 14-inch M3 RAM 16GB 512GB')), true, 'laptop screen and RAM aliases normalize consistently');
+assert.equal(matches('Apple MacBook Pro 14" M3 16GB RAM 512GB', offer('Apple MacBook Pro 16 Zoll M3 16GB RAM 512GB')), false, 'laptop screen sizes must not cross-match');
+assert.equal(matches('Apple MacBook Pro M3 16GB RAM 512GB', offer('Apple MacBook Pro 14 Zoll M3 16GB RAM 512GB')), false, 'omitted laptop screen size must remain ambiguous');
+assert.equal(matches('Apple MacBook Pro 14 Zoll M3 512GB', offer('Apple MacBook Pro 14 Zoll M3 16GB Arbeitsspeicher 512GB')), false, 'omitted laptop RAM must remain ambiguous');
+assert.equal(matches('Lenovo ThinkPad X1 Carbon 14 Zoll 16GB LPDDR5 512GB', offer('Lenovo ThinkPad X1 Carbon 14-inch RAM 16GB 512GB')), true, 'explicit DDR memory labels normalize as laptop RAM');
+assert.equal(matches('Dell Latitude 7450 14 Zoll 32GB DDR5 1TB', offer('Dell Latitude 7450 14-inch 32GB RAM 1024GB')), true, 'standard DDR labels normalize as laptop RAM');
+assert.equal(matches('Lenovo ThinkPad X1 Carbon 2024 512GB', offer('Lenovo ThinkPad X1 Carbon 2024 512GB')), true, 'a release year must not be mistaken for a screen size');
+assert.equal(matches('Samsung Galaxy A55 256GB', offer('Samsung Galaxy A55 8GB RAM 256GB')), false, 'omitted explicit phone RAM must remain ambiguous');
 assert.equal(matches('Apple iPad Air M2 256 GB Wi-Fi', offer('Apple iPad Air M2 256GB Cellular')), false, 'tablet connectivity variants must not cross-match');
 assert.equal(matches('Apple iPad Air M2 256 GB WLAN', offer('Apple iPad Air M2 256GB Wi-Fi')), true, 'common Wi-Fi aliases normalize consistently');
 assert.equal(matches('Apple iPad Air M2 256 GB', offer('Apple iPad Air M2 256GB Wi-Fi')), false, 'omitted tablet connectivity must remain ambiguous');

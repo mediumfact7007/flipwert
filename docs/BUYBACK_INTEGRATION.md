@@ -75,6 +75,9 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
 - Price-defining watch case sizes must match exactly; a standard watch search
   without its size is not eligible for a LIVE quote. Named Ultra models may
   use their inherent single case size.
+- Labelled hardware screen size and explicitly labelled RAM must match exactly.
+  A query that omits either dimension cannot inherit a provider SKU's more
+  specific LIVE price; release years and storage remain separate dimensions.
 - The server checks provider titles against manufacturer, model, variant and
   storage before accepting provider-reported match confidence. A conflicting
   manufacturer is rejected; omission is allowed only where an exclusive family
