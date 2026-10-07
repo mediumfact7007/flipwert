@@ -199,8 +199,8 @@ class BuybackOffersCard extends StatelessWidget {
                   if (offer.hasMandatoryDeductions)
                     Text(
                       english
-                          ? 'Net payout ${_money(offer.price)} after ${_money(offer.mandatoryDeductionsEur)} mandatory deductions.'
-                          : 'Nettoauszahlung ${_money(offer.price)} nach ${_money(offer.mandatoryDeductionsEur)} Pflichtabzügen.',
+                          ? 'Listed price ${_money(offer.displayedListedPrice)} minus ${_money(offer.mandatoryDeductionsEur)} mandatory deductions.'
+                          : 'Anbieterpreis ${_money(offer.displayedListedPrice)} minus ${_money(offer.mandatoryDeductionsEur)} Pflichtabzüge.',
                       key: ValueKey('buyback-deductions-${offer.providerId}'),
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
@@ -210,7 +210,8 @@ class BuybackOffersCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(
-                    '${_money(offer.hasMandatoryDeductions ? offer.displayedListedPrice : offer.price)}${offer.requiresInspection ? '*' : ''}',
+                    '${_money(offer.price)}${offer.requiresInspection ? '*' : ''}',
+                    key: ValueKey('buyback-net-payout-${offer.providerId}'),
                     style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextButton(

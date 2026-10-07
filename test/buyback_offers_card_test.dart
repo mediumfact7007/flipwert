@@ -4,7 +4,7 @@ import 'package:flipwert/buyback.dart';
 import 'package:flipwert/buyback_offers_card.dart';
 
 void main() {
-  testWidgets('shows listed price and net payout after provider deductions', (
+  testWidgets('shows net payout prominently and listed price as deduction context', (
     tester,
   ) async {
     final offer = BuybackOffer(
@@ -34,9 +34,13 @@ void main() {
       ),
     ));
 
-    expect(find.text('650,00 €*'), findsOneWidget);
+    expect(find.text('620,00 €*'), findsOneWidget);
     expect(
-      find.text('Nettoauszahlung 620,00 € nach 30,00 € Pflichtabzügen.'),
+      find.byKey(const ValueKey('buyback-net-payout-provider')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Anbieterpreis 650,00 € minus 30,00 € Pflichtabzüge.'),
       findsOneWidget,
     );
     expect(find.text('Gewinn nach Gesamteinsatz: 120,00 €'), findsOneWidget);
