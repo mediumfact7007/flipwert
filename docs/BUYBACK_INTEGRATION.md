@@ -91,6 +91,10 @@ than two decimal places are rejected instead of being silently rounded.
 - A successful partner response must be either an item array or an object with
   an item array. Malformed and unexpectedly oversized payloads are treated as
   provider outages and are never cached as a valid zero-offer result.
+- An explicit empty item array is a valid no-offer response. If a feed instead
+  supplies approved, query-matched rows but every row violates the normalized
+  offer contract, the response is treated as unavailable and is not cached;
+  malformed or stale prices must not masquerade as a trustworthy empty market.
 - Every offer must state all mandatory deductions explicitly, including a
   numeric zero when none apply. Flipwert compares and calculates profit from
   the resulting net cash payout, never from a gross headline amount.

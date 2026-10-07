@@ -354,7 +354,7 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
       return { configured: true, items: [], best: null, unavailable: true };
     }
     const allowedProviders = currentSourceApprovals(now);
-    const normalizedItems = normalizeBuybackPayload(rawItems.filter((item) => {
+    const candidateItems = rawItems.filter((item) => {
       const providerId = String(item?.provider_id || '').trim().toLowerCase();
       const approval = allowedProviders.get(providerId);
       return approval?.feedHosts.has(endpoint.hostname.toLowerCase()) === true &&
@@ -365,7 +365,15 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
           item?.affiliate_link === false ||
           (item?.affiliate_link === true && approval.affiliateLinks === true)) &&
         matchesBuybackQuery(normalizedQuery, item);
-    }), { now });
+    });
+    const normalizedItems = normalizeBuybackPayload(candidateItems, { now });
+    // An explicit empty list means the provider has no quote. In contrast, a
+    // response containing only approved, query-matched rows that all fail the
+    // offer contract is a broken/stale feed response. Treat it as unavailable
+    // so it cannot be cached or displayed as a trustworthy zero-offer result.
+    if (candidateItems.length > 0 && normalizedItems.length === 0) {
+      return { configured: true, items: [], best: null, unavailable: true };
+    }
     // The requested condition is part of the product identity. Some partner
     // feeds return a condition matrix even when one state was requested; never
     // let those other rows reach the app or influence the visible best offer.

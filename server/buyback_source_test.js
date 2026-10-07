@@ -304,6 +304,46 @@ function approvedEnv(overrides = {}) {
   });
   assert.strictEqual(malformedFetchCalls, 2, 'malformed partner responses must never be cached');
 
+  let invalidCandidateFetchCalls = 0;
+  const invalidCandidateFetch = async () => {
+    invalidCandidateFetchCalls += 1;
+    return {
+      ok: true,
+      async json() {
+        return { items: [{
+          provider_id: 'clevertronic', provider_name: 'Clevertronic',
+          product_id: 'iphone-15-pro-256',
+          matched_title: 'Apple iPhone 15 Pro 256 GB', condition: 'like_new',
+          price: 615.005, mandatory_deductions_eur: 0, currency: 'EUR',
+          offer_url: 'https://partner.example/offer/invalid-price',
+          checked_at: '2026-09-20T07:55:00Z',
+          price_kind: 'indicative_buyback', payout_type: 'cash',
+          match_confidence: 0.98,
+        }] };
+      },
+    };
+  };
+  const invalidCandidateResult = await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB',
+    'like_new',
+    { now: Date.parse('2026-09-20T08:00:00Z'), fetchImpl: invalidCandidateFetch },
+  );
+  assert.deepStrictEqual(
+    invalidCandidateResult,
+    { configured: true, items: [], best: null, unavailable: true },
+    'query-matched rows that all violate the offer contract must signal a provider outage',
+  );
+  await loaded.source.fetchBuybackOffers(
+    'Apple iPhone 15 Pro 256 GB',
+    'like_new',
+    { now: Date.parse('2026-09-20T08:00:01Z'), fetchImpl: invalidCandidateFetch },
+  );
+  assert.strictEqual(
+    invalidCandidateFetchCalls,
+    2,
+    'invalid query-matched rows must never be cached as a valid empty result',
+  );
+
   const oversizedResult = await loaded.source.fetchBuybackOffers('iPhone 15', 'like_new', {
     fetchImpl: async () => ({
       ok: true,
