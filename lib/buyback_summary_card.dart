@@ -15,7 +15,8 @@ class BuybackComparisonCard extends StatelessWidget {
   final DateTime? now;
 
   bool get _de => locale.toLowerCase().startsWith('de');
-  String _money(double value) => '${value.toStringAsFixed(0)} €';
+  String _money(double value) =>
+      '${value.toStringAsFixed(2).replaceAll('.', _de ? ',' : '.')} €';
   String _roi(double value) => '${value.toStringAsFixed(0)} %';
 
   String _checkedAt(DateTime value) {

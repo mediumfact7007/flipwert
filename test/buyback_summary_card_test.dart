@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 BuybackComparisonSummary summaryWithUrl(
   Uri url, {
   double buybackPrice = 620,
+  double? listedPrice,
+  double mandatoryDeductionsEur = 0,
   double safetyReserve = 0,
   DateTime? expiresAt,
 }) {
@@ -18,6 +20,8 @@ BuybackComparisonSummary summaryWithUrl(
       matchedTitle: 'Apple iPhone 15 Pro 256 GB',
       condition: BuybackCondition.likeNew,
       price: buybackPrice,
+      listedPrice: listedPrice,
+      mandatoryDeductionsEur: mandatoryDeductionsEur,
       currency: 'EUR',
       offerUrl: url,
       checkedAt: DateTime.parse('2026-09-21T12:00:00Z'),
@@ -141,7 +145,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Basis: Gesamteinsatz 500 €'), findsOneWidget);
+    expect(find.text('Basis: Gesamteinsatz 500,00 €'), findsOneWidget);
     expect(
       find.text('Gesamteinsatz = Einkaufspreis + eingetragene Zusatzkosten.'),
       findsOneWidget,
@@ -175,7 +179,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Privatverkauf: 60 € mehr Gewinn'), findsOneWidget);
+    expect(find.text('Privatverkauf: 60,00 € mehr Gewinn'), findsOneWidget);
   });
 
   testWidgets('inspection-dependent buyback advantage is clearly provisional', (
@@ -194,8 +198,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Sofortankauf: 40 € mehr Gewinn (vor Prüfung)'), findsOneWidget);
-    expect(find.text('720 €*'), findsOneWidget);
+    expect(find.text('Sofortankauf: 40,00 € mehr Gewinn (vor Prüfung)'), findsOneWidget);
+    expect(find.text('720,00 €*'), findsOneWidget);
     expect(
       find.text(
         '* Vorläufiger Ankaufspreis: Der Anbieter kann ihn nach Prüfung ändern.',
@@ -222,14 +226,43 @@ void main() {
     );
 
     expect(
-      find.text('Sofortankauf: 10 € mehr Gewinn (vor Prüfung)'),
+      find.text('Sofortankauf: 10,00 € mehr Gewinn (vor Prüfung)'),
       findsOneWidget,
     );
     expect(
       find.text(
-        'Konservativ gerechnet: 690 € Ankaufserlös nach 30 € Sicherheitsabschlag.',
+        'Konservativ gerechnet: 690,00 € Ankaufserlös nach 30,00 € Sicherheitsabschlag.',
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('keeps cent-precise net payout and deduction amounts visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BuybackComparisonCard(
+            summary: summaryWithUrl(
+              Uri.parse('https://example.com/offer'),
+              buybackPrice: 619.51,
+              listedPrice: 649.99,
+              mandatoryDeductionsEur: 30.48,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('619,51 €*'), findsOneWidget);
+    expect(
+      find.text(
+        'Nettoauszahlung: 619,51 € nach 30,48 € gemeldeten '
+        'Pflichtabzügen vom Anbieterpreis 649,99 €.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Gewinn 119,51 €'), findsOneWidget);
   });
 }
