@@ -54,6 +54,11 @@ assert.equal(matches('Apple iPad Air M2 256 GB', offer('Apple iPad Air M2 256GB 
 assert.equal(matches('PlayStation 5 Slim Digital Edition', offer('Sony PS5 Slim Disc Edition')), false, 'console editions must not cross-match');
 assert.equal(matches('PlayStation 5 Slim ohne Laufwerk', offer('Sony PS5 Slim Digital Edition')), true, 'console edition aliases normalize consistently');
 assert.equal(matches('PlayStation 5 Slim', offer('Sony PS5 Slim Disc Edition')), false, 'omitted console edition must remain ambiguous');
+assert.equal(matches('Microsoft Xbox Series X 1 TB', offer('Xbox Series X 1024GB')), true, 'Xbox manufacturer and storage aliases normalize consistently');
+assert.equal(matches('Xbox Series X', offer('Microsoft Xbox Series S')), false, 'Xbox Series X and Series S must not cross-match');
+assert.equal(matches('Xbox One X', offer('Microsoft Xbox One S')), false, 'Xbox One X and One S must not cross-match');
+assert.equal(matches('Xbox Series X', offer('Microsoft Xbox Series X 1TB')), true, 'named Xbox console models may use their inherent base storage');
+assert.equal(matches('Xbox Series X 1TB', offer('Microsoft Xbox Series X 2TB')), false, 'an explicit Xbox storage request must still match exactly');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Hülle für Apple iPhone 15 Pro 256GB')), false, 'accessory-only titles must not become LIVE device matches');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB mit Hülle und Kabel')), true, 'bundled accessories after the device name remain valid');
 assert.equal(matches('Apple iPhone 15 Pro 256 GB', offer('Apple iPhone 15 Pro 256GB Displaybruch')), false, 'damage in a non-defective condition is a conflicting mapping');

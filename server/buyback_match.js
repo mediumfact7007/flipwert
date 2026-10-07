@@ -1,12 +1,16 @@
 'use strict';
 
-const VARIANTS = new Set(['pro', 'max', 'plus', 'ultra', 'mini', 'air', 'oled', 'lite', 'fe', 'slim']);
-const NOISE = new Set(['apple', 'samsung', 'google', 'mit', 'und', 'ohne', 'ovp', 'neu', 'gebraucht', 'top', 'zustand', 'versand', 'abholung', 'verkauf', 'original', 'inkl', 'in', 'der', 'das', 'die', 'the', 'with', 'for', 'new', 'used', 'black', 'white', 'schwarz', 'weiss']);
-const FAMILIES = new Set(['iphone', 'ipad', 'galaxy', 'pixel', 'switch', 'macbook', 'playstation', 'ps5', 'ps4']);
+const VARIANTS = new Set([
+  'pro', 'max', 'plus', 'ultra', 'mini', 'air', 'oled', 'lite', 'fe', 'slim',
+  'seriesx', 'seriess', 'onex', 'ones',
+]);
+const NOISE = new Set(['apple', 'samsung', 'google', 'microsoft', 'mit', 'und', 'ohne', 'ovp', 'neu', 'gebraucht', 'top', 'zustand', 'versand', 'abholung', 'verkauf', 'original', 'inkl', 'in', 'der', 'das', 'die', 'the', 'with', 'for', 'new', 'used', 'black', 'white', 'schwarz', 'weiss']);
+const FAMILIES = new Set(['iphone', 'ipad', 'galaxy', 'pixel', 'switch', 'macbook', 'playstation', 'ps5', 'ps4', 'xbox']);
 const BRAND_FAMILIES = new Map([
   ['apple', new Set(['iphone', 'ipad', 'macbook'])],
   ['samsung', new Set(['galaxy'])],
   ['google', new Set(['pixel'])],
+  ['microsoft', new Set(['xbox'])],
 ]);
 const CONNECTIVITY_VARIANTS = new Set(['wifi', 'cellular', 'lte', '5g']);
 const CONSOLE_EDITIONS = new Set(['digital', 'disc']);
@@ -56,6 +60,10 @@ function tokens(value) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\bplay\s*station\s*5\b/g, 'ps5')
     .replace(/\bps\s*5\b/g, 'ps5')
+    .replace(/\bxbox\s+series\s+x\b/g, 'xbox seriesx')
+    .replace(/\bxbox\s+series\s+s\b/g, 'xbox seriess')
+    .replace(/\bxbox\s+one\s+x\b/g, 'xbox onex')
+    .replace(/\bxbox\s+one\s+s\b/g, 'xbox ones')
     .replace(/ß/g, 'ss')
     .replace(/\bpromax\b/g, 'pro max')
     .replace(/\bwi[\s-]?fi\b|\bwlan\b/g, 'wifi')
@@ -171,7 +179,7 @@ function matchesBuybackQuery(query, offer) {
   // compatible with the existing family exception below.
   const requestedStorage = storage(searched);
   const offeredStorage = storage(title);
-  const storageOptionalFamily = ['switch', 'ps5', 'ps4'].includes(family);
+  const storageOptionalFamily = ['switch', 'ps5', 'ps4', 'xbox'].includes(family);
   if (requestedStorage.length &&
       !requestedStorage.some((part) => offeredStorage.includes(part))) return false;
   if (!requestedStorage.length && offeredStorage.length && !storageOptionalFamily) return false;
@@ -210,7 +218,7 @@ function matchesBuybackQuery(query, offer) {
     const model = searched.slice(searched.indexOf(family) + 1, searched.indexOf(family) + 5)
       .find((part) => /^(?:[a-z]?\d+[a-z]?|m[1-9])$/.test(part));
     if (model && !title.includes(model)) return false;
-    if (!model && !['switch', 'ps5', 'ps4'].includes(family)) return false;
+    if (!model && !['switch', 'ps5', 'ps4', 'xbox'].includes(family)) return false;
     const requestedVariants = searched.filter((part) => VARIANTS.has(part));
     const offeredVariants = title.filter((part) => VARIANTS.has(part));
     if (requestedVariants.some((part) => !offeredVariants.includes(part)) ||

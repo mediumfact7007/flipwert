@@ -60,7 +60,9 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
 - Product identity must include relevant variants where available (storage, model generation, network/version, color only where price-relevant).
 - Numeric model tokens and named variants are hard constraints across product
   categories. Common spelling aliases such as `S24+`/`S24 Plus` and
-  `PlayStation 5`/`PS5` are normalized before comparison.
+  `PlayStation 5`/`PS5` are normalized before comparison. Xbox Series X/S and
+  Xbox One X/S remain distinct named hardware variants even though their final
+  model marker is only one character.
 - Only compare offers with compatible normalized conditions.
 - Visible damage and failure wording is checked independently of the
   provider's structured condition. Compound phrases such as `Wasser Schaden`,
