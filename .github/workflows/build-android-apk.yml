@@ -32,34 +32,35 @@ jobs:
           grep -q '^version: 0.14.8+31$' pubspec.yaml
           grep -q 'in_app_purchase: ^3.3.0' pubspec.yaml
           grep -q 'google_mobile_ads: ^9.1.0' pubspec.yaml
-          grep -q 'e.live && roles.contains(e.role)' lib/v13_app.dart
+          grep -Rq --include='*.dart' 'e.live && roles.contains(e.role)' lib/
           grep -Rq --include='*.dart' 'status.isSandbox(source.id)' lib/
-          grep -q 'class V13MarketConfidence' lib/v13_app.dart
-          grep -q 'Platform.isAndroid || Platform.isIOS' lib/v13_app.dart
-          grep -q 'if (shareSub != null) return;' lib/v13_app.dart
-          grep -q "ValueKey('v145-open-flips')" lib/v13_app.dart
-          grep -q "ValueKey('v145-clear-search')" lib/v13_app.dart
-          grep -q "ValueKey('v145-retry-sources')" lib/v13_app.dart
-          grep -q 'void _retryFailed()' lib/v13_app.dart
-          grep -q 'widget.onSearch(raw)' lib/v13_app.dart
-          grep -q 'maxLines: 3' lib/v13_app.dart
+          grep -Rq --include='*.dart' 'class V13MarketConfidence' lib/
+          grep -Rq --include='*.dart' 'Platform.isAndroid || Platform.isIOS' lib/
+          grep -Rq --include='*.dart' 'if (shareSub != null) return;' lib/
+          grep -Rq --include='*.dart' "ValueKey('v145-open-flips')" lib/
+          grep -Rq --include='*.dart' "ValueKey('v145-clear-search')" lib/
+          grep -Rq --include='*.dart' "ValueKey('v145-retry-sources')" lib/
+          grep -Rq --include='*.dart' 'void _retryFailed()' lib/
+          grep -Rq --include='*.dart' 'widget.onSearch(raw)' lib/
+          grep -Rq --include='*.dart' 'maxLines: 3' lib/
           grep -q 'static Uri? sharedListingUrl' lib/source_registry.dart
-          grep -q "ValueKey('kleinanzeigen-manual-price')" lib/v13_app.dart
-          grep -q "ValueKey('v147-remember-deal')" lib/v13_app.dart
-          grep -q "status == 'Saved'" lib/v13_app.dart
-          grep -q 'maxBuyAtCheck' lib/v13_app.dart
-          grep -q 'confidenceScore' lib/v13_app.dart
-          grep -q 'String v147AgeLabel' lib/v13_app.dart
-          grep -q 'v148PrioritizeSaved' lib/v13_app.dart
-          grep -q "ValueKey('v148-menu-" lib/v13_app.dart
-          grep -q "ValueKey('v151-buyback-condition')" lib/v13_app.dart
-          grep -q "ValueKey('v156-buyback-empty')" lib/v13_app.dart
+          grep -Rq --include='*.dart' "ValueKey('kleinanzeigen-manual-price')" lib/
+          grep -Rq --include='*.dart' "ValueKey('v147-remember-deal')" lib/
+          grep -Rq --include='*.dart' "status == 'Saved'" lib/
+          grep -Rq --include='*.dart' 'maxBuyAtCheck' lib/
+          grep -Rq --include='*.dart' 'confidenceScore' lib/
+          grep -Rq --include='*.dart' 'String v147AgeLabel' lib/
+          grep -Rq --include='*.dart' 'v148PrioritizeSaved' lib/
+          grep -Rq --include='*.dart' "ValueKey('v148-menu-" lib/
+          grep -Rq --include='*.dart' "ValueKey('v151-buyback-condition')" lib/
+          grep -Rq --include='*.dart' "ValueKey('v156-buyback-empty')" lib/
           grep -q "url.pathname === '/v1/listing/resolve'" server/index.js
           grep -q 'listing_import_disabled' server/index.js
-          ! grep -q 'resolvePublicListing\|resolveSharedListing' server/index.js lib/v13_app.dart lib/source_registry.dart
+          ! grep -q 'resolvePublicListing\|resolveSharedListing' server/index.js
+          ! grep -Rq --include='*.dart' 'resolvePublicListing\|resolveSharedListing' lib/
           test ! -e server/listing_resolver.js
           grep -q '^EBAY_ENV=sandbox$' server/.env.example
-          ! grep -q 'unawaited(monetization.prepareAds())' lib/v13_app.dart
+          ! grep -Rq --include='*.dart' 'unawaited(monetization.prepareAds())' lib/
 
       - name: Verify eBay credential isolation
         shell: bash
