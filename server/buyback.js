@@ -11,6 +11,7 @@ const CONDITIONS = new Set([
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_PRICE_EUR = 10000;
+const CENT_PRECISION_TOLERANCE = 1e-7;
 
 function text(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -21,12 +22,23 @@ function hasExplicitTimeZone(value) {
   return normalized.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(normalized);
 }
 
+function eurCents(value) {
+  if (!Number.isFinite(value)) return null;
+  const scaled = value * 100;
+  const cents = Math.round(scaled);
+  if (!Number.isSafeInteger(cents) || Math.abs(scaled - cents) > CENT_PRECISION_TOLERANCE) {
+    return null;
+  }
+  return cents;
+}
+
 function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   if (!raw || typeof raw !== 'object') return null;
   const condition = text(raw.condition, 32);
   const listedPrice = raw.price;
   const mandatoryDeductions = raw.mandatory_deductions_eur;
-  const price = Math.round((listedPrice - mandatoryDeductions) * 100) / 100;
+  const listedPriceCents = eurCents(listedPrice);
+  const mandatoryDeductionsCents = eurCents(mandatoryDeductions);
   const confidence = raw.match_confidence;
   const checkedAtRaw = text(raw.checked_at, 80);
   const checkedAt = Date.parse(checkedAtRaw);
@@ -39,9 +51,11 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
   try { parsedUrl = new URL(offerUrl); } catch (_) { return null; }
 
   if (!CONDITIONS.has(condition)) return null;
-  if (!Number.isFinite(listedPrice) || listedPrice <= 0 || listedPrice > MAX_PRICE_EUR) return null;
-  if (!Number.isFinite(mandatoryDeductions) || mandatoryDeductions < 0 ||
-      mandatoryDeductions >= listedPrice || price <= 0) return null;
+  if (listedPriceCents === null || listedPriceCents <= 0 ||
+      listedPriceCents > MAX_PRICE_EUR * 100) return null;
+  if (mandatoryDeductionsCents === null || mandatoryDeductionsCents < 0 ||
+      mandatoryDeductionsCents >= listedPriceCents) return null;
+  const priceCents = listedPriceCents - mandatoryDeductionsCents;
   if (text(raw.currency, 8) !== 'EUR') return null;
   if (text(raw.price_kind, 40) !== 'indicative_buyback') return null;
   if (text(raw.payout_type, 40) !== 'cash') return null;
@@ -64,9 +78,9 @@ function normalizeBuybackOffer(raw, { now = Date.now() } = {}) {
     product_id: productId,
     matched_title: matchedTitle,
     condition,
-    price,
-    listed_price: listedPrice,
-    mandatory_deductions_eur: mandatoryDeductions,
+    price: priceCents / 100,
+    listed_price: listedPriceCents / 100,
+    mandatory_deductions_eur: mandatoryDeductionsCents / 100,
     price_basis: 'net_after_mandatory_deductions',
     currency: 'EUR',
     offer_url: parsedUrl.toString(),

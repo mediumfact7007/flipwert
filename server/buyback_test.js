@@ -37,12 +37,23 @@ assert.equal(unchanged.mandatory_deductions_eur, 0);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: undefined }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: '0' }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ price: '620' }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ price: 620.005 }), { now }), null);
+assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 0.001 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ match_confidence: '0.98' }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: -1 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 620 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ mandatory_deductions_eur: 700 }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: 'store_credit' }), { now }), null);
 assert.equal(normalizeBuybackOffer(rawOffer({ payout_type: undefined }), { now }), null);
+
+const decimalCents = normalizeBuybackOffer(rawOffer({
+  price: 620.10,
+  mandatory_deductions_eur: 0.20,
+}), { now });
+assert.ok(decimalCents);
+assert.equal(decimalCents.listed_price, 620.10);
+assert.equal(decimalCents.mandatory_deductions_eur, 0.20);
+assert.equal(decimalCents.price, 619.90);
 
 const expiring = normalizeBuybackOffer(rawOffer({ expires_at: '2026-09-27T12:15:00Z' }), { now });
 assert.equal(expiring.expires_at, '2026-09-27T12:15:00.000Z');

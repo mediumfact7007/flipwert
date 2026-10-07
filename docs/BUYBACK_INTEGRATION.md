@@ -51,6 +51,9 @@ Required fields: provider, matched product, normalized condition, numeric listed
 price, numeric mandatory deductions (explicitly `0` when none apply), currency,
 destination URL, timestamp and price kind. Numeric strings are rejected so an
 adapter cannot silently pass through an unvalidated or locale-formatted amount.
+EUR price and deduction fields must be exact cent amounts with no fractional
+cents. Net payout is calculated by subtracting integer cents; values with more
+than two decimal places are rejected instead of being silently rounded.
 
 ## Trust rules
 
