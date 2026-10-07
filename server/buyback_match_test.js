@@ -23,6 +23,10 @@ assert.equal(matches('Google Pixel 9 Pro 256 GB', offer('Pixel 9 Pro 256GB')), t
 assert.equal(matches('Apple Watch Ultra 2', offer('Samsung Watch Ultra 2')), false, 'generic product families require the requested manufacturer');
 assert.equal(matches('Apple Watch Ultra 2', offer('Watch Ultra 2')), false, 'a generic title without the requested manufacturer is ambiguous');
 assert.equal(matches('Apple Watch Ultra 2', offer('Apple Watch Ultra 2')), true);
+assert.equal(matches('Apple Watch Series 9 41 mm', offer('Apple Watch Series 9 45mm')), false, 'watch case sizes must not cross-match');
+assert.equal(matches('Apple Watch Series 9 41mm', offer('Apple Watch Series 9 41 mm')), true, 'watch case-size spacing normalizes consistently');
+assert.equal(matches('Apple Watch Series 9', offer('Apple Watch Series 9 45mm')), false, 'omitted standard watch size must remain ambiguous');
+assert.equal(matches('Apple Watch Ultra 2', offer('Apple Watch Ultra 2 49mm')), true, 'the Ultra model has an inherent single case size');
 assert.equal(matches('Nintendo Switch OLED weiß', offer('Nintendo Switch OLED Konsole')), true);
 assert.equal(matches('Nintendo Switch OLED', offer('Nintendo Switch Lite')), false);
 assert.equal(matches('Bosch GSR 12V 15', offer('Bosch GSR 18V 21')), false);

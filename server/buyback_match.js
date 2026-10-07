@@ -67,12 +67,17 @@ function tokens(value) {
     .replace(/\bdigital\s+edition\b/g, 'digital')
     .replace(/([a-z0-9])\+/g, '$1 plus')
     .replace(/(\d+)\s*(tb|gb)\b/g, (_, size, unit) => `${Number(size) * (unit === 'tb' ? 1024 : 1)}gb`)
+    .replace(/(\d{2})\s*mm\b/g, '$1mm')
     .replace(/[^a-z0-9]+/g, ' ').trim();
   return normalized ? normalized.split(/\s+/) : [];
 }
 
 function storage(parts) {
   return parts.filter((part) => /^\d+gb$/.test(part));
+}
+
+function watchCaseSizes(parts) {
+  return [...new Set(parts.filter((part) => /^(?:3[5-9]|4\d|5[0-5])mm$/.test(part)))];
 }
 
 function criticalIdentity(parts) {
@@ -178,6 +183,19 @@ function matchesBuybackQuery(query, offer) {
     .some((part) => searched.includes(part) || title.includes(part));
   if (connectivityProduct &&
       !hasExactDimension(searched, title, CONNECTIVITY_VARIANTS)) return false;
+
+  // Watch case size is a price-defining hardware variant. A standard watch
+  // query without the size is ambiguous and must not inherit a provider's
+  // 40/41/44/45/46 mm price. Ultra models are the narrow exception because
+  // the named model itself defines the single case size.
+  const watchProduct = searched.includes('watch') || title.includes('watch');
+  const inherentUltraSize = searched.includes('ultra') && title.includes('ultra');
+  if (watchProduct && !inherentUltraSize) {
+    const requestedCaseSizes = watchCaseSizes(searched);
+    const offeredCaseSizes = watchCaseSizes(title);
+    if (requestedCaseSizes.length !== offeredCaseSizes.length ||
+        requestedCaseSizes.some((part) => !offeredCaseSizes.includes(part))) return false;
+  }
 
   // Console disc/digital editions are different products and commonly carry
   // different buyback prices. An omitted edition is ambiguous and must not be

@@ -70,6 +70,9 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
   returns rows for the exact condition requested by the user. The app repeats
   this filter as a defensive boundary before display and comparison.
 - Low-confidence product matches must not participate in `best buyback` calculations.
+- Price-defining watch case sizes must match exactly; a standard watch search
+  without its size is not eligible for a LIVE quote. Named Ultra models may
+  use their inherent single case size.
 - The server checks provider titles against manufacturer, model, variant and
   storage before accepting provider-reported match confidence. A conflicting
   manufacturer is rejected; omission is allowed only where an exclusive family
