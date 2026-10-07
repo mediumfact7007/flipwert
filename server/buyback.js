@@ -88,7 +88,13 @@ function normalizeBuybackPayload(payload, options) {
     if (!item) continue;
     const key = `${item.provider_id.toLowerCase()}\u0000${item.product_id.toLowerCase()}\u0000${item.condition}`;
     const current = unique.get(key);
-    if (!current || item.price > current.price || (item.price === current.price && item.checked_at > current.checked_at)) {
+    // A feed may contain multiple snapshots for the same provider SKU. The
+    // newest quote is authoritative even when the provider lowered its price;
+    // selecting the highest value would silently resurrect an older payout.
+    // Conflicting rows with the same timestamp fail conservatively to the
+    // lower net payout instead of overstating the user's expected proceeds.
+    if (!current || item.checked_at > current.checked_at ||
+        (item.checked_at === current.checked_at && item.price < current.price)) {
       unique.set(key, item);
     }
   }

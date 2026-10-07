@@ -114,6 +114,10 @@ adapter cannot silently pass through an unvalidated or locale-formatted amount.
   server's stricter configured limit. An outage is never
   cached as a valid empty result, and cached quotes never outlive their explicit
   offer expiry, the normal freshness limit or the provider approval.
+- If an approved feed returns multiple snapshots for the same provider,
+  product and condition, the newest checked timestamp is authoritative even
+  when its payout is lower. Conflicting rows with the same timestamp use the
+  lower net payout so Flipwert cannot inflate expected proceeds.
 
 ## Provider integration priority
 

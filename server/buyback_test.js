@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const { normalizeBuybackOffer, bestBuybackOffer } = require('./buyback');
+const { normalizeBuybackOffer, normalizeBuybackPayload, bestBuybackOffer } = require('./buyback');
 
 const now = Date.parse('2026-09-27T12:00:00Z');
 const rawOffer = (overrides = {}) => ({
@@ -52,5 +52,21 @@ assert.equal(normalizeBuybackOffer(rawOffer({ expires_at: '2026-09-27T12:15:00' 
 const highGross = normalizeBuybackOffer(rawOffer({ provider_id: 'gross', price: 650, mandatory_deductions_eur: 80 }), { now });
 const lowerGross = normalizeBuybackOffer(rawOffer({ provider_id: 'net', price: 620, mandatory_deductions_eur: 10 }), { now });
 assert.equal(bestBuybackOffer([highGross, lowerGross], 'like_new').provider_id, 'net');
+
+const olderHigh = rawOffer({ price: 680, checked_at: '2026-09-27T10:00:00Z' });
+const newerLow = rawOffer({ price: 610, checked_at: '2026-09-27T11:00:00Z' });
+for (const rows of [[olderHigh, newerLow], [newerLow, olderHigh]]) {
+  const normalized = normalizeBuybackPayload(rows, { now });
+  assert.equal(normalized.length, 1);
+  assert.equal(normalized[0].price, 610, 'the latest provider SKU quote must replace an older higher payout');
+  assert.equal(normalized[0].checked_at, '2026-09-27T11:00:00.000Z');
+}
+
+const sameTimeConflict = normalizeBuybackPayload([
+  rawOffer({ price: 650, checked_at: '2026-09-27T11:30:00Z' }),
+  rawOffer({ price: 600, checked_at: '2026-09-27T11:30:00Z' }),
+], { now });
+assert.equal(sameTimeConflict.length, 1);
+assert.equal(sameTimeConflict[0].price, 600, 'same-time conflicts must not overstate the payout');
 
 console.log('buyback_test: ok');
