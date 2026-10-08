@@ -1,6 +1,85 @@
 part of '../v13_app.dart';
 
-extension _V13CheckPageLogic on _V13CheckPageState {
+abstract class _V13CheckPageLogic extends State<V13CheckPage> {
+  late final TextEditingController query;
+  final buy = TextEditingController();
+  final costs = TextEditingController(text: '0');
+  final buybackReserve = TextEditingController(text: '0');
+  final manualSell = TextEditingController();
+  final buyFocus = FocusNode();
+  final manualFocus = FocusNode();
+  List<SourceListing> listings = [];
+  final Set<String> pending = {};
+  final Set<String> failed = {};
+  bool manualMode = false;
+  double? manualCommitted;
+  double? snapshotExpectedFallback;
+  bool deepUnlocked = false;
+  bool deepLoading = false;
+  bool savedBought = false;
+  bool savedWatch = false;
+  BuybackCondition? buybackCondition;
+  List<BuybackOffer> buybackOffers = const [];
+  BuybackSearchResult? buybackResult;
+  bool buybackLoading = false;
+  ManualBuybackQuote? manualBuybackQuote;
+  int buybackToken = 0;
+  int token = 0;
+  V13Decision? lastHaptic;
+
+  String t(String de, String en) => widget.english ? en : de;
+
+  @override
+  void initState() {
+    super.initState();
+    query = TextEditingController(text: widget.input.query);
+    final detected = widget.input.detectedPrice;
+    final existing = widget.existingSnapshot;
+    buybackCondition = BuybackConditionWire.tryParse(
+      existing?.buybackConditionAtCheck ?? '',
+    );
+    if (existing != null &&
+        existing.buybackQuoteKindAtCheck == 'manual_user' &&
+        existing.buybackPriceAtCheck > 0 &&
+        existing.buybackProviderAtCheck.trim().isNotEmpty) {
+      manualBuybackQuote = ManualBuybackQuote(
+        providerName: existing.buybackProviderAtCheck,
+        price: existing.buybackPriceAtCheck,
+      );
+    }
+    if (detected != null && detected > 0) {
+      buy.text = detected == detected.roundToDouble()
+          ? detected.toStringAsFixed(0)
+          : detected.toStringAsFixed(2).replaceAll('.', ',');
+    } else if (existing != null && existing.buy > 0) {
+      buy.text = existing.buy == existing.buy.roundToDouble()
+          ? existing.buy.toStringAsFixed(0)
+          : existing.buy.toStringAsFixed(2).replaceAll('.', ',');
+    }
+    if (existing != null && existing.expectedAtBuy > 0) {
+      manualSell.text = existing.expectedAtBuy == existing.expectedAtBuy.roundToDouble()
+          ? existing.expectedAtBuy.toStringAsFixed(0)
+          : existing.expectedAtBuy.toStringAsFixed(2).replaceAll('.', ',');
+    }
+    if (existing != null && existing.costs > 0) {
+      costs.text = existing.costs == existing.costs.roundToDouble()
+          ? existing.costs.toStringAsFixed(0)
+          : existing.costs.toStringAsFixed(2).replaceAll('.', ',');
+    }
+    if (existing != null && existing.buybackSafetyReserve > 0) {
+      buybackReserve.text =
+          existing.buybackSafetyReserve ==
+                  existing.buybackSafetyReserve.roundToDouble()
+              ? existing.buybackSafetyReserve.toStringAsFixed(0)
+              : existing.buybackSafetyReserve
+                  .toStringAsFixed(2)
+                  .replaceAll('.', ',');
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _search();
+    });
+  }
+
   Future<void> _search() async {
     final q = normalizeV13Search(query.text).query;
     if (q.isEmpty) return;
@@ -500,5 +579,17 @@ extension _V13CheckPageLogic on _V13CheckPageState {
       if (ok) deepUnlocked = true;
     });
     if (!ok) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('Werbung momentan nicht verfügbar.', 'Ad currently unavailable.'))));
+  }
+
+  @override
+  void dispose() {
+    query.dispose();
+    buy.dispose();
+    costs.dispose();
+    buybackReserve.dispose();
+    manualSell.dispose();
+    buyFocus.dispose();
+    manualFocus.dispose();
+    super.dispose();
   }
 }
