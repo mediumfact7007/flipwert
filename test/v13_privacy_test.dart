@@ -17,7 +17,7 @@ void main() {
           english: false,
           onDeleteAllLocalData: () async {
             deletions += 1;
-            return true;
+            return false;
           },
         ),
       ),
@@ -63,8 +63,7 @@ void main() {
     await tester.tap(find.byTooltip('Einstellungen'));
     await tester.pumpAndSettle();
     final privacyEntry = find.byKey(const ValueKey('v13-data-privacy-entry'));
-    await tester.ensureVisible(privacyEntry);
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(privacyEntry, 300);
     await tester.tap(privacyEntry);
     await tester.pumpAndSettle();
     final deleteButton = find.byKey(const ValueKey('v13-delete-local-data'));
