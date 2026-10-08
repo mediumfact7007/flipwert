@@ -3,20 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+Future<void> pumpStartup(WidgetTester tester) =>
+    tester.pump(const Duration(seconds: 2));
+
 void main() {
   testWidgets('fresh install completes onboarding before opening search',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
 
     await tester.pumpWidget(const FlipwertV13App());
-    await tester.pumpAndSettle();
+    await pumpStartup(tester);
 
     expect(find.byKey(const ValueKey('v13-onboarding')), findsOneWidget);
     expect(find.text('Kaufpreis eingeben.\nErgebnis verstehen.'), findsOneWidget);
     expect(find.byKey(const ValueKey('v13-universal-search')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('v13-onboarding-next')));
-    await tester.pumpAndSettle();
+    await pumpStartup(tester);
     expect(find.text('LIVE heißt wirklich aktuell.'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('v13-onboarding-next')));
@@ -39,7 +42,7 @@ void main() {
     });
 
     await tester.pumpWidget(const FlipwertV13App());
-    await tester.pumpAndSettle();
+    await pumpStartup(tester);
 
     expect(find.byKey(const ValueKey('v13-onboarding')), findsNothing);
     expect(find.byKey(const ValueKey('v13-universal-search')), findsOneWidget);
@@ -52,7 +55,7 @@ void main() {
     });
 
     await tester.pumpWidget(const FlipwertV13App());
-    await tester.pumpAndSettle();
+    await pumpStartup(tester);
 
     expect(find.byKey(const ValueKey('v13-onboarding')), findsNothing);
     expect(find.byKey(const ValueKey('v13-universal-search')), findsOneWidget);
