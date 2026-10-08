@@ -43,6 +43,7 @@ import 'resale_estimate.dart';
 part 'pages/v13_sources_page.dart';
 part 'models/v13_models.dart';
 part 'pages/v13_shell.dart';
+part 'pages/v13_onboarding_page.dart';
 part 'pages/v13_home_page.dart';
 part 'pages/v13_check_page.dart';
 part 'pages/v13_check_logic.dart';

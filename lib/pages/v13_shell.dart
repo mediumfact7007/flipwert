@@ -9,6 +9,7 @@ class FlipwertV13App extends StatefulWidget {
 
 class _FlipwertV13AppState extends State<FlipwertV13App> {
   bool loading = true;
+  bool showOnboarding = true;
   bool english = false;
   String backend = '';
   double targetRoi = 35;
@@ -34,6 +35,14 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       await _load();
     } catch (_) {
       if (!mounted) return;
+      var shouldShowOnboarding = true;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        shouldShowOnboarding =
+            !(prefs.getBool('onboarding_v13_complete') ?? false) &&
+                !v13HasExistingUserState(prefs);
+      } catch (_) {}
+      if (!mounted) return;
       setState(() {
         // A corrupt/incompatible preference from an older prototype must never
         // prevent Flipwert from opening. Start with sane local defaults.
@@ -47,6 +56,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
         flips = <V13Flip>[];
         history = <String>[];
         sources = SourceRegistry.builtIns();
+        showOnboarding = shouldShowOnboarding;
         loading = false;
       });
     }
@@ -54,6 +64,9 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    final onboardingComplete =
+        prefs.getBool('onboarding_v13_complete') ?? false;
+    final existingUser = v13HasExistingUserState(prefs);
     final rawFlips = prefs.getStringList('flips_v13') ??
         prefs.getStringList('flips_v10') ??
         prefs.getStringList('flips_v09') ??
@@ -93,8 +106,16 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
           .take(12)
           .toList();
       sources = loadedSources;
+      showOnboarding = !onboardingComplete && !existingUser;
       loading = false;
     });
+  }
+
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_v13_complete', true);
+    if (!mounted) return;
+    setState(() => showOnboarding = false);
   }
 
   void _unlockPro() {
@@ -159,7 +180,12 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       theme: theme,
       home: loading
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : V13Shell(
+          : showOnboarding
+              ? V13OnboardingPage(
+                  english: english,
+                  onComplete: _completeOnboarding,
+                )
+              : V13Shell(
               english: english,
               backend: backend,
               targetRoi: targetRoi,
