@@ -1,8 +1,8 @@
+import 'dart:io';
+
 import 'package:flipwert/main.dart';
 import 'package:flipwert/source_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'source_text.dart';
 
 SourceListing comp(
   double price, {
@@ -118,10 +118,7 @@ void main() {
   });
 
   test('deal decision stays before detailed confidence UI', () {
-    final app = readLibDartSource();
-    final buildStart = app.indexOf('class _V13CheckPageState');
-    final buildEnd = app.indexOf('  void _commitManual()', buildStart);
-    final flow = app.substring(buildStart, buildEnd);
+    final flow = File('lib/pages/v13_check_page.dart').readAsStringSync();
     final decision = flow.indexOf('_V13DecisionCard(');
     final confidence = flow.indexOf('_V14ConfidenceCard(english:');
     expect(decision, greaterThanOrEqualTo(0));
