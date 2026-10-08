@@ -7,6 +7,7 @@ import 'source_text.dart';
 void main() {
   test('AdMob stays explicit and isolated from normal startup', () {
     final app = readLibDartSource();
+    final shell = File('lib/pages/v13_shell.dart').readAsStringSync();
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('google_mobile_ads: ^9.1.0'));
@@ -20,9 +21,9 @@ void main() {
     expect(app, contains('ca-app-pub-3940256099942544/5224354917'));
 
     // No automatic Dart-side ad initialization during normal app startup.
-    final appStateStart = app.indexOf('class _FlipwertV13AppState');
-    final homeStart = app.indexOf('class V13Home extends StatefulWidget');
-    final startupSlice = app.substring(appStateStart, homeStart);
+    final appStateStart = shell.indexOf('class _FlipwertV13AppState');
+    final shellStart = shell.indexOf('class V13Shell extends StatefulWidget');
+    final startupSlice = shell.substring(appStateStart, shellStart);
     expect(startupSlice, isNot(contains('prepareAds()')));
     expect(startupSlice, isNot(contains('MobileAds.instance.initialize()')));
 
