@@ -118,6 +118,34 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
     setState(() => showOnboarding = false);
   }
 
+  Future<bool> _deleteAllLocalData() async {
+    var deleted = false;
+    _saveQueue = _saveQueue.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      deleted = await prefs.clear();
+      if (deleted) deleted = prefs.getKeys().isEmpty;
+    }).catchError((_) {
+      deleted = false;
+    });
+    await _saveQueue;
+    if (!deleted || !mounted) return false;
+
+    setState(() {
+      english = false;
+      backend = '';
+      targetRoi = 35;
+      minProfit = 20;
+      ebayDiscount = .10;
+      plan = UserPlan.free;
+      taxMode = V13TaxMode.privateSeller;
+      flips = <V13Flip>[];
+      history = <String>[];
+      sources = SourceRegistry.builtIns();
+      showOnboarding = true;
+    });
+    return true;
+  }
+
   void _unlockPro() {
     if (!mounted) return;
     setState(() => plan = UserPlan.pro);
@@ -251,6 +279,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                 setState(() => plan = value == UserPlan.free ? UserPlan.free : UserPlan.pro);
                 _save();
               },
+              onDeleteAllLocalData: _deleteAllLocalData,
             ),
     );
   }
@@ -287,6 +316,7 @@ class V13Shell extends StatefulWidget {
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
   final ValueChanged<UserPlan> onPlanPreview;
+  final Future<bool> Function() onDeleteAllLocalData;
 
   const V13Shell({
     super.key,
@@ -314,6 +344,7 @@ class V13Shell extends StatefulWidget {
     required this.onBackend,
     required this.onSources,
     required this.onPlanPreview,
+    required this.onDeleteAllLocalData,
   });
 
   @override
@@ -438,6 +469,7 @@ class _V13ShellState extends State<V13Shell> {
           onBackend: widget.onBackend,
           onSources: widget.onSources,
           onPlanPreview: widget.onPlanPreview,
+          onDeleteAllLocalData: widget.onDeleteAllLocalData,
         ),
       ),
     );

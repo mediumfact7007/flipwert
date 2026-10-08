@@ -28,6 +28,7 @@ void main() {
         onBackend: (_) {},
         onSources: (_) {},
         onPlanPreview: (_) {},
+        onDeleteAllLocalData: () async => true,
       ),
     ));
 

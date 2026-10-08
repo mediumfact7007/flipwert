@@ -18,8 +18,9 @@ class V13SettingsPage extends StatefulWidget {
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
   final ValueChanged<UserPlan> onPlanPreview;
+  final Future<bool> Function() onDeleteAllLocalData;
 
-  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview});
+  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview, required this.onDeleteAllLocalData});
   @override
   State<V13SettingsPage> createState() => _V13SettingsPageState();
 }
@@ -77,6 +78,27 @@ class _V13SettingsPageState extends State<V13SettingsPage> {
           SegmentedButton<bool>(segments: const [ButtonSegment(value: false, label: Text('Deutsch')), ButtonSegment(value: true, label: Text('English'))], selected: {english}, onSelectionChanged: (v) { setState(() => english = v.first); widget.onLanguage(v.first); }),
           const SizedBox(height: 8),
           OutlinedButton.icon(onPressed: widget.monetization.showPrivacyOptions, icon: const Icon(Icons.privacy_tip_outlined), label: Text(t('Werbe-Datenschutz verwalten', 'Manage ad privacy'))),
+          const SizedBox(height: 8),
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(19),
+            child: ListTile(
+              key: const ValueKey('v13-data-privacy-entry'),
+              leading: const Icon(Icons.shield_outlined, color: _v13Primary),
+              title: Text(t('Daten & Datenschutz', 'Data & privacy'), style: const TextStyle(fontWeight: FontWeight.w900)),
+              subtitle: Text(t('Lokale Daten ansehen und löschen', 'Review and delete local data')),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => V13PrivacyPage(
+                    english: english,
+                    onDeleteAllLocalData: widget.onDeleteAllLocalData,
+                  ),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 15),
           ExpansionTile(tilePadding: EdgeInsets.zero, leading: const Icon(Icons.build_outlined), title: Text(t('Für Profis & Entwickler', 'For pros & developers'), style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text(t('Im Alltag nicht nötig', 'Not needed day to day'), style: const TextStyle(fontSize: 11.5)), children: [
             TextFormField(initialValue: widget.backend, decoration: InputDecoration(labelText: t('Eigener Flipwert-Server', 'Custom Flipwert server'), hintText: SourceRegistry.defaultBackend), onFieldSubmitted: widget.onBackend),
