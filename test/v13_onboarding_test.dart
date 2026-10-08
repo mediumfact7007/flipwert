@@ -3,8 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> pumpStartup(WidgetTester tester) =>
-    tester.pump(const Duration(seconds: 2));
+Future<void> pumpStartup(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 30; attempt++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    final onboardingReady =
+        find.byKey(const ValueKey('v13-onboarding')).evaluate().isNotEmpty;
+    final searchReady = find
+        .byKey(const ValueKey('v13-universal-search'))
+        .evaluate()
+        .isNotEmpty;
+    if (onboardingReady || searchReady) return;
+  }
+}
 
 void main() {
   testWidgets('fresh install completes onboarding before opening search',
@@ -19,7 +29,7 @@ void main() {
     expect(find.byKey(const ValueKey('v13-universal-search')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('v13-onboarding-next')));
-    await pumpStartup(tester);
+    await tester.pumpAndSettle();
     expect(find.text('LIVE heißt wirklich aktuell.'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('v13-onboarding-next')));
