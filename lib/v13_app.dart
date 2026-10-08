@@ -50,5 +50,6 @@ part 'pages/v13_check_logic.dart';
 part 'widgets/v13_check_widgets.dart';
 part 'pages/v13_flips_page.dart';
 part 'pages/v13_settings_page.dart';
+part 'pages/v13_privacy_page.dart';
 part 'models/v13_market_helpers.dart';
 
