@@ -197,7 +197,27 @@ jobs:
           flutter test test/v156_live_market_transparency_test.dart
 
       - name: Build release APK
-        run: flutter build apk --release
+        shell: bash
+        env:
+          FLIPWERT_PUBLIC_RELEASE: ${{ inputs.public_release || 'false' }}
+          FLIPWERT_OPERATOR_NAME: ${{ vars.FLIPWERT_OPERATOR_NAME }}
+          FLIPWERT_OPERATOR_ADDRESS: ${{ vars.FLIPWERT_OPERATOR_ADDRESS }}
+          FLIPWERT_OPERATOR_EMAIL: ${{ vars.FLIPWERT_OPERATOR_EMAIL }}
+          FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
+          FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
+        run: |
+          if [ "$FLIPWERT_PUBLIC_RELEASE" = "true" ]; then
+            # The release gate has already validated these values. They are
+            # public operator details, not credentials or secret tokens.
+            flutter build apk --release \
+              --dart-define="FLIPWERT_OPERATOR_NAME=$FLIPWERT_OPERATOR_NAME" \
+              --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS" \
+              --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL" \
+              --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL" \
+              --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL"
+          else
+            flutter build apk --release
+          fi
 
       - name: Verify APK
         run: |

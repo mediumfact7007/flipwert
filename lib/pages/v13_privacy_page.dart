@@ -1,13 +1,52 @@
 part of '../v13_app.dart';
 
+// Public-facing legal details are supplied only for an approved release build.
+// Internal APKs intentionally omit them rather than showing fake operator data.
+class V13LegalInformation {
+  final String operatorName;
+  final String operatorAddress;
+  final String operatorEmail;
+  final String privacyUrl;
+  final String termsUrl;
+
+  const V13LegalInformation({
+    this.operatorName = '',
+    this.operatorAddress = '',
+    this.operatorEmail = '',
+    this.privacyUrl = '',
+    this.termsUrl = '',
+  });
+
+  const V13LegalInformation.fromEnvironment()
+      : operatorName = const String.fromEnvironment('FLIPWERT_OPERATOR_NAME'),
+        operatorAddress = const String.fromEnvironment('FLIPWERT_OPERATOR_ADDRESS'),
+        operatorEmail = const String.fromEnvironment('FLIPWERT_OPERATOR_EMAIL'),
+        privacyUrl = const String.fromEnvironment('FLIPWERT_PRIVACY_URL'),
+        termsUrl = const String.fromEnvironment('FLIPWERT_TERMS_URL');
+
+  bool get isReady {
+    final privacy = Uri.tryParse(privacyUrl);
+    final terms = Uri.tryParse(termsUrl);
+    return operatorName.trim().isNotEmpty &&
+        operatorAddress.trim().isNotEmpty &&
+        operatorEmail.trim().isNotEmpty &&
+        privacy?.scheme == 'https' &&
+        privacy!.host.isNotEmpty &&
+        terms?.scheme == 'https' &&
+        terms!.host.isNotEmpty;
+  }
+}
+
 class V13PrivacyPage extends StatefulWidget {
   final bool english;
   final Future<bool> Function() onDeleteAllLocalData;
+  final V13LegalInformation legalInformation;
 
   const V13PrivacyPage({
     super.key,
     required this.english,
     required this.onDeleteAllLocalData,
+    this.legalInformation = const V13LegalInformation.fromEnvironment(),
   });
 
   @override
@@ -18,6 +57,20 @@ class _V13PrivacyPageState extends State<V13PrivacyPage> {
   bool deleting = false;
 
   String t(String de, String en) => widget.english ? en : de;
+
+  Future<void> _openOfficialLink(String url) async {
+    bool opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // A missing browser must not crash the privacy page.
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('Link konnte nicht geöffnet werden.', 'Could not open link.'))),
+      );
+    }
+  }
 
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
@@ -132,6 +185,30 @@ class _V13PrivacyPageState extends State<V13PrivacyPage> {
                 padding: const EdgeInsets.symmetric(vertical: 15),
               ),
             ),
+            if (widget.legalInformation.isReady) ...[
+              const SizedBox(height: 18),
+              _V13PrivacyCard(
+                icon: Icons.business_outlined,
+                title: t('Impressum / Anbieterkennzeichnung', 'Legal notice / operator'),
+                body: '${widget.legalInformation.operatorName}\n'
+                    '${widget.legalInformation.operatorAddress}\n'
+                    '${widget.legalInformation.operatorEmail}',
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const ValueKey('v13-official-privacy-link'),
+                onPressed: () => _openOfficialLink(widget.legalInformation.privacyUrl),
+                icon: const Icon(Icons.open_in_new_outlined),
+                label: Text(t('Datenschutzerklärung öffnen', 'Open privacy policy')),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                key: const ValueKey('v13-official-terms-link'),
+                onPressed: () => _openOfficialLink(widget.legalInformation.termsUrl),
+                icon: const Icon(Icons.open_in_new_outlined),
+                label: Text(t('Nutzungsbedingungen öffnen', 'Open terms of use')),
+              ),
+            ],
             const SizedBox(height: 18),
             _V13PrivacyCard(
               icon: Icons.gavel_outlined,
