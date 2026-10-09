@@ -27,6 +27,19 @@ Ein blockierter öffentlicher APK-Kandidat kann deshalb kein AAB erzeugen.
 | `FLIPWERT_LEGAL_REVIEW_ACK` | Exakt `approved-public-release-v1` |
 | `FLIPWERT_SOURCE_RIGHTS_ACK` | Exakt `approved-current-source-rights-v1` |
 
+Bei einem ausdrücklich freigegebenen öffentlichen **APK**-Build werden die fünf
+Betreiber- und Linkwerte als öffentliche Build-Konfiguration in die App
+eingebettet. Unter **Einstellungen → Daten & Datenschutz** erscheinen dann
+die tatsächliche Anbieterkennzeichnung und externe HTTPS-Links zu Datenschutz
+und Nutzungsbedingungen. Interne CI-/Test-APKs zeigen diese Angaben nicht
+als Platzhalter an. Diese Build-Konfiguration darf keine Geheimnisse enthalten.
+
+**Achtung:** Der separate AAB-Workflow übernimmt diese Build-Konfiguration
+noch nicht. Sein AAB ist daher weiterhin nur ein internes Prüfartefakt und
+darf nicht als öffentlicher Play-Store-Build verwendet werden. Für einen
+öffentlichen AAB müssen dieselben Freigaben und die Übernahme der geprüften
+Metadaten separat sichergestellt werden.
+
 Die Werte liegen als GitHub-Repository-Variablen außerhalb des App-Quellcodes.
 Zugangsdaten und API-Schlüssel gehören weiterhin ausschließlich in Secrets
 beziehungsweise in die serverseitige Laufzeitkonfiguration.

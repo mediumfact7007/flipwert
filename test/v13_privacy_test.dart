@@ -8,6 +8,56 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  testWidgets('legal notice and links require complete release metadata',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: V13PrivacyPage(
+        english: false,
+        onDeleteAllLocalData: () async => false,
+      ),
+    ));
+    expect(find.byKey(const ValueKey('v13-official-privacy-link')), findsNothing);
+    expect(find.byKey(const ValueKey('v13-official-terms-link')), findsNothing);
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13PrivacyPage(
+        english: false,
+        onDeleteAllLocalData: () async => false,
+        legalInformation: const V13LegalInformation(
+          operatorName: 'Test Betreiber',
+          operatorAddress: 'Teststraße 2, 10115 Berlin',
+          operatorEmail: 'kontakt@test.invalid',
+          privacyUrl: 'https://legal.test.invalid/privacy',
+          termsUrl: 'https://legal.test.invalid/terms',
+        ),
+      ),
+    ));
+    await tester.scrollUntilVisible(
+      find.text('Impressum / Anbieterkennzeichnung'), 150,
+    );
+    expect(find.textContaining('Test Betreiber'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('v13-official-terms-link')), 150,
+    );
+    expect(find.byKey(const ValueKey('v13-official-privacy-link')), findsOneWidget);
+    expect(find.byKey(const ValueKey('v13-official-terms-link')), findsOneWidget);
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13PrivacyPage(
+        english: false,
+        onDeleteAllLocalData: () async => false,
+        legalInformation: const V13LegalInformation(
+          operatorName: 'Test Betreiber',
+          operatorAddress: 'Teststraße 2, 10115 Berlin',
+          operatorEmail: 'kontakt@test.invalid',
+          privacyUrl: 'http://insecure.invalid/privacy',
+          termsUrl: 'https://legal.test.invalid/terms',
+        ),
+      ),
+    ));
+    expect(find.byKey(const ValueKey('v13-official-privacy-link')), findsNothing);
+  });
+
   testWidgets('local data deletion requires explicit confirmation',
       (tester) async {
     var deletions = 0;
