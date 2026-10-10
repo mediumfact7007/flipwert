@@ -34,11 +34,13 @@ die tatsächliche Anbieterkennzeichnung und externe HTTPS-Links zu Datenschutz
 und Nutzungsbedingungen. Interne CI-/Test-APKs zeigen diese Angaben nicht
 als Platzhalter an. Diese Build-Konfiguration darf keine Geheimnisse enthalten.
 
-**Achtung:** Der separate AAB-Workflow übernimmt diese Build-Konfiguration
-noch nicht. Sein AAB ist daher weiterhin nur ein internes Prüfartefakt und
-darf nicht als öffentlicher Play-Store-Build verwendet werden. Für einen
-öffentlichen AAB müssen dieselben Freigaben und die Übernahme der geprüften
-Metadaten separat sichergestellt werden.
+**Achtung:** Der automatische AAB-Workflow übernimmt diese Build-Konfiguration
+noch nicht und signiert nicht mit einem geprüften Play-Store-Release-Schlüssel.
+Sein Artefakt heißt ausdrücklich `Flipwert-V0.14.8-INTERNAL-TEST-AAB`
+und ist **ausschließlich für interne CI-Prüfungen**, nicht für die
+Veröffentlichung im Play Store. Für einen öffentlichen AAB müssen dieselben
+Freigaben, die Übernahme der geprüften Metadaten und eine geeignete
+Release-Signierung separat eingerichtet und geprüft werden.
 
 Die Werte liegen als GitHub-Repository-Variablen außerhalb des App-Quellcodes.
 Zugangsdaten und API-Schlüssel gehören weiterhin ausschließlich in Secrets

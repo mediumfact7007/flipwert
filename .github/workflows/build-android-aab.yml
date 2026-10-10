@@ -21,6 +21,15 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      - name: Verify internal-only AAB provenance
+        shell: bash
+        run: |
+          # Automatic bundles are CI artifacts, not approved Play Store releases.
+          test "${{ github.event_name }}" = "workflow_run"
+          test "${{ github.event.workflow_run.head_branch }}" = "main"
+          test "${{ github.event.workflow_run.conclusion }}" = "success"
+          test "${{ github.event.workflow_run.head_sha }}" = "$(git rev-parse HEAD)"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -61,7 +70,7 @@ jobs:
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Flipwert-V0.14.8-PLAY-AAB
+          name: Flipwert-V0.14.8-INTERNAL-TEST-AAB
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30

@@ -70,6 +70,13 @@ jobs:
           ! grep -R -E 'EBAY_(SANDBOX_)?CLIENT_(ID|SECRET)' lib pubspec.yaml
           ! grep -R -E 'api(\.sandbox)?\.ebay\.com' lib
 
+      - name: Verify internal AAB artifact boundary
+        shell: bash
+        run: |
+          grep -q 'name: Flipwert-V0.14.8-INTERNAL-TEST-AAB' .github/workflows/build-android-aab.yml
+          ! grep -q 'name: Flipwert-V0.14.8-PLAY-AAB' .github/workflows/build-android-aab.yml
+          grep -q 'Verify internal-only AAB provenance' .github/workflows/build-android-aab.yml
+
       - name: Check backend
         run: |
           npm --prefix server run check
