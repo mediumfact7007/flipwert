@@ -11,8 +11,11 @@ Der Workflow **Build Android APK** läuft bei normalen Pushes weiterhin als
 interner CI-/Test-Build. Für einen öffentlichen Kandidaten muss er manuell mit
 `public_release=true` gestartet werden. Nur dann greift das strenge Gate.
 
-Der nachgelagerte AAB-Workflow startet erst nach einem erfolgreichen APK-Lauf.
-Ein blockierter öffentlicher APK-Kandidat kann deshalb kein AAB erzeugen.
+Der nachgelagerte **interne** AAB-Workflow startet ausschließlich nach einem
+erfolgreichen APK-Lauf, der durch einen `push` auf `main` ausgelöst wurde.
+Manuell angestoßene öffentliche APK-Kandidaten und Pull-Request-Builds lösen
+kein AAB aus. Ein blockierter öffentlicher APK-Kandidat kann ebenfalls kein AAB
+erzeugen.
 
 ## Erforderliche Repository-Variablen
 
