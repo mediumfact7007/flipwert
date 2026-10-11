@@ -37,13 +37,32 @@ die tatsächliche Anbieterkennzeichnung und externe HTTPS-Links zu Datenschutz
 und Nutzungsbedingungen. Interne CI-/Test-APKs zeigen diese Angaben nicht
 als Platzhalter an. Diese Build-Konfiguration darf keine Geheimnisse enthalten.
 
-**Achtung:** Der automatische AAB-Workflow übernimmt diese Build-Konfiguration
-noch nicht und signiert nicht mit einem geprüften Play-Store-Release-Schlüssel.
-Sein Artefakt heißt ausdrücklich `Flipwert-V0.14.8-INTERNAL-TEST-AAB`
-und ist **ausschließlich für interne CI-Prüfungen**, nicht für die
-Veröffentlichung im Play Store. Für einen öffentlichen AAB müssen dieselben
-Freigaben, die Übernahme der geprüften Metadaten und eine geeignete
-Release-Signierung separat eingerichtet und geprüft werden.
+Der automatische AAB-Workflow übernimmt diese Build-Konfiguration nicht und
+signiert nicht mit einem Play-Upload-Schlüssel. Sein Artefakt heißt ausdrücklich
+`Flipwert-V0.14.8-INTERNAL-TEST-AAB` und ist **ausschließlich für interne
+CI-Prüfungen**, nicht für die Veröffentlichung im Play Store.
+
+Ein öffentlicher Kandidat wird getrennt und ausschließlich manuell über
+**Build Android Play AAB** auf `main` erstellt. Dieser Workflow prüft erneut das
+vollständige Release-Gate, führt Analyse und alle Flutter-Tests aus, bindet die
+geprüften Betreiber- und Rechtstextwerte ein und verifiziert die Signatur des
+AAB. Das Ergebnis heißt `Flipwert-V0.14.8-PLAY-UPLOAD-AAB-<commit>` und ist
+damit exakt an den geprüften Commit gebunden.
+
+## Erforderliche Repository-Secrets für Play AAB
+
+| Secret | Inhalt |
+| --- | --- |
+| `FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64` | Base64-kodierter, ausschließlich außerhalb des Repositories verwahrter Play-Upload-Keystore |
+| `FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS` | Alias des Upload-Schlüssels |
+| `FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD` | Passwort des Keystores |
+| `FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD` | Passwort des Upload-Schlüssels |
+
+Der Workflow bricht bei fehlenden oder ungültigen Werten ab. Er entschlüsselt
+den Keystore nur temporär auf dem GitHub-Runner, lädt ihn nie als Artefakt hoch
+und schreibt keine Zugangsdaten in App oder Repository. Vor der ersten
+Einreichung muss Google Play App Signing eingerichtet und bestätigt werden,
+dass genau dieser Schlüssel als Upload-Schlüssel registriert ist.
 
 Die Werte liegen als GitHub-Repository-Variablen außerhalb des App-Quellcodes.
 Zugangsdaten und API-Schlüssel gehören weiterhin ausschließlich in Secrets

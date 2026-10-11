@@ -78,6 +78,11 @@ jobs:
           grep -q 'Verify internal-only AAB provenance' .github/workflows/build-android-aab.yml
           grep -Fq "github.event.workflow_run.event == 'push'" .github/workflows/build-android-aab.yml
           grep -Eq 'test .*workflow_run.event.* = "push"' .github/workflows/build-android-aab.yml
+          grep -q '^name: Build Android Play AAB$' .github/workflows/build-android-play-aab.yml
+          grep -q 'name: Flipwert-V0.14.8-PLAY-UPLOAD-AAB-' .github/workflows/build-android-play-aab.yml
+          grep -q 'Verify Play AAB provenance' .github/workflows/build-android-play-aab.yml
+          grep -q 'jarsigner -verify -strict' .github/workflows/build-android-play-aab.yml
+          grep -q 'FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64' .github/workflows/build-android-play-aab.yml
 
       - name: Check backend
         run: |
@@ -96,6 +101,7 @@ jobs:
           FLIPWERT_SOURCE_RIGHTS_ACK: ${{ vars.FLIPWERT_SOURCE_RIGHTS_ACK }}
         run: |
           python3 tools/check_public_release_gate_test.py
+          python3 tools/prepare_android_play_signing_test.py
           python3 tools/check_public_release_gate.py
 
       - name: Smoke test sandbox and disabled listing import

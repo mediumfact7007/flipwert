@@ -1,0 +1,120 @@
+name: Build Android Play AAB
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: flipwert-play-aab
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  play-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout approved main commit
+        uses: actions/checkout@v4
+
+      - name: Verify Play AAB provenance
+        shell: bash
+        run: |
+          test "${{ github.event_name }}" = "workflow_dispatch"
+          test "${{ github.ref }}" = "refs/heads/main"
+          test "${{ github.sha }}" = "$(git rev-parse HEAD)"
+
+      - name: Verify public release gate
+        env:
+          FLIPWERT_PUBLIC_RELEASE: "true"
+          FLIPWERT_OPERATOR_NAME: ${{ vars.FLIPWERT_OPERATOR_NAME }}
+          FLIPWERT_OPERATOR_ADDRESS: ${{ vars.FLIPWERT_OPERATOR_ADDRESS }}
+          FLIPWERT_OPERATOR_EMAIL: ${{ vars.FLIPWERT_OPERATOR_EMAIL }}
+          FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
+          FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
+          FLIPWERT_LEGAL_REVIEWED_AT: ${{ vars.FLIPWERT_LEGAL_REVIEWED_AT }}
+          FLIPWERT_LEGAL_REVIEW_ACK: ${{ vars.FLIPWERT_LEGAL_REVIEW_ACK }}
+          FLIPWERT_SOURCE_RIGHTS_ACK: ${{ vars.FLIPWERT_SOURCE_RIGHTS_ACK }}
+        run: |
+          python3 tools/check_public_release_gate_test.py
+          python3 tools/check_public_release_gate.py
+
+      - name: Verify Play upload-key secrets
+        shell: bash
+        env:
+          FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64 }}
+          FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS }}
+          FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD }}
+          FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          test -n "$FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64"
+          test -n "$FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS"
+          test -n "$FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD"
+          test -n "$FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD"
+          umask 077
+          printf '%s' "$FLIPWERT_ANDROID_UPLOAD_KEYSTORE_B64"             | base64 --decode > /tmp/flipwert-upload-keystore.jks
+          test -s /tmp/flipwert-upload-keystore.jks
+          keytool -list             -keystore /tmp/flipwert-upload-keystore.jks             -storepass "$FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD"             -alias "$FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS" >/dev/null
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate signed Android project
+        shell: bash
+        run: |
+          cp -r lib /tmp/flipwert_lib
+          cp pubspec.yaml /tmp/flipwert_pubspec.yaml
+          rm -rf android
+          flutter create . --platforms=android --org com.flipwert --project-name flipwert --no-pub
+          rm -rf lib
+          cp -r /tmp/flipwert_lib lib
+          cp /tmp/flipwert_pubspec.yaml pubspec.yaml
+          python3 tools/prepare_android_ci.py
+          python3 tools/prepare_android_play_signing_test.py
+          python3 tools/prepare_android_play_signing.py
+          grep -q 'applicationId = "com.flipwert.app"' android/app/build.gradle.kts
+          grep -q '// Flipwert: Play upload-key signing' android/app/build.gradle.kts
+          grep -q 'signingConfigs.getByName("playRelease")' android/app/build.gradle.kts
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run all tests
+        run: flutter test
+
+      - name: Build signed Play upload AAB
+        shell: bash
+        env:
+          FLIPWERT_ANDROID_UPLOAD_STORE_FILE: /tmp/flipwert-upload-keystore.jks
+          FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_KEY_ALIAS }}
+          FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_STORE_PASSWORD }}
+          FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.FLIPWERT_ANDROID_UPLOAD_KEY_PASSWORD }}
+          FLIPWERT_OPERATOR_NAME: ${{ vars.FLIPWERT_OPERATOR_NAME }}
+          FLIPWERT_OPERATOR_ADDRESS: ${{ vars.FLIPWERT_OPERATOR_ADDRESS }}
+          FLIPWERT_OPERATOR_EMAIL: ${{ vars.FLIPWERT_OPERATOR_EMAIL }}
+          FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
+          FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
+        run: |
+          flutter build appbundle --release             --dart-define="FLIPWERT_OPERATOR_NAME=$FLIPWERT_OPERATOR_NAME"             --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS"             --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL"             --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL"             --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL"
+
+      - name: Verify signed Play upload AAB
+        shell: bash
+        run: |
+          test -s build/app/outputs/bundle/release/app-release.aab
+          jarsigner -verify -strict build/app/outputs/bundle/release/app-release.aab
+          sha256sum build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload Play AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flipwert-V0.14.8-PLAY-UPLOAD-AAB-${{ github.sha }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
