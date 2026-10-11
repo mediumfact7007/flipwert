@@ -36,6 +36,11 @@ for (const bad of [
   'Apple iPhone 15 Pro 256GB Face ID not working',
   'Apple iPhone 15 Pro 256GB Kamera defekt',
   'Apple iPhone 15 Pro 256GB camera not working',
+  'Apple MacBook Pro 15 256GB',
+  'Apple iPhone 15 Pro 256GB + Apple Watch Bundle',
+  '2x Apple iPhone 15 Pro 256GB',
+  'Apple iPhone 15 Pro 256GB mit Vertrag monatlich',
+  'Apple iPhone 15 Pro 256GB nur 99 EUR Anzahlung',
 ]) assert.strictEqual(listingMatchesQuery('Apple iPhone 15 Pro 256GB', bad), false, bad);
 
 for (const intentional of [
@@ -63,6 +68,27 @@ assert.strictEqual(listingMatchesQuery('Nintendo Switch OLED', 'Nintendo Switch 
 assert.strictEqual(listingMatchesQuery('Xbox Series X', 'Microsoft Xbox Series X 1TB Konsole'), true);
 assert.strictEqual(listingMatchesQuery('Xbox Series X', 'Microsoft Xbox Series S 512GB Konsole'), false);
 assert.strictEqual(listingMatchesQuery('Xbox Series S', 'Microsoft Xbox Series X 1TB Konsole'), false);
+assert.strictEqual(
+  listingMatchesQuery('Samsung S25 Ultra 256GB', 'Samsung Galaxy S25 Ultra 256GB'),
+  true,
+  'an omitted family word must not reject an otherwise exact model',
+);
+assert.strictEqual(
+  listingMatchesQuery(
+    'Apple iPhone 15 Pro 256GB mit Vertrag',
+    'Apple iPhone 15 Pro 256GB mit Vertrag monatlich',
+  ),
+  false,
+  'an unrequested monthly-payment qualifier must still fail closed',
+);
+assert.strictEqual(
+  listingMatchesQuery(
+    'Apple iPhone 15 Pro 256GB Bundle Apple Watch',
+    'Apple iPhone 15 Pro 256GB Bundle Apple Watch',
+  ),
+  true,
+  'explicitly requested bundles remain searchable',
+);
 
 const filtered = filterMarketListings('Apple iPhone 15 Pro 256GB', [
   { title: good },

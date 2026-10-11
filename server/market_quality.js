@@ -48,6 +48,23 @@ const RISK_PHRASES = [
   'kamera defekt', 'camera not working', 'kamerafehler', 'camera fault',
 ];
 
+// Product-family, bundle and financing wording can produce plausible-looking
+// prices for a different product or transaction. Keep those listings only when
+// the same qualifier was part of the user's query.
+const DEVICE_FAMILY_PHRASES = [
+  'iphone', 'ipad', 'macbook', 'airpods', 'apple watch',
+  'galaxy', 'pixel', 'playstation', 'xbox', 'nintendo switch',
+];
+
+const BUNDLE_PHRASES = [
+  'bundle', 'konvolut', 'doppelpack', '2er pack', '2x', '2 x',
+];
+
+const CONTRACT_PHRASES = [
+  'mit vertrag', 'vertrag', 'monatlich', 'anzahlung', 'ratenzahlung',
+  'finanzierung',
+];
+
 const VARIANT_PHRASES = [
   'pro max', 'series x', 'series s', 'pro', 'ultra', 'plus', 'mini', 'slim',
   'oled', 'lite', 'digital edition', 'digital', 'disc edition',
@@ -90,6 +107,13 @@ function containsUnrequestedPhrase(title, query, phrases) {
   return phrases.some((phrase) => hasPhrase(title, phrase) && !hasPhrase(query, phrase));
 }
 
+function containsConflictingPhrase(title, query, phrases) {
+  const requested = phrases.filter((phrase) => hasPhrase(query, phrase));
+  return requested.length > 0 && phrases.some(
+    (phrase) => hasPhrase(title, phrase) && !requested.includes(phrase),
+  );
+}
+
 function listingMatchesQuery(queryValue, titleValue) {
   const query = normalizeMarketText(queryValue);
   const title = normalizeMarketText(titleValue);
@@ -99,6 +123,9 @@ function listingMatchesQuery(queryValue, titleValue) {
   }
   if (containsUnrequestedPhrase(title, query, ACCESSORY_PHRASES)) return false;
   if (containsUnrequestedPhrase(title, query, RISK_PHRASES)) return false;
+  if (containsConflictingPhrase(title, query, DEVICE_FAMILY_PHRASES)) return false;
+  if (containsUnrequestedPhrase(title, query, BUNDLE_PHRASES)) return false;
+  if (containsUnrequestedPhrase(title, query, CONTRACT_PHRASES)) return false;
   const queryCapacity = maxCapacityGb(query);
   const titleCapacity = maxCapacityGb(title);
   if (queryCapacity != null && titleCapacity != null && queryCapacity !== titleCapacity) return false;
