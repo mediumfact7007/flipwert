@@ -32,9 +32,19 @@ Flipwert treats every value other than the exact string `production` as Sandbox.
 
 ```text
 EBAY_ENV=production
+EBAY_SOURCE_RIGHTS_ACK=approved-ebay-api-use-and-display-v1
 ```
 
-after a separate Production keyset exists and the live deployment has been intentionally approved. Do not reuse Sandbox credentials for Production. The `/health` and `/v1/status` endpoints expose the active eBay environment so a deployment can be verified without revealing credentials.
+after a separate Production keyset exists and the API agreement plus the
+intended automated use and price display have been reviewed and documented.
+Production requests stay disabled without the exact rights acknowledgement.
+Do not reuse Sandbox credentials for Production. The `/health` and `/v1/status`
+endpoints expose the environment and rights gate without revealing credentials.
+
+Keepa requests likewise require both the API key and the separate deployment
+acknowledgement `KEEPA_SOURCE_RIGHTS_ACK=approved-keepa-price-use-and-display-v1`.
+Set it only when the current Keepa contract covers the app's intended automated
+use and price display. A key by itself does not activate the source.
 
 The current Android build workflow does not need eBay credentials because the mobile app never receives the Client Secret; marketplace credentials belong on the server deployment only.
 

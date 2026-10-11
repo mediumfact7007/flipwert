@@ -142,10 +142,27 @@ jobs:
           done
           grep -q '"ebay_environment":"production"' /tmp/production-health.json
           curl -fsS http://127.0.0.1:8101/v1/status >/tmp/production-status.json
-          grep -q '"data_kind":"active_marketplace_listings"' /tmp/production-status.json
+          grep -q '"data_kind":"blocked_pending_rights"' /tmp/production-status.json
+          grep -q '"rights_gate":"not_approved"' /tmp/production-status.json
           grep -q '"configured":false' /tmp/production-status.json
           kill $PROD_PID
           wait $PROD_PID 2>/dev/null || true
+
+          EBAY_ENV=production \
+          EBAY_CLIENT_ID=ci-placeholder \
+          EBAY_CLIENT_SECRET=ci-placeholder \
+          EBAY_SOURCE_RIGHTS_ACK=approved-ebay-api-use-and-display-v1 \
+          KEEPA_API_KEY=ci-placeholder \
+          KEEPA_SOURCE_RIGHTS_ACK=approved-keepa-price-use-and-display-v1 \
+          PORT=8103 node server/index.js >/tmp/flipwert-approved-rights.log 2>&1 &
+          RIGHTS_PID=$!
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:8103/v1/status >/tmp/approved-rights-status.json && break
+            sleep 0.25
+          done
+          node -e "const s=require('/tmp/approved-rights-status.json').sources; if(!s.ebay_de.configured||s.ebay_de.rights_gate!=='approved'||!s.amazon_de.configured||s.amazon_de.rights_gate!=='approved') process.exit(1)"
+          kill $RIGHTS_PID
+          wait $RIGHTS_PID 2>/dev/null || true
 
       - name: Verify eBay sandbox secret wiring
         shell: bash

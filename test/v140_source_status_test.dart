@@ -9,6 +9,8 @@ void main() {
         'ebay_de': {
           'configured': true,
           'mode': 'official_api',
+          'environment': 'production',
+          'rights_gate': 'approved',
           'estimate': 'used_fixed_price_active_listings',
         },
         'amazon_de': {
@@ -27,6 +29,27 @@ void main() {
     expect(status.isLive('ebay_de'), isTrue);
     expect(status.isLive('amazon_de'), isFalse);
     expect(status.sources['kleinanzeigen']?.mode, 'official_search_link');
+  });
+
+  test('market APIs stay non-live without explicit source rights approval', () {
+    final status = MarketBackendStatus.fromJson({
+      'sources': {
+        'ebay_de': {
+          'configured': true,
+          'mode': 'official_api',
+          'environment': 'production',
+          'rights_gate': 'not_approved',
+        },
+        'amazon_de': {
+          'configured': true,
+          'mode': 'keepa',
+          'rights_gate': 'not_approved',
+        },
+      },
+    });
+
+    expect(status.isLive('ebay_de'), isFalse);
+    expect(status.isLive('amazon_de'), isFalse);
   });
 
   test('buyback is live only after rights, validation and providers are ready', () {
