@@ -43,7 +43,9 @@ class SourceListing {
       shipping: _toDouble(json['shipping']),
       url: json['url']?.toString() ?? '',
       condition: json['condition']?.toString() ?? '',
-      live: json['live'] is bool ? json['live'] as bool : true,
+      // LIVE is an explicit trust boundary. Missing, malformed or stringified
+      // values must never promote an adapter result into automatic valuation.
+      live: json['live'] is bool ? json['live'] as bool : false,
     );
   }
 
