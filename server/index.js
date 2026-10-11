@@ -159,6 +159,10 @@ async function searchEbay(q) {
       'x-ebay-c-marketplace-id': 'EBAY_DE',
     },
   });
+  return ebayItems(data, EBAY_ENV);
+}
+
+function ebayItems(data, environment) {
   const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
   return summaries.map((item) => {
     const price = money(item.price?.value);
@@ -171,7 +175,7 @@ async function searchEbay(q) {
       currency: String(item.price?.currency || 'EUR'),
       condition: ebayConditionLabel(item.condition),
       url: String(item.itemWebUrl || ''),
-      live: true,
+      live: environment === 'production',
     };
   }).filter((item) => item.title && item.price > 0 && item.currency === 'EUR' && item.url.startsWith('https://'));
 }
@@ -410,6 +414,10 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Flipwert API listening on :${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Flipwert API listening on :${PORT}`);
+  });
+}
+
+module.exports = { ebayItems };

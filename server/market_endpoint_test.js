@@ -3,6 +3,20 @@
 const assert = require('assert');
 const http = require('http');
 const { spawn } = require('child_process');
+const { ebayItems } = require('./index');
+
+const ebayPayload = {
+  itemSummaries: [{
+    title: 'Apple iPhone 15 Pro 256GB Titan',
+    price: { value: '800', currency: 'EUR' },
+    shippingOptions: [{ shippingCost: { value: '5' } }],
+    condition: 'GOOD',
+    itemWebUrl: 'https://www.ebay.de/itm/123',
+  }],
+};
+
+assert.strictEqual(ebayItems(ebayPayload, 'sandbox')[0].live, false);
+assert.strictEqual(ebayItems(ebayPayload, 'production')[0].live, true);
 
 const port = 18082;
 const child = spawn(process.execPath, ['index.js'], {
