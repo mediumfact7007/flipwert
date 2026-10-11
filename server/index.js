@@ -2,7 +2,7 @@
 
 const http = require('http');
 const { URL, URLSearchParams } = require('url');
-const { filterMarketListings } = require('./market_quality');
+const { assessMarketListings } = require('./market_quality');
 const { fetchBuybackOffers, sourceStatus: buybackSourceStatus } = require('./buyback_source');
 
 const PORT = Number(process.env.PORT || 8080);
@@ -382,11 +382,7 @@ const server = http.createServer(async (req, res) => {
 
       try {
         const result = await marketSearchCached(source, q);
-        const quality = filterMarketListings(result.items, {
-          query: q,
-          source,
-          now: Date.now(),
-        });
+        const quality = assessMarketListings(q, result.items);
         return json(res, 200, {
           source,
           query: q,
@@ -396,8 +392,6 @@ const server = http.createServer(async (req, res) => {
             count: quality.items.length,
             raw_count: result.items.length,
             rejected_count: quality.rejectedCount,
-            market_quality: quality.marketQuality,
-            price_summary: quality.priceSummary,
           },
         });
       } catch (error) {

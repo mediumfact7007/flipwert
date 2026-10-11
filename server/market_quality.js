@@ -122,4 +122,18 @@ function filterMarketListings(query, items) {
   return items.filter((item) => listingMatchesQuery(query, item?.title || ''));
 }
 
-module.exports = { filterMarketListings, listingMatchesQuery, normalizeMarketText };
+function assessMarketListings(query, items) {
+  const rawItems = Array.isArray(items) ? items : [];
+  const filteredItems = filterMarketListings(query, rawItems);
+  return {
+    items: filteredItems,
+    rejectedCount: rawItems.length - filteredItems.length,
+  };
+}
+
+module.exports = {
+  assessMarketListings,
+  filterMarketListings,
+  listingMatchesQuery,
+  normalizeMarketText,
+};
