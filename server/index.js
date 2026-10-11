@@ -44,6 +44,14 @@ function money(value) {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
 }
 
+function ebayEuroAmount(amount, { allowZero = false } = {}) {
+  if (String(amount?.currency || '').trim().toUpperCase() !== 'EUR') return null;
+  const value = Number(amount?.value);
+  if (!Number.isFinite(value) || (allowZero ? value < 0 : value <= 0)) return null;
+  const normalized = money(value);
+  return allowZero || normalized > 0 ? normalized : null;
+}
+
 function normalizeQuery(value) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 180);
 }
@@ -173,14 +181,18 @@ function ebayItems(data, environment) {
     // or distort that estimate. Unknown upstream values therefore fail closed.
     const condition = ebayUsedConditionLabel(item.condition);
     if (!condition) return [];
-    const price = money(item.price?.value);
-    const shipping = money(item.shippingOptions?.[0]?.shippingCost?.value);
+    const price = ebayEuroAmount(item.price);
+    const shipping = ebayEuroAmount(
+      item.shippingOptions?.[0]?.shippingCost,
+      { allowZero: true },
+    );
+    if (price === null || shipping === null) return [];
     return [{
       source: 'ebay_de',
       title: String(item.title || '').trim(),
       price,
       shipping,
-      currency: String(item.price?.currency || 'EUR'),
+      currency: 'EUR',
       condition,
       url: String(item.itemWebUrl || ''),
       live: environment === 'production',
