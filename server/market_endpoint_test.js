@@ -15,7 +15,8 @@ const ebayPayload = {
   }],
 };
 
-assert.strictEqual(ebayItems(ebayPayload, 'sandbox')[0].live, false);
+const checkedAt = '2026-10-11T23:45:00.000Z';
+assert.strictEqual(ebayItems(ebayPayload, 'sandbox', false, checkedAt)[0].live, false);
 assert.strictEqual(
   ebayItems(ebayPayload, 'production')[0].live,
   false,
@@ -23,6 +24,11 @@ assert.strictEqual(
 );
 assert.strictEqual(ebayItems(ebayPayload, 'production', true)[0].live, true);
 assert.strictEqual(ebayItems(ebayPayload, 'production', true)[0].condition, 'Gut');
+assert.strictEqual(
+  ebayItems(ebayPayload, 'production', true, checkedAt)[0].checked_at,
+  checkedAt,
+  'market evidence must carry its exact fetch time',
+);
 assert.deepStrictEqual(ebayItems({ itemSummaries: [
   { ...ebayPayload.itemSummaries[0], condition: 'NEW' },
 ] }, 'production'), [], 'new items must not influence used resale valuation');
