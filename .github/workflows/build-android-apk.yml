@@ -76,6 +76,8 @@ jobs:
           grep -q 'name: Flipwert-V0.14.8-INTERNAL-TEST-AAB' .github/workflows/build-android-aab.yml
           ! grep -q 'name: Flipwert-V0.14.8-PLAY-AAB' .github/workflows/build-android-aab.yml
           grep -q 'Verify internal-only AAB provenance' .github/workflows/build-android-aab.yml
+          grep -Fq "github.event.workflow_run.event == 'push'" .github/workflows/build-android-aab.yml
+          grep -Eq 'test .*workflow_run.event.* = "push"' .github/workflows/build-android-aab.yml
 
       - name: Check backend
         run: |
