@@ -82,6 +82,38 @@ void main() {
     );
   });
 
+  test('eBay title matching rejects other devices, bundles and financing', () {
+    const query = 'Apple iPhone 15 Pro 256 GB';
+    for (final title in [
+      'Apple MacBook Pro 15 256GB',
+      'Apple iPhone 15 Pro 256GB + Apple Watch Bundle',
+      '2x Apple iPhone 15 Pro 256GB',
+      'Apple iPhone 15 Pro 256GB mit Vertrag monatlich',
+      'Apple iPhone 15 Pro 256GB nur 99 EUR Anzahlung',
+    ]) {
+      expect(
+        resaleListingMatchesQuery(query, title),
+        isFalse,
+        reason: title,
+      );
+    }
+
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPhone 15 Pro 256GB Bundle Apple Watch',
+        'Apple iPhone 15 Pro 256GB Bundle Apple Watch',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Samsung S25 Ultra 256GB',
+        'Samsung Galaxy S25 Ultra 256GB',
+      ),
+      isTrue,
+    );
+  });
+
   test('own exact-model sales carry the highest weight', () {
     final estimate = estimateResaleValue(ResaleEstimateInput(
       article: 'Apple iPhone 15 Pro 256 GB',

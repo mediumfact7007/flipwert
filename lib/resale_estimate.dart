@@ -116,10 +116,81 @@ List<String> _modelTokens(String value) {
   return result;
 }
 
+bool _containsTokenPhrase(List<String> tokens, String phrase) {
+  final phraseTokens = _rawSearchTokens(phrase);
+  if (phraseTokens.isEmpty || phraseTokens.length > tokens.length) return false;
+  for (var start = 0; start <= tokens.length - phraseTokens.length; start++) {
+    var matches = true;
+    for (var offset = 0; offset < phraseTokens.length; offset++) {
+      if (tokens[start + offset] != phraseTokens[offset]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
+  }
+  return false;
+}
+
+bool _hasUnrequestedPhrase(
+  List<String> queryTokens,
+  List<String> listingTokens,
+  Iterable<String> phrases,
+) =>
+    phrases.any(
+      (phrase) =>
+          _containsTokenPhrase(listingTokens, phrase) &&
+          !_containsTokenPhrase(queryTokens, phrase),
+    );
+
+bool _hasConflictingPhrase(
+  List<String> queryTokens,
+  List<String> listingTokens,
+  Iterable<String> phrases,
+) {
+  final requested = phrases
+      .where((phrase) => _containsTokenPhrase(queryTokens, phrase))
+      .toSet();
+  return requested.isNotEmpty &&
+      phrases.any(
+        (phrase) =>
+            _containsTokenPhrase(listingTokens, phrase) &&
+            !requested.contains(phrase),
+      );
+}
+
 bool _hasUnexpectedListingQualifier(String query, String listingTitle) {
-  final queryTokens = _rawSearchTokens(query).toSet();
+  final queryTokenList = _rawSearchTokens(query);
+  final queryTokens = queryTokenList.toSet();
   final listingTokens = _rawSearchTokens(listingTitle);
   final listingSet = listingTokens.toSet();
+
+  const deviceFamilies = {
+    'iphone',
+    'ipad',
+    'macbook',
+    'airpods',
+    'apple watch',
+    'galaxy',
+    'pixel',
+    'playstation',
+    'xbox',
+    'nintendo switch',
+  };
+  const bundles = {'bundle', 'konvolut', 'doppelpack', '2er pack', '2x', '2 x'};
+  const contracts = {
+    'mit vertrag',
+    'vertrag',
+    'monatlich',
+    'anzahlung',
+    'ratenzahlung',
+    'finanzierung',
+  };
+  if (_hasConflictingPhrase(queryTokenList, listingTokens, deviceFamilies) ||
+      _hasUnrequestedPhrase(queryTokenList, listingTokens, bundles) ||
+      _hasUnrequestedPhrase(queryTokenList, listingTokens, contracts)) {
+    return true;
+  }
 
   const damaged = {
     'defekt',
