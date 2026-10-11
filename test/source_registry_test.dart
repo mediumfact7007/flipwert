@@ -41,7 +41,7 @@ void main() {
     );
   });
 
-  test('localized adapter prices and non-bool live field are safe', () {
+  test('localized adapter prices parse while malformed LIVE stays non-live', () {
     const source = PriceSource(
       id: 'trusted-test',
       name: 'Trusted',
@@ -59,7 +59,31 @@ void main() {
     expect(listing.price, closeTo(1299.99, 0.001));
     expect(listing.shipping, closeTo(4.99, 0.001));
     expect(listing.total, closeTo(1304.98, 0.001));
-    expect(listing.live, isTrue);
+    expect(listing.live, isFalse);
+  });
+
+  test('only an explicit boolean true marks an adapter listing LIVE', () {
+    const source = PriceSource(
+      id: 'trusted-test',
+      name: 'Trusted',
+      subtitle: 'test',
+      searchUrlTemplate: 'https://example.com/?q={query}',
+      role: 'resale',
+      trustedForDecision: true,
+    );
+
+    final missing = SourceListing.fromJson({
+      'price': 100,
+      'shipping': 0,
+    }, source);
+    final explicit = SourceListing.fromJson({
+      'price': 100,
+      'shipping': 0,
+      'live': true,
+    }, source);
+
+    expect(missing.live, isFalse);
+    expect(explicit.live, isTrue);
   });
 
   test('invalid color and role fall back safely', () {
