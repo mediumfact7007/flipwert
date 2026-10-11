@@ -9,7 +9,7 @@ const ebayPayload = {
   itemSummaries: [{
     title: 'Apple iPhone 15 Pro 256GB Titan',
     price: { value: '800', currency: 'EUR' },
-    shippingOptions: [{ shippingCost: { value: '5' } }],
+    shippingOptions: [{ shippingCost: { value: '5', currency: 'EUR' } }],
     condition: 'GOOD',
     itemWebUrl: 'https://www.ebay.de/itm/123',
   }],
@@ -30,6 +30,27 @@ assert.deepStrictEqual(ebayItems({ itemSummaries: [
 assert.strictEqual(ebayItems({ itemSummaries: [
   { ...ebayPayload.itemSummaries[0], condition: 'Gebraucht' },
 ] }, 'production')[0].condition, 'Gebraucht');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], price: { value: '800' } },
+] }, 'production'), [], 'missing price currency must fail closed');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], price: { value: '800', currency: 'USD' } },
+] }, 'production'), [], 'non-EUR prices must not be treated as EUR');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], shippingOptions: [] },
+] }, 'production'), [], 'missing shipping cost must fail closed');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], shippingOptions: [{ shippingCost: { value: '5' } }] },
+] }, 'production'), [], 'missing shipping currency must fail closed');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], shippingOptions: [{ shippingCost: { value: '5', currency: 'USD' } }] },
+] }, 'production'), [], 'non-EUR shipping must not be treated as EUR');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], shippingOptions: [{ shippingCost: { value: '-1', currency: 'EUR' } }] },
+] }, 'production'), [], 'negative shipping cost must fail closed');
+assert.strictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], shippingOptions: [{ shippingCost: { value: '0', currency: 'EUR' } }] },
+] }, 'production')[0].shipping, 0, 'explicit free shipping remains valid');
 
 const port = 18082;
 const child = spawn(process.execPath, ['index.js'], {
