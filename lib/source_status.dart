@@ -68,7 +68,12 @@ class MarketBackendStatus {
   bool isLive(String sourceId) {
     final source = sources[sourceId];
     if (!reachable || source == null || !source.configured) return false;
-    if (sourceId == 'ebay_de' && source.isSandbox) return false;
+    if (sourceId == 'ebay_de') {
+      return source.isProduction && source.rightsGate == 'approved';
+    }
+    if (sourceId == 'amazon_de' && source.rightsGate != 'approved') {
+      return false;
+    }
     if (sourceId == 'buyback') {
       return source.rightsGate == 'approved' &&
           source.activationGate == 'validated' &&

@@ -14,6 +14,10 @@ const EBAY_API_BASE = EBAY_ENV === 'production'
   ? 'https://api.ebay.com'
   : 'https://api.sandbox.ebay.com';
 const KEEPA_API_KEY = process.env.KEEPA_API_KEY || '';
+const EBAY_RIGHTS_APPROVED = String(process.env.EBAY_SOURCE_RIGHTS_ACK || '').trim() ===
+  'approved-ebay-api-use-and-display-v1';
+const KEEPA_RIGHTS_APPROVED = String(process.env.KEEPA_SOURCE_RIGHTS_ACK || '').trim() ===
+  'approved-keepa-price-use-and-display-v1';
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = Number(process.env.RATE_LIMIT_PER_MINUTE || 90);
@@ -158,6 +162,7 @@ function ebayUsedConditionLabel(condition) {
 }
 
 async function searchEbay(q) {
+  if (EBAY_ENV === 'production' && !EBAY_RIGHTS_APPROVED) return [];
   const token = await ebayAccessToken();
   if (!token) return [];
   const url = new URL(`${EBAY_API_BASE}/buy/browse/v1/item_summary/search`);
@@ -170,10 +175,10 @@ async function searchEbay(q) {
       'x-ebay-c-marketplace-id': 'EBAY_DE',
     },
   });
-  return ebayItems(data, EBAY_ENV);
+  return ebayItems(data, EBAY_ENV, EBAY_RIGHTS_APPROVED);
 }
 
-function ebayItems(data, environment) {
+function ebayItems(data, environment, rightsApproved = false) {
   const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
   return summaries.flatMap((item) => {
     // The resale forecast is explicitly based on used asking prices. New,
@@ -195,7 +200,7 @@ function ebayItems(data, environment) {
       currency: 'EUR',
       condition,
       url: String(item.itemWebUrl || ''),
-      live: environment === 'production',
+      live: environment === 'production' && rightsApproved === true,
     }];
   }).filter((item) => item.title && item.price > 0 && item.currency === 'EUR' && item.url.startsWith('https://'));
 }
@@ -211,7 +216,7 @@ function keepaCondition(value) {
 }
 
 async function searchAmazon(q) {
-  if (!KEEPA_API_KEY) return [];
+  if (!KEEPA_API_KEY || !KEEPA_RIGHTS_APPROVED) return [];
   const searchUrl = new URL('https://api.keepa.com/search');
   searchUrl.searchParams.set('key', KEEPA_API_KEY);
   searchUrl.searchParams.set('domain', '3');
@@ -290,17 +295,24 @@ async function marketSearchCached(source, q) {
 }
 
 function sourceStatus() {
+  const ebayProductionAllowed = EBAY_ENV !== 'production' || EBAY_RIGHTS_APPROVED;
   return {
     ebay_de: {
-      configured: Boolean(EBAY_CLIENT_ID && EBAY_CLIENT_SECRET),
+      configured: Boolean(EBAY_CLIENT_ID && EBAY_CLIENT_SECRET && ebayProductionAllowed),
       mode: 'official_api',
       environment: EBAY_ENV,
-      data_kind: EBAY_ENV === 'production' ? 'active_marketplace_listings' : 'sandbox_mock_data',
+      data_kind: EBAY_ENV === 'production'
+        ? (EBAY_RIGHTS_APPROVED ? 'active_marketplace_listings' : 'blocked_pending_rights')
+        : 'sandbox_mock_data',
+      rights_gate: EBAY_ENV === 'production'
+        ? (EBAY_RIGHTS_APPROVED ? 'approved' : 'not_approved')
+        : 'not_live_sandbox',
       estimate: 'used_fixed_price_active_listings',
     },
     amazon_de: {
-      configured: Boolean(KEEPA_API_KEY),
+      configured: Boolean(KEEPA_API_KEY && KEEPA_RIGHTS_APPROVED),
       mode: 'keepa',
+      rights_gate: KEEPA_RIGHTS_APPROVED ? 'approved' : 'not_approved',
       estimate: 'retail_reference',
     },
     kleinanzeigen: { configured: false, mode: 'official_search_link' },

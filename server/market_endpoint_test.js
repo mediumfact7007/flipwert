@@ -16,8 +16,13 @@ const ebayPayload = {
 };
 
 assert.strictEqual(ebayItems(ebayPayload, 'sandbox')[0].live, false);
-assert.strictEqual(ebayItems(ebayPayload, 'production')[0].live, true);
-assert.strictEqual(ebayItems(ebayPayload, 'production')[0].condition, 'Gut');
+assert.strictEqual(
+  ebayItems(ebayPayload, 'production')[0].live,
+  false,
+  'production credentials alone must not create LIVE evidence',
+);
+assert.strictEqual(ebayItems(ebayPayload, 'production', true)[0].live, true);
+assert.strictEqual(ebayItems(ebayPayload, 'production', true)[0].condition, 'Gut');
 assert.deepStrictEqual(ebayItems({ itemSummaries: [
   { ...ebayPayload.itemSummaries[0], condition: 'NEW' },
 ] }, 'production'), [], 'new items must not influence used resale valuation');

@@ -24,7 +24,7 @@ void main() {
     expect(status.sources['ebay_de']?.dataKind, 'sandbox_mock_data');
   });
 
-  test('eBay Production can be reported as LIVE when configured', () {
+  test('eBay Production is LIVE only when configured and rights-approved', () {
     final status = MarketBackendStatus.fromJson({
       'sources': {
         'ebay_de': {
@@ -32,6 +32,7 @@ void main() {
           'mode': 'official_api',
           'environment': 'production',
           'data_kind': 'active_marketplace_listings',
+          'rights_gate': 'approved',
         },
       },
     });
