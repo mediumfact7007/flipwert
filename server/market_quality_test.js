@@ -1,7 +1,11 @@
 'use strict';
 
 const assert = require('assert');
-const { filterMarketListings, listingMatchesQuery } = require('./market_quality');
+const {
+  assessMarketListings,
+  filterMarketListings,
+  listingMatchesQuery,
+} = require('./market_quality');
 
 const good = 'Apple iPhone 15 Pro 256GB Titan';
 assert.strictEqual(listingMatchesQuery('Apple iPhone 15 Pro 256GB', good), true);
@@ -70,5 +74,12 @@ const filtered = filterMarketListings('Apple iPhone 15 Pro 256GB', [
   { title: 'Apple iPhone 15 Pro 256GB Face ID defekt' },
 ]);
 assert.deepStrictEqual(filtered.map((item) => item.title), [good]);
+
+const assessed = assessMarketListings('Apple iPhone 15 Pro 256GB', [
+  { title: good, price: 800 },
+  { title: 'Apple iPhone 15 Pro 128GB', price: 700 },
+]);
+assert.deepStrictEqual(assessed.items, [{ title: good, price: 800 }]);
+assert.strictEqual(assessed.rejectedCount, 1);
 
 console.log('market_quality_test: ok');
