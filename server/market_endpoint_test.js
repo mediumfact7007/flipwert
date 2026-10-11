@@ -17,6 +17,19 @@ const ebayPayload = {
 
 assert.strictEqual(ebayItems(ebayPayload, 'sandbox')[0].live, false);
 assert.strictEqual(ebayItems(ebayPayload, 'production')[0].live, true);
+assert.strictEqual(ebayItems(ebayPayload, 'production')[0].condition, 'Gut');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], condition: 'NEW' },
+] }, 'production'), [], 'new items must not influence used resale valuation');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], condition: 'CERTIFIED_REFURBISHED' },
+] }, 'production'), [], 'refurbished items must stay separate from used valuation');
+assert.deepStrictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], condition: 'UNKNOWN_FUTURE_VALUE' },
+] }, 'production'), [], 'unknown conditions must fail closed');
+assert.strictEqual(ebayItems({ itemSummaries: [
+  { ...ebayPayload.itemSummaries[0], condition: 'Gebraucht' },
+] }, 'production')[0].condition, 'Gebraucht');
 
 const port = 18082;
 const child = spawn(process.execPath, ['index.js'], {

@@ -136,14 +136,17 @@ async function ebayAccessToken() {
   return ebayToken;
 }
 
-function ebayConditionLabel(condition) {
-  const value = String(condition || '').toUpperCase();
-  if (value === 'NEW') return 'Neu';
-  if (value === 'LIKE_NEW') return 'Wie neu';
-  if (value === 'VERY_GOOD') return 'Sehr gut';
-  if (value === 'GOOD') return 'Gut';
-  if (value === 'ACCEPTABLE') return 'Akzeptabel';
-  return value ? value.replaceAll('_', ' ') : 'Unbekannt';
+function ebayUsedConditionLabel(condition) {
+  const value = String(condition || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
+  if (value === 'USED' || value === 'GEBRAUCHT') return 'Gebraucht';
+  if (['LIKE_NEW', 'USED_EXCELLENT', 'WIE_NEU', 'NEUWERTIG'].includes(value)) return 'Wie neu';
+  if (['VERY_GOOD', 'USED_VERY_GOOD', 'SEHR_GUT'].includes(value)) return 'Sehr gut';
+  if (['GOOD', 'USED_GOOD', 'GUT'].includes(value)) return 'Gut';
+  if (['ACCEPTABLE', 'USED_ACCEPTABLE', 'AKZEPTABEL'].includes(value)) return 'Akzeptabel';
+  return null;
 }
 
 async function searchEbay(q) {
@@ -164,19 +167,24 @@ async function searchEbay(q) {
 
 function ebayItems(data, environment) {
   const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
-  return summaries.map((item) => {
+  return summaries.flatMap((item) => {
+    // The resale forecast is explicitly based on used asking prices. New,
+    // refurbished, defective and unknown conditions must not silently inflate
+    // or distort that estimate. Unknown upstream values therefore fail closed.
+    const condition = ebayUsedConditionLabel(item.condition);
+    if (!condition) return [];
     const price = money(item.price?.value);
     const shipping = money(item.shippingOptions?.[0]?.shippingCost?.value);
-    return {
+    return [{
       source: 'ebay_de',
       title: String(item.title || '').trim(),
       price,
       shipping,
       currency: String(item.price?.currency || 'EUR'),
-      condition: ebayConditionLabel(item.condition),
+      condition,
       url: String(item.itemWebUrl || ''),
       live: environment === 'production',
-    };
+    }];
   }).filter((item) => item.title && item.price > 0 && item.currency === 'EUR' && item.url.startsWith('https://'));
 }
 
