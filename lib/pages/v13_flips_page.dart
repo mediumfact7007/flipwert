@@ -382,23 +382,98 @@ class _V13FlipCard extends StatelessWidget {
   }
 
   Future<void> _soldDialog(BuildContext context) async {
-    final price = TextEditingController();
+    var price = '';
+    var actualCosts = flip.costs == flip.costs.roundToDouble()
+        ? flip.costs.toStringAsFixed(0)
+        : flip.costs.toStringAsFixed(2).replaceAll('.', ',');
     var platform = 'eBay';
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setDialog) => AlertDialog(
-        title: Text(t('Verkauf abschließen', 'Finish sale')),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: price, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: t('Verkaufspreis', 'Sale price'), suffixText: '€')),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(initialValue: platform, decoration: InputDecoration(labelText: t('Verkauft über', 'Sold on')), items: ['eBay', 'Kleinanzeigen', 'Vinted', 'Amazon', 'rebuy', t('Sonstiges', 'Other')].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(), onChanged: (v) => setDialog(() => platform = v ?? platform)),
-        ]),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(t('Abbrechen', 'Cancel'))), FilledButton(onPressed: () { final value = v13Money(price.text); if (value > 0) Navigator.pop(dialogContext, {'price': value, 'platform': platform}); }, child: Text(t('Speichern', 'Save')))],
-      )),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialog) => AlertDialog(
+          title: Text(t('Verkauf abschließen', 'Finish sale')),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextFormField(
+                key: const ValueKey('v160-actual-sale-price'),
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: t('Verkaufspreis', 'Sale price'),
+                  suffixText: '€',
+                ),
+                onChanged: (value) => price = value,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                key: const ValueKey('v160-actual-total-costs'),
+                initialValue: actualCosts,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: t(
+                    'Tatsächliche Zusatzkosten gesamt',
+                    'Actual total additional costs',
+                  ),
+                  helperText: t(
+                    'Z. B. Gebühren, Versand und Reparaturen',
+                    'E.g. fees, shipping and repairs',
+                  ),
+                  suffixText: '€',
+                ),
+                onChanged: (value) => actualCosts = value,
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: platform,
+                decoration: InputDecoration(
+                  labelText: t('Verkauft über', 'Sold on'),
+                ),
+                items: [
+                  'eBay',
+                  'Kleinanzeigen',
+                  'Vinted',
+                  'Amazon',
+                  'rebuy',
+                  t('Sonstiges', 'Other'),
+                ]
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => setDialog(() => platform = v ?? platform),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(t('Abbrechen', 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = v13Money(price);
+                if (value > 0) {
+                  Navigator.pop(dialogContext, {
+                    'price': value,
+                    'costs': v13Money(actualCosts),
+                    'platform': platform,
+                  });
+                }
+              },
+              child: Text(t('Speichern', 'Save')),
+            ),
+          ],
+        ),
+      ),
     );
-    price.dispose();
     if (result != null) {
-      onUpdate(flip.copyWith(status: 'Sold', soldAt: DateTime.now(), actualSell: result['price'] as double, soldPlatform: result['platform'] as String));
+      onUpdate(flip.copyWith(
+        status: 'Sold',
+        soldAt: DateTime.now(),
+        actualSell: result['price'] as double,
+        costs: result['costs'] as double,
+        soldPlatform: result['platform'] as String,
+      ));
     }
   }
 }
