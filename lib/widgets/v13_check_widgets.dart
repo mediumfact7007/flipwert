@@ -316,7 +316,7 @@ class _V154LiveListingPreview extends StatelessWidget {
                   Text(listings[i].title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.2, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 2),
                   Text(
-                    '${listings[i].sourceName}${listings[i].condition.trim().isEmpty ? '' : ' · ${listings[i].condition.trim()}'}',
+                    '${listings[i].sourceName}${listings[i].condition.trim().isEmpty ? '' : ' · ${listings[i].condition.trim()}'}${listings[i].checkedAt == null ? '' : ' · ${v147AgeLabel(listings[i].checkedAt!, english)}'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 9.5, color: Color(0xFF777B88)),

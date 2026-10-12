@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SourceListing {
+  static const liveFreshness = Duration(minutes: 5);
+
   final String sourceId;
   final String sourceName;
   final String role;
@@ -13,6 +15,7 @@ class SourceListing {
   final String url;
   final String condition;
   final bool live;
+  final DateTime? checkedAt;
 
   const SourceListing({
     required this.sourceId,
@@ -24,11 +27,21 @@ class SourceListing {
     required this.url,
     required this.condition,
     required this.live,
+    this.checkedAt,
   });
 
   double get total => price + shipping;
 
-  factory SourceListing.fromJson(Map<String, dynamic> json, PriceSource source) {
+  factory SourceListing.fromJson(
+    Map<String, dynamic> json,
+    PriceSource source, {
+    DateTime? now,
+  }) {
+    final current = (now ?? DateTime.now()).toUtc();
+    final checkedAt =
+        DateTime.tryParse(json['checked_at']?.toString() ?? '')?.toUtc();
+    final age = checkedAt == null ? null : current.difference(checkedAt);
+    final fresh = age != null && !age.isNegative && age <= liveFreshness;
     return SourceListing(
       sourceId: source.id,
       sourceName: source.name,
@@ -45,7 +58,8 @@ class SourceListing {
       condition: json['condition']?.toString() ?? '',
       // LIVE is an explicit trust boundary. Missing, malformed or stringified
       // values must never promote an adapter result into automatic valuation.
-      live: json['live'] is bool ? json['live'] as bool : false,
+      live: json['live'] is bool && (json['live'] as bool) && fresh,
+      checkedAt: checkedAt,
     );
   }
 

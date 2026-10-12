@@ -175,10 +175,10 @@ async function searchEbay(q) {
       'x-ebay-c-marketplace-id': 'EBAY_DE',
     },
   });
-  return ebayItems(data, EBAY_ENV, EBAY_RIGHTS_APPROVED);
+  return ebayItems(data, EBAY_ENV, EBAY_RIGHTS_APPROVED, new Date().toISOString());
 }
 
-function ebayItems(data, environment, rightsApproved = false) {
+function ebayItems(data, environment, rightsApproved = false, checkedAt = new Date().toISOString()) {
   const summaries = Array.isArray(data.itemSummaries) ? data.itemSummaries : [];
   return summaries.flatMap((item) => {
     // The resale forecast is explicitly based on used asking prices. New,
@@ -201,6 +201,7 @@ function ebayItems(data, environment, rightsApproved = false) {
       condition,
       url: String(item.itemWebUrl || ''),
       live: environment === 'production' && rightsApproved === true,
+      checked_at: checkedAt,
     }];
   }).filter((item) => item.title && item.price > 0 && item.currency === 'EUR' && item.url.startsWith('https://'));
 }
@@ -233,10 +234,11 @@ async function searchAmazon(q) {
   productUrl.searchParams.set('offers', '20');
   const payload = await fetchJson(productUrl);
   const products = Array.isArray(payload.products) ? payload.products : [];
-  return products.flatMap((product) => keepaProductItems(product));
+  const checkedAt = new Date().toISOString();
+  return products.flatMap((product) => keepaProductItems(product, checkedAt));
 }
 
-function keepaProductItems(product) {
+function keepaProductItems(product, checkedAt = new Date().toISOString()) {
   const asin = product.asin || '';
   const title = product.title || `Amazon ${asin}`;
   const offers = Array.isArray(product.offers) ? product.offers : [];
@@ -265,6 +267,7 @@ function keepaProductItems(product) {
       condition: `Amazon marketplace · ${keepaCondition(offer.condition)}`,
       url: asin ? `https://www.amazon.de/dp/${encodeURIComponent(asin)}` : 'https://www.amazon.de/',
       live: true,
+      checked_at: checkedAt,
     });
   }
 

@@ -62,7 +62,7 @@ void main() {
     expect(listing.live, isFalse);
   });
 
-  test('only an explicit boolean true marks an adapter listing LIVE', () {
+  test('only explicit boolean true with a fresh timestamp marks LIVE', () {
     const source = PriceSource(
       id: 'trusted-test',
       name: 'Trusted',
@@ -72,17 +72,25 @@ void main() {
       trustedForDecision: true,
     );
 
+    final now = DateTime.utc(2026, 10, 12);
     final missing = SourceListing.fromJson({
       'price': 100,
       'shipping': 0,
-    }, source);
+    }, source, now: now);
+    final missingTimestamp = SourceListing.fromJson({
+      'price': 100,
+      'shipping': 0,
+      'live': true,
+    }, source, now: now);
     final explicit = SourceListing.fromJson({
       'price': 100,
       'shipping': 0,
       'live': true,
-    }, source);
+      'checked_at': now.toIso8601String(),
+    }, source, now: now);
 
     expect(missing.live, isFalse);
+    expect(missingTimestamp.live, isFalse);
     expect(explicit.live, isTrue);
   });
 

@@ -148,6 +148,11 @@ After deployment, open Flipwert -> **Mehr -> Erweitert: Flipwert-Server** and en
 - `GET /health`
 - `GET /v1/status`
 - `GET /v1/market/search?source=ebay_de&q=iPhone%2015%20Pro`
+
+Jedes Marktplatzangebot enthält `checked_at` als serverseitig erzeugten
+ISO-8601-Abrufzeitpunkt. Der Client akzeptiert ein Angebot nur innerhalb von
+fünf Minuten nach diesem Zeitpunkt als `LIVE`; fehlende, zukünftige oder ältere
+Zeitstempel werden fail-closed von LIVE-Anzeige und Kalkulation ausgeschlossen.
 - `GET /v1/market/search?source=amazon_de&q=<ASIN-or-EAN>`
 - `GET /v1/market/search?source=all&q=...`
 - `GET /v1/buyback/search?q=...&condition=used_good`
