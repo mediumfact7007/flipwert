@@ -386,6 +386,9 @@ class V13Flip {
     final legacySell = (j['sell'] as num?)?.toDouble() ?? 0;
     final actual = (j['actualSell'] as num?)?.toDouble() ?? (status == 'Sold' ? legacySell : 0);
     final created = DateTime.tryParse(j['createdAt']?.toString() ?? '') ?? DateTime.now();
+    final buy = (j['buy'] as num?)?.toDouble() ?? 0;
+    final costs = (j['costs'] as num?)?.toDouble() ?? 0;
+    final storedProfit = (j['profitAtCheck'] as num?)?.toDouble() ?? 0;
     final buybackPrice = (j['buybackPriceAtCheck'] as num?)?.toDouble() ?? 0;
     final storedBuybackReserve =
         (j['buybackSafetyReserve'] as num?)?.toDouble() ?? 0;
@@ -394,9 +397,9 @@ class V13Flip {
       id: j['id']?.toString() ?? DateTime.now().microsecondsSinceEpoch.toString(),
       name: j['name']?.toString() ?? 'Artikel',
       category: j['category']?.toString() ?? v13Category(j['name']?.toString() ?? ''),
-      buy: (j['buy'] as num?)?.toDouble() ?? 0,
+      buy: buy,
       expectedAtBuy: (j['expectedAtBuy'] as num?)?.toDouble() ?? legacySell,
-      costs: (j['costs'] as num?)?.toDouble() ?? 0,
+      costs: costs,
       buybackSafetyReserve:
           storedBuybackReserve.isFinite && storedBuybackReserve > 0
               ? storedBuybackReserve
@@ -412,8 +415,15 @@ class V13Flip {
       soldPlatform: j['soldPlatform']?.toString() ?? '',
       sourceUrl: j['sourceUrl']?.toString() ?? '',
       maxBuyAtCheck: (j['maxBuyAtCheck'] as num?)?.toDouble() ?? 0,
-      profitAtCheck: (j['profitAtCheck'] as num?)?.toDouble() ?? 0,
-      roiAtCheck: (j['roiAtCheck'] as num?)?.toDouble() ?? 0,
+      profitAtCheck: storedProfit,
+      // ROI is derived data. Recalculate it when loading so snapshots written
+      // before total-investment ROI was introduced cannot keep an inflated
+      // denominator that omitted additional costs.
+      roiAtCheck: flipRoi(
+        profit: storedProfit,
+        purchasePrice: buy,
+        additionalCosts: costs,
+      ),
       confidenceScore: (j['confidenceScore'] as num?)?.toInt() ?? 0,
       buybackPriceAtCheck: buybackPrice,
       buybackProviderAtCheck: j['buybackProviderAtCheck']?.toString() ?? '',
