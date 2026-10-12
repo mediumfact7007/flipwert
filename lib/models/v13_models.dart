@@ -311,6 +311,7 @@ class V13Flip {
     DateTime? listedAt,
     DateTime? soldAt,
     double? actualSell,
+    double? costs,
     String? soldPlatform,
   }) =>
       V13Flip(
@@ -319,7 +320,7 @@ class V13Flip {
         category: category,
         buy: buy,
         expectedAtBuy: expectedAtBuy,
-        costs: costs,
+        costs: costs ?? this.costs,
         buybackSafetyReserve: buybackSafetyReserve,
         sourceCount: sourceCount,
         confidence: confidence,
