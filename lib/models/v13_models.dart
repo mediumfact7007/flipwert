@@ -290,8 +290,18 @@ class V13Flip {
   bool get isSaved => status == 'Saved';
   bool get isArchived => status == 'Archived';
   bool get isOpen => status == 'Bought' || status == 'Listed';
-  double get realizedProfit => actualSell > 0 ? actualSell - buy - costs : 0;
-  double get realizedRoi => buy <= 0 ? 0 : realizedProfit / buy * 100;
+  double get realizedProfit => actualSell > 0
+      ? flipProfit(
+          proceeds: actualSell,
+          purchasePrice: buy,
+          additionalCosts: costs,
+        )
+      : 0;
+  double get realizedRoi => flipRoi(
+        profit: realizedProfit,
+        purchasePrice: buy,
+        additionalCosts: costs,
+      );
   int? get daysToSell => soldAt == null ? null : math.max(0, soldAt!.difference(createdAt).inDays);
 
   V13Flip copyWith({

@@ -383,7 +383,7 @@ class _V13DecisionCard extends StatelessWidget {
           Row(children: [
             Expanded(child: _V13LightMetric(label: t('GEWINN', 'PROFIT'), value: v13Euro(profit))),
             const SizedBox(width: 6),
-            Expanded(child: _V13LightMetric(label: 'ROI', value: '${roi.toStringAsFixed(0)} %')),
+            Expanded(child: _V13LightMetric(label: t('ROI GESAMT', 'TOTAL ROI'), value: '${roi.toStringAsFixed(0)} %')),
             const SizedBox(width: 6),
             Expanded(child: _V13LightMetric(label: t('TEMPO', 'SPEED'), value: speed)),
           ]),
@@ -396,7 +396,7 @@ class _V13DecisionCard extends StatelessWidget {
               style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: color),
             ),
           const SizedBox(height: 3),
-          Text(t('Ziel: ≥ ${targetRoi.toStringAsFixed(0)} % ROI und ≥ ${v13Euro(minProfit)} Gewinn · Datenqualität $confidence.', 'Target: ≥ ${targetRoi.toStringAsFixed(0)}% ROI and ≥ ${v13Euro(minProfit)} profit · data quality $confidence.'), style: const TextStyle(fontSize: 10.5, color: Color(0xFF686C79))),
+          Text(t('Ziel: ≥ ${targetRoi.toStringAsFixed(0)} % ROI auf Gesamteinsatz und ≥ ${v13Euro(minProfit)} Gewinn · Datenqualität $confidence.', 'Target: ≥ ${targetRoi.toStringAsFixed(0)}% ROI on total investment and ≥ ${v13Euro(minProfit)} profit · data quality $confidence.'), style: const TextStyle(fontSize: 10.5, color: Color(0xFF686C79))),
           const SizedBox(height: 10),
           Row(children: [
             if (onRemember != null) Expanded(child: OutlinedButton.icon(key: const ValueKey('v147-remember-deal'), onPressed: onRemember, icon: Icon(updatingExisting ? Icons.update_rounded : Icons.bookmark_add_outlined, size: 18), label: Text(updatingExisting ? t('CHECK ÜBERNEHMEN', 'ACCEPT CHECK') : t('MERKEN', 'SAVE')))),

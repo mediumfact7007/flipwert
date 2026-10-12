@@ -6,9 +6,9 @@ void main() {
   test('compact screen keeps breathing room below the target hint', () {
     final app = readLibDartSource();
 
-    expect(app, contains("Ziel: ${r'${widget.targetRoi.toStringAsFixed(0)}'} % ROI + mindestens ${r'${v13Euro(widget.minProfit)}'} Gewinn."));
+    expect(app, contains("Ziel: ${r'${widget.targetRoi.toStringAsFixed(0)}'} % ROI auf Gesamteinsatz + mindestens ${r'${v13Euro(widget.minProfit)}'} Gewinn."));
 
-    final hint = app.indexOf("Ziel: ${r'${widget.targetRoi.toStringAsFixed(0)}'} % ROI");
+    final hint = app.indexOf("Ziel: ${r'${widget.targetRoi.toStringAsFixed(0)}'} % ROI auf Gesamteinsatz");
     expect(hint, greaterThanOrEqualTo(0));
     final afterHint = app.substring(hint, (hint + 900).clamp(0, app.length));
     expect(afterHint, contains('const SizedBox(height: 14)'));
