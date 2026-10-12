@@ -288,13 +288,21 @@ class _V13FlipCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(flip.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)), Text('${flip.category} · $stateLabel', style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A7E8B)))])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(sold ? v13Euro(flip.realizedProfit) : v13Euro(flip.buy), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: sold && flip.realizedProfit >= 0 ? const Color(0xFF087F5B) : _v13Ink)), Text(sold ? '${flip.daysToSell ?? 0} ${t('Tage', 'days')}' : saved || archived ? t('Angebot', 'asking') : t('Einkauf', 'buy'), style: const TextStyle(fontSize: 9.5, color: Color(0xFF8B8E9A)))]),
-          if (saved || archived) ...[
+          if (sold || saved || archived) ...[
             const SizedBox(width: 2),
             PopupMenuButton<String>(
               key: ValueKey('v148-menu-${flip.id}'),
               tooltip: t('Deal verwalten', 'Manage deal'),
               onSelected: (value) => _handleMenu(context, value),
               itemBuilder: (_) => [
+                if (sold)
+                  PopupMenuItem(
+                    value: 'edit_sale',
+                    child: Text(t(
+                      'Verkaufsdaten bearbeiten',
+                      'Edit sale details',
+                    )),
+                  ),
                 if (flip.sourceUrl.isNotEmpty) PopupMenuItem(value: 'listing', child: Text(t('Inserat öffnen', 'Open listing'))),
                 if (saved) PopupMenuItem(value: 'archive', child: Text(t('Archivieren', 'Archive'))),
                 if (archived) PopupMenuItem(value: 'restore', child: Text(t('Zur Merkliste', 'Restore to saved'))),
@@ -303,6 +311,35 @@ class _V13FlipCard extends StatelessWidget {
             ),
           ],
         ]),
+        if (sold) ...[
+          const SizedBox(height: 10),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            _V13Pill(
+              text: '${t('Verkauf', 'Sale')} ${v13Euro(flip.actualSell)}',
+              foreground: _v13Ink,
+              background: const Color(0xFFF4F5F8),
+            ),
+            _V13Pill(
+              text:
+                  '${t('Investiert', 'Invested')} ${v13Euro(flip.buy + flip.costs)}',
+              foreground: _v13Ink,
+              background: const Color(0xFFF4F5F8),
+            ),
+            _V13Pill(
+              text: 'ROI ${flip.realizedRoi.toStringAsFixed(0)} %',
+              foreground: flip.realizedRoi >= 0
+                  ? const Color(0xFF087F5B)
+                  : const Color(0xFFC33A46),
+              background: const Color(0xFFF4F5F8),
+            ),
+            if (flip.soldPlatform.isNotEmpty)
+              _V13Pill(
+                text: flip.soldPlatform,
+                foreground: _v13Ink,
+                background: const Color(0xFFF4F5F8),
+              ),
+          ]),
+        ],
         if (saved || archived || (!sold && flip.maxBuyAtCheck > 0)) ...[
           const SizedBox(height: 10),
           Wrap(spacing: 6, runSpacing: 6, children: [
@@ -348,6 +385,9 @@ class _V13FlipCard extends StatelessWidget {
 
   Future<void> _handleMenu(BuildContext context, String value) async {
     switch (value) {
+      case 'edit_sale':
+        await _soldDialog(context);
+        return;
       case 'listing':
         await _openListing();
         return;
@@ -362,7 +402,15 @@ class _V13FlipCard extends StatelessWidget {
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(t('Deal löschen?', 'Delete deal?')),
-            content: Text(t('Der gespeicherte Snapshot wird dauerhaft von diesem Gerät entfernt.', 'The saved snapshot will be permanently removed from this device.')),
+            content: Text(flip.status == 'Sold'
+                ? t(
+                    'Der Verkaufsdatensatz wird dauerhaft von diesem Gerät entfernt.',
+                    'The sale record will be permanently removed from this device.',
+                  )
+                : t(
+                    'Der gespeicherte Snapshot wird dauerhaft von diesem Gerät entfernt.',
+                    'The saved snapshot will be permanently removed from this device.',
+                  )),
             actions: [
               TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(t('Abbrechen', 'Cancel'))),
               FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(t('Löschen', 'Delete'))),
@@ -382,20 +430,42 @@ class _V13FlipCard extends StatelessWidget {
   }
 
   Future<void> _soldDialog(BuildContext context) async {
-    var price = '';
+    final editing = flip.status == 'Sold';
+    String formatMoney(double value) => value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(2).replaceAll('.', ',');
+    var price = editing ? formatMoney(flip.actualSell) : '';
     var actualCosts = flip.costs == flip.costs.roundToDouble()
         ? flip.costs.toStringAsFixed(0)
         : flip.costs.toStringAsFixed(2).replaceAll('.', ',');
-    var platform = 'eBay';
+    final platforms = <String>[
+      'eBay',
+      'Kleinanzeigen',
+      'Vinted',
+      'Amazon',
+      'rebuy',
+      t('Sonstiges', 'Other'),
+    ];
+    if (editing &&
+        flip.soldPlatform.isNotEmpty &&
+        !platforms.contains(flip.soldPlatform)) {
+      platforms.add(flip.soldPlatform);
+    }
+    var platform = editing && flip.soldPlatform.isNotEmpty
+        ? flip.soldPlatform
+        : 'eBay';
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialog) => AlertDialog(
-          title: Text(t('Verkauf abschließen', 'Finish sale')),
+          title: Text(editing
+              ? t('Verkaufsdaten bearbeiten', 'Edit sale details')
+              : t('Verkauf abschließen', 'Finish sale')),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               TextFormField(
                 key: const ValueKey('v160-actual-sale-price'),
+                initialValue: price,
                 autofocus: true,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -430,14 +500,7 @@ class _V13FlipCard extends StatelessWidget {
                 decoration: InputDecoration(
                   labelText: t('Verkauft über', 'Sold on'),
                 ),
-                items: [
-                  'eBay',
-                  'Kleinanzeigen',
-                  'Vinted',
-                  'Amazon',
-                  'rebuy',
-                  t('Sonstiges', 'Other'),
-                ]
+                items: platforms
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (v) => setDialog(() => platform = v ?? platform),
@@ -469,7 +532,7 @@ class _V13FlipCard extends StatelessWidget {
     if (result != null) {
       onUpdate(flip.copyWith(
         status: 'Sold',
-        soldAt: DateTime.now(),
+        soldAt: flip.soldAt ?? DateTime.now(),
         actualSell: result['price'] as double,
         costs: result['costs'] as double,
         soldPlatform: result['platform'] as String,
