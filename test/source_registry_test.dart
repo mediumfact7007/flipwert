@@ -1,5 +1,6 @@
 import 'package:flipwert/source_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   test('third-party source cannot influence automatic decision', () {
@@ -113,6 +114,62 @@ void main() {
     expect(vinted.canFetchInApp, isFalse);
     expect(geizhals.searchUrl('Galaxy S26'), contains('fs=Galaxy+S26'));
     expect(geizhals.canFetchInApp, isFalse);
+  });
+
+  test('adapter outages fail instead of looking like zero offers', () async {
+    const source = PriceSource(
+      id: 'trusted-test',
+      name: 'Trusted',
+      subtitle: 'test',
+      searchUrlTemplate: 'https://example.com/?q={query}',
+      adapterUrlTemplate: 'https://api.example.com/?q={query}',
+    );
+
+    await expectLater(
+      SourceRegistry.fetch(
+        source,
+        'iPhone 15 Pro',
+        request: (_) async => http.Response('unavailable', 503),
+      ),
+      throwsA(
+        isA<SourceFetchException>()
+            .having((error) => error.code, 'code', 'upstream_http_error')
+            .having((error) => error.statusCode, 'statusCode', 503),
+      ),
+    );
+  });
+
+  test('valid empty response stays distinct from malformed response', () async {
+    const source = PriceSource(
+      id: 'trusted-test',
+      name: 'Trusted',
+      subtitle: 'test',
+      searchUrlTemplate: 'https://example.com/?q={query}',
+      adapterUrlTemplate: 'https://api.example.com/?q={query}',
+    );
+
+    expect(
+      await SourceRegistry.fetch(
+        source,
+        'iPhone 15 Pro',
+        request: (_) async => http.Response('{"items":[]}', 200),
+      ),
+      isEmpty,
+    );
+    await expectLater(
+      SourceRegistry.fetch(
+        source,
+        'iPhone 15 Pro',
+        request: (_) async => http.Response('{}', 200),
+      ),
+      throwsA(
+        isA<SourceFetchException>().having(
+          (error) => error.code,
+          'code',
+          'invalid_response_shape',
+        ),
+      ),
+    );
   });
 
   test('rebuy buyback shortcut opens the selling flow and is not price evidence', () {

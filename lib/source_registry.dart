@@ -3,6 +3,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+class SourceFetchException implements Exception {
+  final String code;
+  final int? statusCode;
+
+  const SourceFetchException(this.code, {this.statusCode});
+
+  @override
+  String toString() => statusCode == null
+      ? 'SourceFetchException($code)'
+      : 'SourceFetchException($code, statusCode: $statusCode)';
+}
+
 class SourceListing {
   static const liveFreshness = Duration(minutes: 5);
 
@@ -415,7 +427,11 @@ class SourceRegistry {
     return PriceSource.fromJson(decoded);
   }
 
-  static Future<List<SourceListing>> fetch(PriceSource source, String query) async {
+  static Future<List<SourceListing>> fetch(
+    PriceSource source,
+    String query, {
+    Future<http.Response> Function(Uri uri)? request,
+  }) async {
     final q = query.trim();
     if (q.isEmpty || q.length > 180) return [];
     final target = source.adapterUrl(q);
@@ -427,16 +443,25 @@ class SourceRegistry {
     // corrupted/local preferences cannot silently turn into background requests.
     if (!source.builtIn && PriceSource._isPrivateHost(uri.host)) return [];
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 10));
-    if (response.statusCode < 200 || response.statusCode >= 300) return [];
-    if (response.bodyBytes.length > 2 * 1024 * 1024) return [];
+    final response = await (request ?? http.get)(uri).timeout(
+      const Duration(seconds: 10),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SourceFetchException(
+        'upstream_http_error',
+        statusCode: response.statusCode,
+      );
+    }
+    if (response.bodyBytes.length > 2 * 1024 * 1024) {
+      throw const SourceFetchException('response_too_large');
+    }
 
     final decoded = jsonDecode(response.body);
-    final items = decoded is Map<String, dynamic>
-        ? (decoded['items'] as List<dynamic>? ?? const [])
+    final items = decoded is Map<String, dynamic> && decoded['items'] is List
+        ? decoded['items'] as List<dynamic>
         : decoded is List<dynamic>
             ? decoded
-            : const <dynamic>[];
+            : throw const SourceFetchException('invalid_response_shape');
 
     return items
         .take(100)
