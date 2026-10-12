@@ -402,17 +402,25 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
   double? get maxBuy {
     final sell = expectedSale;
     if (sell == null || sell <= 0) return null;
-    final byRoi = (sell - extraCosts) / (1 + widget.targetRoi / 100);
-    final byProfit = sell - extraCosts - widget.minProfit;
-    return math.max(0, math.min(byRoi, byProfit));
+    return flipMaxPurchasePrice(
+      proceeds: sell,
+      additionalCosts: extraCosts,
+      targetRoi: widget.targetRoi,
+      minimumProfit: widget.minProfit,
+    );
   }
 
-  double get profit {
-    final sell = expectedSale ?? 0;
-    return sell - buyPrice - extraCosts;
-  }
+  double get profit => flipProfit(
+        proceeds: expectedSale ?? 0,
+        purchasePrice: buyPrice,
+        additionalCosts: extraCosts,
+      );
 
-  double get roi => buyPrice <= 0 ? 0 : profit / buyPrice * 100;
+  double get roi => flipRoi(
+        profit: profit,
+        purchasePrice: buyPrice,
+        additionalCosts: extraCosts,
+      );
 
   V13Decision get decision {
     final limit = maxBuy;

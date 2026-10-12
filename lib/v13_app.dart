@@ -24,6 +24,7 @@ import 'deal_alert_toggle.dart';
 import 'dual_exit.dart';
 import 'dual_exit_card.dart';
 import 'deal_alert_result_card.dart';
+import 'deal_math.dart';
 import 'forecast_accuracy_card.dart';
 import 'forecast_control.dart';
 import 'manual_buyback_quote_card.dart';

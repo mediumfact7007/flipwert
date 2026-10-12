@@ -77,7 +77,7 @@ void main() {
     final restored = V13Flip.fromJson(flip.toJson());
     expect(restored.daysToSell, 9);
     expect(restored.realizedProfit, 100);
-    expect(restored.realizedRoi, closeTo(33.333, 0.01));
+    expect(restored.realizedRoi, closeTo(31.25, 0.01));
     expect(restored.soldPlatform, 'eBay');
     expect(restored.buybackSafetyReserve, 25);
   });
