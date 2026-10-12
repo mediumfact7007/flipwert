@@ -22,7 +22,7 @@ void main() {
       sourceUrl: 'https://www.kleinanzeigen.de/s-anzeige/nintendo-switch-oled/1234567890-279-1234',
       maxBuyAtCheck: 251.85,
       profitAtCheck: 120,
-      roiAtCheck: 54.5,
+      roiAtCheck: 52.17,
       confidenceScore: 78,
       buybackPriceAtCheck: 285,
       buybackProviderAtCheck: 'ZOXS',
@@ -37,7 +37,7 @@ void main() {
     expect(restored.sourceUrl, contains('kleinanzeigen.de'));
     expect(restored.maxBuyAtCheck, closeTo(251.85, .001));
     expect(restored.profitAtCheck, 120);
-    expect(restored.roiAtCheck, 54.5);
+    expect(restored.roiAtCheck, closeTo(52.17, .01));
     expect(restored.confidenceScore, 78);
     expect(restored.checkedAt, checked);
     expect(restored.buybackPriceAtCheck, 285);
@@ -64,6 +64,28 @@ void main() {
     expect(legacy.buybackProviderAtCheck, isEmpty);
     expect(legacy.buybackQuoteKindAtCheck, isEmpty);
     expect(legacy.isOpen, isTrue);
+  });
+
+  test('legacy snapshot ROI is normalized to total investment on load', () {
+    final restored = V13Flip.fromJson({
+      'id': 'legacy-roi',
+      'name': 'Legacy ROI deal',
+      'category': 'Konsole',
+      'buy': 220,
+      'expectedAtBuy': 350,
+      'costs': 30,
+      'sourceCount': 3,
+      'confidence': 'Mittel',
+      'status': 'Saved',
+      'createdAt': DateTime(2026, 9, 13).toIso8601String(),
+      'profitAtCheck': 100,
+      // Old releases divided by purchase price only: 100 / 220.
+      'roiAtCheck': 45.45,
+    });
+
+    expect(restored.profitAtCheck, 100);
+    expect(restored.roiAtCheck, 40);
+    expect(restored.toJson()['roiAtCheck'], 40);
   });
 
   test('snapshot age is human readable', () {
