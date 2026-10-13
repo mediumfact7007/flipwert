@@ -20,6 +20,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
   List<V13Flip> flips = [];
   List<String> history = [];
   List<PriceSource> sources = [];
+  String starterInput = '';
   late final V13Monetization monetization;
   Future<void> _saveQueue = Future<void>.value();
 
@@ -111,11 +112,19 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
     });
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _completeOnboarding(String input) async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('english_v13', english);
     await prefs.setBool('onboarding_v13_complete', true);
     if (!mounted) return;
-    setState(() => showOnboarding = false);
+    setState(() {
+      starterInput = input.trim();
+      showOnboarding = false;
+    });
+  }
+
+  void _setOnboardingLanguage(bool value) {
+    setState(() => english = value);
   }
 
   Future<bool> _deleteAllLocalData() async {
@@ -141,6 +150,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       flips = <V13Flip>[];
       history = <String>[];
       sources = SourceRegistry.builtIns();
+      starterInput = '';
       showOnboarding = true;
     });
     return true;
@@ -211,6 +221,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
           : showOnboarding
               ? V13OnboardingPage(
                   english: english,
+                  onLanguage: _setOnboardingLanguage,
                   onComplete: _completeOnboarding,
                 )
               : V13Shell(
@@ -223,6 +234,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
               taxMode: taxMode,
               flips: flips,
               history: history,
+              starterInput: starterInput,
               sources: sources,
               monetization: monetization,
               onHistory: _addHistory,
@@ -301,6 +313,7 @@ class V13Shell extends StatefulWidget {
   final V13TaxMode taxMode;
   final List<V13Flip> flips;
   final List<String> history;
+  final String starterInput;
   final List<PriceSource> sources;
   final V13Monetization monetization;
   final ValueChanged<String> onHistory;
@@ -329,6 +342,7 @@ class V13Shell extends StatefulWidget {
     required this.taxMode,
     required this.flips,
     required this.history,
+    this.starterInput = '',
     required this.sources,
     required this.monetization,
     required this.onHistory,
@@ -483,6 +497,7 @@ class _V13ShellState extends State<V13Shell> {
     final pages = [
       V13Home(
         english: widget.english,
+        initialInput: widget.starterInput,
         plan: widget.plan,
         history: widget.history,
         openFlips: widget.flips.where((e) => e.isOpen).length,

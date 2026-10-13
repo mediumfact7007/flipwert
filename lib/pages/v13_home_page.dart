@@ -2,6 +2,7 @@ part of '../v13_app.dart';
 
 class V13Home extends StatefulWidget {
   final bool english;
+  final String initialInput;
   final UserPlan plan;
   final List<String> history;
   final int openFlips;
@@ -17,6 +18,7 @@ class V13Home extends StatefulWidget {
   const V13Home({
     super.key,
     required this.english,
+    this.initialInput = '',
     required this.plan,
     required this.history,
     required this.openFlips,
@@ -35,10 +37,18 @@ class V13Home extends StatefulWidget {
 }
 
 class _V13HomeState extends State<V13Home> {
-  final query = TextEditingController();
-  V13SearchInput preview = const V13SearchInput(raw: '', query: '', kind: V13InputKind.text);
+  late final TextEditingController query;
+  late V13SearchInput preview;
 
   String t(String de, String en) => widget.english ? en : de;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialInput.trim();
+    query = TextEditingController(text: initial);
+    preview = normalizeV13Search(initial);
+  }
 
   void _changed(String value) => setState(() => preview = normalizeV13Search(value));
 

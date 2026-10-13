@@ -26,11 +26,13 @@ bool v13HasExistingUserState(SharedPreferences prefs) =>
 
 class V13OnboardingPage extends StatefulWidget {
   final bool english;
-  final Future<void> Function() onComplete;
+  final ValueChanged<bool> onLanguage;
+  final Future<void> Function(String starterInput) onComplete;
 
   const V13OnboardingPage({
     super.key,
     required this.english,
+    required this.onLanguage,
     required this.onComplete,
   });
 
@@ -40,6 +42,7 @@ class V13OnboardingPage extends StatefulWidget {
 
 class _V13OnboardingPageState extends State<V13OnboardingPage> {
   final controller = PageController();
+  final starterInput = TextEditingController();
   int page = 0;
   bool completing = false;
 
@@ -60,7 +63,7 @@ class _V13OnboardingPageState extends State<V13OnboardingPage> {
     if (completing) return;
     setState(() => completing = true);
     try {
-      await widget.onComplete();
+      await widget.onComplete(starterInput.text.trim());
     } finally {
       if (mounted) setState(() => completing = false);
     }
@@ -85,6 +88,13 @@ class _V13OnboardingPageState extends State<V13OnboardingPage> {
                       ),
                     ),
                     const Spacer(),
+                    TextButton(
+                      key: const ValueKey('v13-onboarding-language'),
+                      onPressed: completing
+                          ? null
+                          : () => widget.onLanguage(!widget.english),
+                      child: Text(widget.english ? 'DE' : 'EN'),
+                    ),
                     TextButton(
                       key: const ValueKey('v13-onboarding-skip'),
                       onPressed: completing ? null : _complete,
@@ -146,6 +156,10 @@ class _V13OnboardingPageState extends State<V13OnboardingPage> {
                         t('Preis vor der Entscheidung bestätigen', 'Confirm the price before deciding'),
                         t('Danach direkt den Flip prüfen', 'Then check the flip directly'),
                       ],
+                      child: _V13StarterInput(
+                        english: widget.english,
+                        controller: starterInput,
+                      ),
                     ),
                   ],
                 ),
@@ -203,6 +217,7 @@ class _V13OnboardingPageState extends State<V13OnboardingPage> {
   @override
   void dispose() {
     controller.dispose();
+    starterInput.dispose();
     super.dispose();
   }
 }
@@ -212,12 +227,14 @@ class _V13OnboardingStep extends StatelessWidget {
   final String title;
   final String body;
   final List<String> points;
+  final Widget? child;
 
   const _V13OnboardingStep({
     required this.icon,
     required this.title,
     required this.body,
     required this.points,
+    this.child,
   });
 
   @override
@@ -282,7 +299,102 @@ class _V13OnboardingStep extends StatelessWidget {
                   ],
                 ),
               ),
+            if (child != null) ...[
+              const SizedBox(height: 12),
+              child!,
+            ],
           ],
         ),
       );
+}
+
+class _V13StarterInput extends StatefulWidget {
+  final bool english;
+  final TextEditingController controller;
+
+  const _V13StarterInput({
+    required this.english,
+    required this.controller,
+  });
+
+  @override
+  State<_V13StarterInput> createState() => _V13StarterInputState();
+}
+
+class _V13StarterInputState extends State<_V13StarterInput> {
+  Future<void> _paste() async {
+    final clip = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clip?.text?.trim() ?? '';
+    if (text.isEmpty || !mounted) return;
+    widget.controller.text = text.length > 500 ? text.substring(0, 500) : text;
+    widget.controller.selection = TextSelection.collapsed(
+      offset: widget.controller.text.length,
+    );
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final english = widget.english;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F3FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDCD9FF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            english ? 'Prepare your first check' : 'Ersten Check vorbereiten',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            english
+                ? 'Optional: paste voluntarily shared text or enter the exact model. Nothing is fetched from the listing page.'
+                : 'Optional: freiwillig geteilten Text einfügen oder das exakte Modell eingeben. Die Anzeigenseite wird nicht abgerufen.',
+            style: const TextStyle(
+              fontSize: 11.5,
+              height: 1.35,
+              color: Color(0xFF676B79),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            key: const ValueKey('v13-onboarding-starter-input'),
+            controller: widget.controller,
+            minLines: 1,
+            maxLines: 3,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: english
+                  ? 'Model, shared text or link'
+                  : 'Modell, geteilter Text oder Link',
+              suffixIcon: IconButton(
+                key: const ValueKey('v13-onboarding-paste'),
+                onPressed: _paste,
+                tooltip: english ? 'Paste' : 'Einfügen',
+                icon: const Icon(Icons.content_paste_rounded),
+              ),
+            ),
+          ),
+          if (widget.controller.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              english
+                  ? 'The input will be placed in the check field after onboarding.'
+                  : 'Die Eingabe steht nach dem Einstieg direkt im Prüffeld.',
+              style: const TextStyle(
+                fontSize: 10.8,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF4E5260),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
