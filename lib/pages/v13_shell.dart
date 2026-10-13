@@ -156,6 +156,16 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
     return true;
   }
 
+  Future<V13LocalDataSummary> _loadLocalDataSummary() async {
+    final alerts = await DealAlertStore().load();
+    return V13LocalDataSummary(
+      flipRecords: flips.length,
+      recentSearches: history.length,
+      customSources: sources.where((source) => !source.builtIn).length,
+      enabledDealAlerts: alerts.where((alert) => alert.enabled).length,
+    );
+  }
+
   void _unlockPro() {
     if (!mounted) return;
     setState(() => plan = UserPlan.pro);
@@ -292,6 +302,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                 _save();
               },
               onDeleteAllLocalData: _deleteAllLocalData,
+              onLoadLocalDataSummary: _loadLocalDataSummary,
             ),
     );
   }
@@ -330,6 +341,7 @@ class V13Shell extends StatefulWidget {
   final ValueChanged<List<PriceSource>> onSources;
   final ValueChanged<UserPlan> onPlanPreview;
   final Future<bool> Function() onDeleteAllLocalData;
+  final Future<V13LocalDataSummary> Function() onLoadLocalDataSummary;
 
   const V13Shell({
     super.key,
@@ -359,6 +371,7 @@ class V13Shell extends StatefulWidget {
     required this.onSources,
     required this.onPlanPreview,
     required this.onDeleteAllLocalData,
+    required this.onLoadLocalDataSummary,
   });
 
   @override
@@ -484,6 +497,7 @@ class _V13ShellState extends State<V13Shell> {
           onSources: widget.onSources,
           onPlanPreview: widget.onPlanPreview,
           onDeleteAllLocalData: widget.onDeleteAllLocalData,
+          onLoadLocalDataSummary: widget.onLoadLocalDataSummary,
         ),
       ),
     );

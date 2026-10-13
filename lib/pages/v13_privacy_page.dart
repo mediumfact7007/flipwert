@@ -37,15 +37,31 @@ class V13LegalInformation {
   }
 }
 
+class V13LocalDataSummary {
+  final int flipRecords;
+  final int recentSearches;
+  final int customSources;
+  final int enabledDealAlerts;
+
+  const V13LocalDataSummary({
+    this.flipRecords = 0,
+    this.recentSearches = 0,
+    this.customSources = 0,
+    this.enabledDealAlerts = 0,
+  });
+}
+
 class V13PrivacyPage extends StatefulWidget {
   final bool english;
   final Future<bool> Function() onDeleteAllLocalData;
+  final Future<V13LocalDataSummary> Function()? onLoadLocalDataSummary;
   final V13LegalInformation legalInformation;
 
   const V13PrivacyPage({
     super.key,
     required this.english,
     required this.onDeleteAllLocalData,
+    this.onLoadLocalDataSummary,
     this.legalInformation = const V13LegalInformation.fromEnvironment(),
   });
 
@@ -55,6 +71,22 @@ class V13PrivacyPage extends StatefulWidget {
 
 class _V13PrivacyPageState extends State<V13PrivacyPage> {
   bool deleting = false;
+  late Future<V13LocalDataSummary> localDataSummary;
+
+  @override
+  void initState() {
+    super.initState();
+    localDataSummary = _loadLocalDataSummary();
+  }
+
+  Future<V13LocalDataSummary> _loadLocalDataSummary() async {
+    try {
+      return await (widget.onLoadLocalDataSummary?.call() ??
+          Future.value(const V13LocalDataSummary()));
+    } catch (_) {
+      return const V13LocalDataSummary();
+    }
+  }
 
   String t(String de, String en) => widget.english ? en : de;
 
@@ -159,6 +191,55 @@ class _V13PrivacyPageState extends State<V13PrivacyPage> {
             Text(
               t('Lokale Flipwert-Daten', 'Local Flipwert data'),
               style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
+            FutureBuilder<V13LocalDataSummary>(
+              future: localDataSummary,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+                final summary = snapshot.data!;
+                return Container(
+                  key: const ValueKey('v13-local-data-summary'),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE1E3EC)),
+                  ),
+                  child: Column(
+                    children: [
+                      _V13LocalDataRow(
+                        icon: Icons.bookmark_outline,
+                        label: t('Lokale Flip-Einträge', 'Local flip records'),
+                        value: summary.flipRecords,
+                      ),
+                      _V13LocalDataRow(
+                        icon: Icons.history_rounded,
+                        label: t('Letzte Suchanfragen', 'Recent searches'),
+                        value: summary.recentSearches,
+                      ),
+                      _V13LocalDataRow(
+                        icon: Icons.add_business_outlined,
+                        label: t('Eigene Preisquellen', 'Custom price sources'),
+                        value: summary.customSources,
+                      ),
+                      _V13LocalDataRow(
+                        icon: Icons.notifications_active_outlined,
+                        label: t('Aktive Deal-Alarme', 'Active deal alerts'),
+                        value: summary.enabledDealAlerts,
+                        showDivider: false,
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 4),
             Text(
@@ -266,5 +347,46 @@ class _V13PrivacyCard extends StatelessWidget {
             ),
           ],
         ),
+      );
+}
+
+class _V13LocalDataRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int value;
+  final bool showDivider;
+
+  const _V13LocalDataRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.showDivider = true,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 19, color: const Color(0xFF626778)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Text(
+                '$value',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: _v13Primary,
+                ),
+              ),
+            ],
+          ),
+          if (showDivider) const Divider(height: 18),
+        ],
       );
 }

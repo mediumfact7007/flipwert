@@ -19,8 +19,9 @@ class V13SettingsPage extends StatefulWidget {
   final ValueChanged<List<PriceSource>> onSources;
   final ValueChanged<UserPlan> onPlanPreview;
   final Future<bool> Function() onDeleteAllLocalData;
+  final Future<V13LocalDataSummary> Function()? onLoadLocalDataSummary;
 
-  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview, required this.onDeleteAllLocalData});
+  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview, required this.onDeleteAllLocalData, this.onLoadLocalDataSummary});
   @override
   State<V13SettingsPage> createState() => _V13SettingsPageState();
 }
@@ -94,6 +95,7 @@ class _V13SettingsPageState extends State<V13SettingsPage> {
                   builder: (_) => V13PrivacyPage(
                     english: english,
                     onDeleteAllLocalData: widget.onDeleteAllLocalData,
+                    onLoadLocalDataSummary: widget.onLoadLocalDataSummary,
                   ),
                 ),
               ),
