@@ -152,4 +152,112 @@ void main() {
     expect(find.byKey(const ValueKey('deal-alert-result-deal')), findsOneWidget);
     expect(find.text('AUSGELÖST'), findsOneWidget);
   });
+
+  testWidgets('pins an actionable triggered result with reason and recheck',
+      (tester) async {
+    final now = DateTime(2026, 10, 13, 18);
+    String? requested;
+    final triggered = DealAlertEvaluation(
+      triggered: true,
+      profitIncrease: 15,
+      roiIncrease: 8,
+      buybackProfitIncrease: 0,
+      profitThresholdReached: true,
+      roiThresholdReached: true,
+      buybackProfitThresholdReached: false,
+      becameProfitable: false,
+      buybackBecameProfitable: false,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: DealAlertOverview(
+            english: false,
+            now: now,
+            store: _FixedAlertStore([
+              _preference('old-1'),
+              _preference('old-2'),
+              _preference('old-3'),
+              _preference('triggered'),
+            ]),
+            resultStore: _FixedResultStore([
+              DealAlertResult.fromEvaluation(
+                flipId: 'triggered',
+                checkedAt: now,
+                evaluation: triggered,
+              ),
+            ]),
+            items: [
+              for (var index = 1; index <= 3; index++)
+                DealAlertOverviewItem(
+                  flipId: 'old-$index',
+                  name: 'Alter Deal $index',
+                  checkedAt: now.subtract(Duration(days: index)),
+                ),
+              DealAlertOverviewItem(
+                flipId: 'triggered',
+                name: 'Ausgelöster Deal',
+                checkedAt: now,
+              ),
+            ],
+            onRecheck: (id) => requested = id,
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('Ausgelöster Deal'), findsOneWidget);
+    expect(find.text('Alter Deal 1'), findsNothing);
+    expect(
+      find.textContaining('Privatgewinn +15 € · ROI +8 %-Pkt. · 13.10. 18:00'),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('deal-alert-recheck-triggered-triggered')),
+    );
+    expect(requested, 'triggered');
+  });
+
+  testWidgets('does not present a result from an older alert configuration',
+      (tester) async {
+    final now = DateTime(2026, 10, 13, 18);
+    final changedPreference = _preference('deal').copyWith(updatedAt: now);
+    final oldResult = DealAlertResult.fromEvaluation(
+      flipId: 'deal',
+      checkedAt: now.subtract(const Duration(minutes: 1)),
+      evaluation: const DealAlertEvaluation(
+        triggered: true,
+        profitIncrease: 15,
+        roiIncrease: 8,
+        profitThresholdReached: true,
+        roiThresholdReached: true,
+      ),
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DealAlertOverview(
+          english: false,
+          now: now,
+          store: _FixedAlertStore([changedPreference]),
+          resultStore: _FixedResultStore([oldResult]),
+          items: [
+            DealAlertOverviewItem(
+              flipId: 'deal',
+              name: 'Deal',
+              checkedAt: now,
+            ),
+          ],
+          onRecheck: (_) {},
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('AUSGELÖST'), findsNothing);
+    expect(find.byKey(const ValueKey('deal-alert-reason-deal')), findsNothing);
+  });
 }
