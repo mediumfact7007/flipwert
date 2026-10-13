@@ -89,7 +89,17 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
         final active = widget.items
             .where((item) => byId.containsKey(item.flipId))
             .toList()
-          ..sort((a, b) => a.checkedAt.compareTo(b.checkedAt));
+          ..sort((a, b) {
+            final aTriggered = resultsById[a.flipId]?.triggered == true;
+            final bTriggered = resultsById[b.flipId]?.triggered == true;
+            if (aTriggered != bTriggered) return aTriggered ? -1 : 1;
+            if (aTriggered) {
+              return resultsById[b.flipId]!.checkedAt.compareTo(
+                    resultsById[a.flipId]!.checkedAt,
+                  );
+            }
+            return a.checkedAt.compareTo(b.checkedAt);
+          });
         if (active.isEmpty) return const SizedBox.shrink();
 
         final now = widget.now ?? DateTime.now();
@@ -177,6 +187,37 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
       ? '+€${preference.minProfitIncrease.toStringAsFixed(0)} / +${preference.minRoiIncrease.toStringAsFixed(0)}pp'
       : '+${preference.minProfitIncrease.toStringAsFixed(0)} € / +${preference.minRoiIncrease.toStringAsFixed(0)} %-Pkt.';
 
+  String _resultReason(DealAlertResult result) {
+    final reasons = <String>[];
+    if (result.becameProfitable) {
+      reasons.add(t('Privat jetzt profitabel', 'Private exit now profitable'));
+    }
+    if (result.profitThresholdReached) {
+      reasons.add(
+        '${t('Privatgewinn', 'Private profit')} +${result.profitIncrease.toStringAsFixed(0)} €',
+      );
+    }
+    if (result.roiThresholdReached) {
+      reasons.add('ROI +${result.roiIncrease.toStringAsFixed(0)} %-Pkt.');
+    }
+    if (result.buybackBecameProfitable) {
+      reasons.add(
+        t('LIVE-Ankauf jetzt profitabel', 'LIVE buyback now profitable'),
+      );
+    }
+    if (result.buybackProfitThresholdReached) {
+      reasons.add(
+        '${t('LIVE-Ankaufgewinn', 'LIVE buyback profit')} +${result.buybackProfitIncrease.toStringAsFixed(0)} €',
+      );
+    }
+    return reasons.join(' · ');
+  }
+
+  String _resultTime(DateTime value) {
+    String two(int part) => part.toString().padLeft(2, '0');
+    return '${two(value.day)}.${two(value.month)}. ${two(value.hour)}:${two(value.minute)}';
+  }
+
   Widget _alertRow(
     DealAlertOverviewItem item,
     DealAlertPreference preference,
@@ -190,32 +231,74 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
     final resultColor = result?.triggered == true
         ? const Color(0xFF087F5B)
         : const Color(0xFF707481);
-    return Row(children: [
-      Expanded(
-        child: Text(item.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w700)),
+    final reason = result?.triggered == true ? _resultReason(result!) : '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: result?.triggered == true
+            ? const Color(0xFFE7F4EE)
+            : Colors.white.withValues(alpha: .62),
+        borderRadius: BorderRadius.circular(12),
       ),
-      if (resultLabel != null) ...[
-        Container(
-          key: ValueKey('deal-alert-result-${item.flipId}'),
-          margin: const EdgeInsets.only(right: 7),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: resultColor.withValues(alpha: .09),
-            borderRadius: BorderRadius.circular(99),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Text(item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 10.8, fontWeight: FontWeight.w700)),
           ),
-          child: Text(resultLabel,
-              style: TextStyle(
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.w900,
-                  color: resultColor)),
-        ),
-      ],
-      Text(_thresholdLabel(preference),
-          style: const TextStyle(fontSize: 9.8, color: Color(0xFF087F5B))),
-    ]);
+          if (resultLabel != null) ...[
+            Container(
+              key: ValueKey('deal-alert-result-${item.flipId}'),
+              margin: const EdgeInsets.only(right: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: resultColor.withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(resultLabel,
+                  style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                      color: resultColor)),
+            ),
+          ],
+          Text(_thresholdLabel(preference),
+              style:
+                  const TextStyle(fontSize: 9.8, color: Color(0xFF087F5B))),
+        ]),
+        if (reason.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Expanded(
+              child: Text(
+                '$reason · ${_resultTime(result!.checkedAt)}',
+                key: ValueKey('deal-alert-reason-${item.flipId}'),
+                style: const TextStyle(
+                  fontSize: 9.7,
+                  height: 1.25,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF175B47),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            TextButton(
+              key: ValueKey('deal-alert-recheck-triggered-${item.flipId}'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => widget.onRecheck(item.flipId),
+              child: Text(t('NEU PRÜFEN', 'RECHECK')),
+            ),
+          ]),
+        ],
+      ]),
+    );
   }
 }
 
