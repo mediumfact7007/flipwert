@@ -49,6 +49,7 @@ part 'pages/v13_home_page.dart';
 part 'pages/v13_check_page.dart';
 part 'pages/v13_check_logic.dart';
 part 'widgets/v13_check_widgets.dart';
+part 'widgets/v13_flip_card.dart';
 part 'pages/v13_flips_page.dart';
 part 'pages/v13_settings_page.dart';
 part 'pages/v13_privacy_page.dart';
