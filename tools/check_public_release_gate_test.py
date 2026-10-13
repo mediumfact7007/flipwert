@@ -2,6 +2,7 @@
 """Regression checks for the public Android release gate."""
 
 from datetime import date, timedelta
+from pathlib import Path
 
 from check_public_release_gate import (
     PUBLIC_RELEASE_ACK,
@@ -44,6 +45,16 @@ def main() -> None:
     assert "legal review date cannot be in the future" in validate_public_release(future)
 
     assert validate_public_release(valid_environment()) == []
+
+    repo_root = Path(__file__).resolve().parents[1]
+    monetization_blockers = validate_public_release(
+        valid_environment(), repo_root=repo_root
+    )
+    assert "Google sample AdMob IDs are still configured" in monetization_blockers
+    assert any(
+        "without trusted server verification" in error
+        for error in monetization_blockers
+    )
     print("Public release gate tests passed.")
 
 
