@@ -20,6 +20,7 @@ class V13FlipsPage extends StatefulWidget {
 
 class _V13FlipsPageState extends State<V13FlipsPage> {
   late String filter;
+  int _alertRevision = 0;
   String t(String de, String en) => widget.english ? en : de;
 
   @override
@@ -143,6 +144,26 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: SegmentedButton<String>(segments: [ButtonSegment(value: 'saved', icon: const Icon(Icons.bookmark_outline_rounded, size: 16), label: Text(t('Merkliste', 'Saved'))), ButtonSegment(value: 'open', label: Text(t('Offen', 'Open'))), ButtonSegment(value: 'sold', label: Text(t('Verkauft', 'Sold'))), ButtonSegment(value: 'archived', icon: const Icon(Icons.archive_outlined, size: 16), label: Text(t('Archiv', 'Archive'))), ButtonSegment(value: 'all', label: Text(t('Alle', 'All')))], selected: {filter}, onSelectionChanged: (v) => setState(() => filter = v.first))),
         const SizedBox(height: 12),
         if (filter == 'saved' && saved.isNotEmpty) ...[
+          DealAlertOverview(
+            english: widget.english,
+            items: saved
+                .map((flip) => DealAlertOverviewItem(
+                      flipId: flip.id,
+                      name: flip.name,
+                      checkedAt: flip.checkedAt,
+                    ))
+                .toList(),
+            revision: _alertRevision,
+            onRecheck: (flipId) {
+              for (final flip in saved) {
+                if (flip.id == flipId) {
+                  widget.onRecheck(flip);
+                  break;
+                }
+              }
+            },
+          ),
+          const SizedBox(height: 10),
           _V149WatchlistAttention(
             english: widget.english,
             saved: saved,
@@ -154,7 +175,7 @@ class _V13FlipsPageState extends State<V13FlipsPage> {
           Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)), child: Column(children: [const Icon(Icons.inventory_2_outlined, size: 38, color: _v13Primary), const SizedBox(height: 9), Text(t('Noch nichts hier', 'Nothing here yet'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)), const SizedBox(height: 3), Text(t('Beim Deal einmal auf „Gekauft“ tippen – der Rest wird übernommen.', 'Tap “Bought” once on a deal – the rest is filled automatically.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, color: Color(0xFF777B88))) ]))
         else
           for (var i = 0; i < shown.length; i++) ...[
-            _V13FlipCard(english: widget.english, flip: shown[i], onUpdate: widget.onUpdate, onDelete: widget.onDelete, onRecheck: widget.onRecheck),
+            _V13FlipCard(english: widget.english, flip: shown[i], onUpdate: widget.onUpdate, onDelete: widget.onDelete, onRecheck: widget.onRecheck, onAlertChanged: () => setState(() => _alertRevision++)),
             if (widget.plan == UserPlan.free && i == 2) ...[const SizedBox(height: 8), V13BannerAd(monetization: widget.monetization)],
             const SizedBox(height: 9),
           ],

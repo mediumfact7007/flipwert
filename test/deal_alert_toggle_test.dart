@@ -16,6 +16,14 @@ class _FixedAlertStore extends DealAlertStore {
   Future<bool> save(DealAlertPreference preference) async => true;
 }
 
+class _EmptyAlertStore extends DealAlertStore {
+  @override
+  Future<DealAlertPreference?> forFlip(String flipId) async => null;
+
+  @override
+  Future<bool> save(DealAlertPreference preference) async => true;
+}
+
 void main() {
   testWidgets('custom private and LIVE thresholds are shown separately',
       (tester) async {
@@ -45,5 +53,25 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('reports a successfully saved preference change', (tester) async {
+    var changes = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DealAlertToggle(
+          flipId: 'flip-1',
+          english: false,
+          store: _EmptyAlertStore(),
+          onChanged: () => changes++,
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('deal-alert-switch-flip-1')));
+    await tester.pump();
+
+    expect(changes, 1);
   });
 }

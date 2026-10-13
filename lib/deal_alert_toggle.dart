@@ -13,12 +13,14 @@ class DealAlertToggle extends StatefulWidget {
   final String flipId;
   final bool english;
   final DealAlertStore? store;
+  final VoidCallback? onChanged;
 
   const DealAlertToggle({
     super.key,
     required this.flipId,
     required this.english,
     this.store,
+    this.onChanged,
   });
 
   @override
@@ -79,6 +81,7 @@ class _DealAlertToggleState extends State<DealAlertToggle> {
       if (saved) _preference = next;
       _saving = false;
     });
+    if (saved) widget.onChanged?.call();
     if (!saved) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t('Deal-Alarm konnte nicht gespeichert werden.', 'Deal alert could not be saved.'))),

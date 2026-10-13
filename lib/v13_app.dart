@@ -21,6 +21,7 @@ import 'buyback_provider_links_card.dart';
 import 'buyback_recheck_card.dart';
 import 'deal_alert_store.dart';
 import 'deal_alert_toggle.dart';
+import 'deal_alert_overview.dart';
 import 'dual_exit.dart';
 import 'dual_exit_card.dart';
 import 'deal_alert_result_card.dart';

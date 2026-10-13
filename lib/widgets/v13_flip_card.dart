@@ -6,7 +6,8 @@ class _V13FlipCard extends StatelessWidget {
   final ValueChanged<V13Flip> onUpdate;
   final ValueChanged<String> onDelete;
   final ValueChanged<V13Flip> onRecheck;
-  const _V13FlipCard({required this.english, required this.flip, required this.onUpdate, required this.onDelete, required this.onRecheck});
+  final VoidCallback? onAlertChanged;
+  const _V13FlipCard({required this.english, required this.flip, required this.onUpdate, required this.onDelete, required this.onRecheck, this.onAlertChanged});
   String t(String de, String en) => english ? en : de;
 
   @override
@@ -116,7 +117,7 @@ class _V13FlipCard extends StatelessWidget {
         ],
         if (saved) ...[
           const SizedBox(height: 8),
-          DealAlertToggle(flipId: flip.id, english: english),
+          DealAlertToggle(flipId: flip.id, english: english, onChanged: onAlertChanged),
         ],
         if (!sold && !archived) ...[
           const SizedBox(height: 10),
