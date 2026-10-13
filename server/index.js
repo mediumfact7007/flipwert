@@ -4,6 +4,7 @@ const http = require('http');
 const { URL, URLSearchParams } = require('url');
 const { assessMarketListings } = require('./market_quality');
 const { fetchBuybackOffers, sourceStatus: buybackSourceStatus } = require('./buyback_source');
+const { configured: playVerificationConfigured, verifyPlayEntitlement } = require('./play_entitlement');
 
 const PORT = Number(process.env.PORT || 8080);
 const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID || '';
@@ -41,6 +42,18 @@ function json(res, status, body) {
     'x-content-type-options': 'nosniff',
   });
   res.end(data);
+}
+
+async function readJson(req, maxBytes = 16_384) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new Error('request_too_large');
+    chunks.push(chunk);
+  }
+  if (!chunks.length) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
 function money(value) {
@@ -333,7 +346,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         'access-control-allow-origin': '*',
-        'access-control-allow-methods': 'GET,OPTIONS',
+        'access-control-allow-methods': 'GET,POST,OPTIONS',
         'access-control-allow-headers': 'content-type',
       });
       return res.end();
@@ -349,7 +362,48 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/status') {
-      return json(res, 200, { sources: sourceStatus() });
+      return json(res, 200, {
+        sources: sourceStatus(),
+        monetization: {
+          play_verification_configured: playVerificationConfigured(),
+        },
+      });
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/entitlements/google-play') {
+      pruneRateBuckets();
+      if (!allowRequest(req)) {
+        return json(res, 429, { verified: false, error: 'rate_limit' });
+      }
+      let body;
+      try {
+        body = await readJson(req);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : '';
+        return json(res, reason === 'request_too_large' ? 413 : 400, {
+          verified: false,
+          error: reason === 'request_too_large' ? reason : 'invalid_json',
+        });
+      }
+      try {
+        const result = await verifyPlayEntitlement({
+          productId: String(body.product_id || '').trim(),
+          purchaseToken: String(body.purchase_token || '').trim(),
+        });
+        const status = result.verified
+          ? 200
+          : result.error === 'play_verification_not_configured'
+            ? 503
+            : 403;
+        return json(res, status, {
+          verified: result.verified,
+          product_id: result.productId,
+          expires_at: result.expiresAt,
+          error: result.error,
+        });
+      } catch (_) {
+        return json(res, 502, { verified: false, error: 'play_verification_failed' });
+      }
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/listing/resolve') {

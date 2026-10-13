@@ -17,11 +17,10 @@ class V13SettingsPage extends StatefulWidget {
   final ValueChanged<V13TaxMode> onTaxMode;
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
-  final ValueChanged<UserPlan> onPlanPreview;
   final Future<bool> Function() onDeleteAllLocalData;
   final Future<V13LocalDataSummary> Function()? onLoadLocalDataSummary;
 
-  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onPlanPreview, required this.onDeleteAllLocalData, this.onLoadLocalDataSummary});
+  const V13SettingsPage({super.key, required this.english, required this.backend, required this.targetRoi, required this.minProfit, this.ebayDiscount = .10, required this.plan, required this.taxMode, required this.sources, required this.monetization, required this.onLanguage, required this.onRoi, required this.onMinProfit, required this.onEbayDiscount, required this.onTaxMode, required this.onBackend, required this.onSources, required this.onDeleteAllLocalData, this.onLoadLocalDataSummary});
   @override
   State<V13SettingsPage> createState() => _V13SettingsPageState();
 }
@@ -107,7 +106,6 @@ class _V13SettingsPageState extends State<V13SettingsPage> {
             const SizedBox(height: 9),
             Text(t('SAFE RECOVERY 2: Test-AdMob wird nur nach einer Werbe-/Datenschutz-Aktion geladen. Banner bleiben in dieser Version deaktiviert.', 'SAFE RECOVERY 2: Test AdMob loads only after an ad/privacy action. Banner ads remain disabled in this build.'), style: const TextStyle(fontSize: 10.5, color: Color(0xFF737786))),
             const SizedBox(height: 9),
-            SegmentedButton<UserPlan>(segments: const [ButtonSegment(value: UserPlan.free, label: Text('FREE')), ButtonSegment(value: UserPlan.pro, label: Text('PRO TEST'))], selected: {widget.plan == UserPlan.free ? UserPlan.free : UserPlan.pro}, onSelectionChanged: (v) => widget.onPlanPreview(v.first)),
           ]),
         ]),
       );

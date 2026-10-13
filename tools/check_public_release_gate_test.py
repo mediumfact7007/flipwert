@@ -51,8 +51,8 @@ def main() -> None:
         valid_environment(), repo_root=repo_root
     )
     assert "Google sample AdMob IDs are still configured" in monetization_blockers
-    assert any(
-        "without trusted server verification" in error
+    assert not any(
+        "server verification" in error or "trusted verifier" in error
         for error in monetization_blockers
     )
     print("Public release gate tests passed.")

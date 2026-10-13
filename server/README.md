@@ -28,6 +28,17 @@ KEEPA_API_KEY=...
 
 `EBAY_CLIENT_ID` is the eBay **App ID / Client ID** and `EBAY_CLIENT_SECRET` is the **Cert ID / Client Secret**. The eBay **Dev ID is not used** by this OAuth client-credentials flow.
 
+## Google Play entitlement verification
+
+PRO remains locked unless the backend can verify an active subscription with
+the Google Play Developer API. Configure these only in the backend environment:
+
+- `GOOGLE_PLAY_PACKAGE_NAME=com.flipwert.app`
+- `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` containing the service-account JSON
+
+The service account must be linked in Play Console with read access to orders
+and subscriptions. Never place this JSON or its private key in the app or repo.
+
 Flipwert treats every value other than the exact string `production` as Sandbox. Only switch to:
 
 ```text

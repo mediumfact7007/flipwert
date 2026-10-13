@@ -535,6 +535,7 @@ class V13Monetization extends ChangeNotifier {
   static const iosRewarded = 'ca-app-pub-3940256099942544/1712485313';
 
   final VoidCallback onProUnlocked;
+  final ProEntitlementVerifier _entitlementVerifier;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
   final Map<String, ProductDetails> _nativeProducts = <String, ProductDetails>{};
   bool adsAllowed = false;
@@ -545,7 +546,12 @@ class V13Monetization extends ChangeNotifier {
   bool _adsLoading = false;
   List<V13StoreProduct> products = const [];
 
-  V13Monetization({required this.onProUnlocked});
+  V13Monetization({
+    required this.onProUnlocked,
+    ProEntitlementVerifier? entitlementVerifier,
+  }) : _entitlementVerifier = entitlementVerifier ?? ProEntitlementVerifier();
+
+  void _grantVerifiedEntitlement() => onProUnlocked();
 
   String get bannerId => Platform.isAndroid ? androidBanner : iosBanner;
   String get rewardedId => Platform.isAndroid ? androidRewarded : iosRewarded;
@@ -662,14 +668,23 @@ class V13Monetization extends ChangeNotifier {
 
   Future<void> _purchaseUpdate(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
+      var verifiedEntitlement = false;
       if ((purchase.productID == monthlyId || purchase.productID == yearlyId) &&
           (purchase.status == PurchaseStatus.purchased ||
               purchase.status == PurchaseStatus.restored)) {
-        // Test-track behavior only. Production must verify the Play token on a
-        // trusted server before granting a durable entitlement.
-        onProUnlocked();
+        verifiedEntitlement = await _entitlementVerifier.verify(
+          productId: purchase.productID,
+          purchaseToken: purchase.verificationData.serverVerificationData,
+        );
+        if (verifiedEntitlement) _grantVerifiedEntitlement();
       }
-      if (purchase.pendingCompletePurchase) {
+      // Never acknowledge a successful purchase until the trusted backend has
+      // verified it. Google can then redeliver an unverified purchase instead
+      // of silently charging while Flipwert remains locked.
+      final terminalFailure = purchase.status == PurchaseStatus.error ||
+          purchase.status == PurchaseStatus.canceled;
+      if (purchase.pendingCompletePurchase &&
+          (verifiedEntitlement || terminalFailure)) {
         try {
           await InAppPurchase.instance.completePurchase(purchase);
         } catch (_) {}

@@ -88,6 +88,29 @@ function get(path) {
   });
 }
 
+function post(path, payload) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const request = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path,
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+      },
+    }, (response) => {
+      let responseBody = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { responseBody += chunk; });
+      response.on('end', () => resolve({ status: response.statusCode, body: responseBody }));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
 async function waitForServer() {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     try {
@@ -111,6 +134,15 @@ async function waitForServer() {
       count: 0,
       raw_count: 0,
       rejected_count: 0,
+    });
+    const entitlement = await post('/v1/entitlements/google-play', {
+      product_id: 'flipwert_pro_monthly',
+      purchase_token: 'valid-looking-purchase-token-value',
+    });
+    assert.strictEqual(entitlement.status, 503);
+    assert.deepStrictEqual(JSON.parse(entitlement.body), {
+      verified: false,
+      error: 'play_verification_not_configured',
     });
     console.log('market_endpoint_test: ok');
   } finally {
