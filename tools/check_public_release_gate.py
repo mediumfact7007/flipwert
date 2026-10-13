@@ -7,12 +7,14 @@ import ipaddress
 import os
 import re
 from datetime import date
+from pathlib import Path
 from urllib.parse import urlsplit
 
 PUBLIC_RELEASE_ACK = "approved-public-release-v1"
 SOURCE_RIGHTS_ACK = "approved-current-source-rights-v1"
 PLACEHOLDERS = ("example", "placeholder", "changeme", "tbd", "muster")
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+GOOGLE_SAMPLE_AD_ID = "ca-app-pub-3940256099942544"
 
 
 def _is_placeholder(value: str) -> bool:
@@ -46,7 +48,33 @@ def _is_public_https(value: str) -> bool:
         return "." in host
 
 
-def validate_public_release(env: dict[str, str]) -> list[str]:
+def _monetization_errors(repo_root: Path) -> list[str]:
+    errors: list[str] = []
+    models_path = repo_root / "lib" / "models" / "v13_models.dart"
+    android_path = repo_root / "tools" / "prepare_android_ci.py"
+    try:
+        models = models_path.read_text(encoding="utf-8")
+        android = android_path.read_text(encoding="utf-8")
+    except OSError:
+        return ["monetization release sources could not be verified"]
+
+    if GOOGLE_SAMPLE_AD_ID in models or GOOGLE_SAMPLE_AD_ID in android:
+        errors.append("Google sample AdMob IDs are still configured")
+
+    purchase_start = models.find("Future<void> _purchaseUpdate(")
+    purchase_end = models.find("Future<bool> rewardedUnlock()", purchase_start)
+    if purchase_start < 0 or purchase_end < 0:
+        errors.append("Play purchase entitlement flow could not be verified")
+    elif "onProUnlocked();" in models[purchase_start:purchase_end]:
+        errors.append(
+            "Play purchases still grant PRO on-device without trusted server verification"
+        )
+    return errors
+
+
+def validate_public_release(
+    env: dict[str, str], repo_root: Path | None = None
+) -> list[str]:
     if env.get("FLIPWERT_PUBLIC_RELEASE", "").strip().lower() != "true":
         return []
 
@@ -81,11 +109,14 @@ def validate_public_release(env: dict[str, str]) -> list[str]:
         errors.append("public-release legal review acknowledgement is missing")
     if env.get("FLIPWERT_SOURCE_RIGHTS_ACK", "") != SOURCE_RIGHTS_ACK:
         errors.append("current source-rights acknowledgement is missing")
+    if repo_root is not None:
+        errors.extend(_monetization_errors(repo_root))
     return errors
 
 
 def main() -> int:
-    errors = validate_public_release(dict(os.environ))
+    repo_root = Path(__file__).resolve().parents[1]
+    errors = validate_public_release(dict(os.environ), repo_root=repo_root)
     if errors:
         print("Public release gate blocked the build:")
         for error in errors:

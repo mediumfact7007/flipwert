@@ -64,6 +64,25 @@ und schreibt keine Zugangsdaten in App oder Repository. Vor der ersten
 Einreichung muss Google Play App Signing eingerichtet und bestätigt werden,
 dass genau dieser Schlüssel als Upload-Schlüssel registriert ist.
 
+## Technische Monetarisierungssperre
+
+Repository-Variablen und juristische Bestätigungen allein können den
+öffentlichen Build nicht freigeben. Das Gate prüft zusätzlich den tatsächlich
+eingebundenen Monetarisierungscode und blockiert derzeit bewusst, solange
+
+- Google-Testkennungen für AdMob in App oder Android-Manifestvorbereitung
+  enthalten sind oder
+- ein Play-Kauf PRO noch direkt auf dem Gerät freischaltet, ohne den Kaufbeleg
+  zuvor über einen vertrauenswürdigen Server zu verifizieren.
+
+Damit kann weder eine öffentliche APK noch ein Play-Upload-AAB versehentlich
+mit Testwerbung oder einer manipulierbaren Berechtigung entstehen. Interne
+CI-/Test-Builds bleiben möglich. Vor der Aufhebung dieser Sperre müssen
+Produktions-Werbekennungen, Einwilligungs-/Datenschutzprüfung und eine
+serverseitige Play-Entitlement-Verifikation gemeinsam umgesetzt und geprüft
+sein. Die Sperre ist nicht über eine zusätzliche Repository-Variable
+übersteuerbar.
+
 Die Werte liegen als GitHub-Repository-Variablen außerhalb des App-Quellcodes.
 Zugangsdaten und API-Schlüssel gehören weiterhin ausschließlich in Secrets
 beziehungsweise in die serverseitige Laufzeitkonfiguration.
