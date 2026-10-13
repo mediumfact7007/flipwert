@@ -86,7 +86,10 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
           .where((flip) => flip.isSaved || flip.isArchived)
           .map((flip) => flip.id),
     );
-    final rawPlan = prefs.getInt('plan_v13') ?? prefs.getInt('plan_preview_v10') ?? 0;
+    // Older test builds persisted a local PRO preview. It is not a purchase
+    // entitlement and must never survive into the verified billing flow.
+    await prefs.remove('plan_v13');
+    await prefs.remove('plan_preview_v10');
     final rawTax = prefs.getInt('tax_mode_v13') ?? 0;
     if (!mounted) return;
     setState(() {
@@ -97,7 +100,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       ebayDiscount = (prefs.getDouble('ebay_discount_v13') ?? .10)
           .clamp(0, .40)
           .toDouble();
-      plan = rawPlan <= 0 ? UserPlan.free : UserPlan.pro;
+      plan = UserPlan.free;
       taxMode = V13TaxMode.values[rawTax.clamp(0, V13TaxMode.values.length - 1)];
       flips = loadedFlips;
       history = (prefs.getStringList('history_v13') ?? prefs.getStringList('history_v10') ?? <String>[])
@@ -169,7 +172,6 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
   void _unlockPro() {
     if (!mounted) return;
     setState(() => plan = UserPlan.pro);
-    _save();
   }
 
   void _save() {
@@ -180,7 +182,6 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
       await p.setDouble('roi_v13', targetRoi);
       await p.setDouble('min_profit_v13', minProfit);
       await p.setDouble('ebay_discount_v13', ebayDiscount);
-      await p.setInt('plan_v13', plan == UserPlan.free ? 0 : 1);
       await p.setInt('tax_mode_v13', taxMode.index);
       await p.setStringList('flips_v13', flips.map((e) => jsonEncode(e.toJson())).toList());
       await p.setStringList('history_v13', history.take(12).toList());
@@ -297,10 +298,6 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                 setState(() => sources = value);
                 unawaited(SourceRegistry.save(value));
               },
-              onPlanPreview: (value) {
-                setState(() => plan = value == UserPlan.free ? UserPlan.free : UserPlan.pro);
-                _save();
-              },
               onDeleteAllLocalData: _deleteAllLocalData,
               onLoadLocalDataSummary: _loadLocalDataSummary,
             ),
@@ -339,7 +336,6 @@ class V13Shell extends StatefulWidget {
   final ValueChanged<V13TaxMode> onTaxMode;
   final ValueChanged<String> onBackend;
   final ValueChanged<List<PriceSource>> onSources;
-  final ValueChanged<UserPlan> onPlanPreview;
   final Future<bool> Function() onDeleteAllLocalData;
   final Future<V13LocalDataSummary> Function() onLoadLocalDataSummary;
 
@@ -369,7 +365,6 @@ class V13Shell extends StatefulWidget {
     required this.onTaxMode,
     required this.onBackend,
     required this.onSources,
-    required this.onPlanPreview,
     required this.onDeleteAllLocalData,
     required this.onLoadLocalDataSummary,
   });
@@ -495,7 +490,6 @@ class _V13ShellState extends State<V13Shell> {
           onTaxMode: widget.onTaxMode,
           onBackend: widget.onBackend,
           onSources: widget.onSources,
-          onPlanPreview: widget.onPlanPreview,
           onDeleteAllLocalData: widget.onDeleteAllLocalData,
           onLoadLocalDataSummary: widget.onLoadLocalDataSummary,
         ),

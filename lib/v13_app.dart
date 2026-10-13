@@ -29,6 +29,7 @@ import 'deal_math.dart';
 import 'forecast_accuracy_card.dart';
 import 'forecast_control.dart';
 import 'manual_buyback_quote_card.dart';
+import 'pro_entitlement.dart';
 
 
 

@@ -27,7 +27,6 @@ void main() {
         onTaxMode: (_) {},
         onBackend: (_) {},
         onSources: (_) {},
-        onPlanPreview: (_) {},
         onDeleteAllLocalData: () async => true,
       ),
     ));
