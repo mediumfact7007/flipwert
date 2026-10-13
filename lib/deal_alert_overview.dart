@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'deal_alert.dart';
+import 'deal_alert_result_store.dart';
 import 'deal_alert_store.dart';
 
 class DealAlertOverviewItem {
@@ -24,6 +25,7 @@ class DealAlertOverview extends StatefulWidget {
   final List<DealAlertOverviewItem> items;
   final ValueChanged<String> onRecheck;
   final DealAlertStore? store;
+  final DealAlertResultStore? resultStore;
   final int revision;
   final DateTime? now;
 
@@ -33,6 +35,7 @@ class DealAlertOverview extends StatefulWidget {
     required this.items,
     required this.onRecheck,
     this.store,
+    this.resultStore,
     this.revision = 0,
     this.now,
   });
@@ -43,29 +46,46 @@ class DealAlertOverview extends StatefulWidget {
 
 class _DealAlertOverviewState extends State<DealAlertOverview> {
   late final DealAlertStore _store = widget.store ?? DealAlertStore();
-  late Future<List<DealAlertPreference>> _preferences = _store.load();
+  late final DealAlertResultStore _resultStore =
+      widget.resultStore ?? DealAlertResultStore();
+  late Future<_DealAlertOverviewData> _data = _load();
 
   String t(String de, String en) => widget.english ? en : de;
+
+  Future<_DealAlertOverviewData> _load() async => _DealAlertOverviewData(
+        preferences: await _store.load(),
+        results: await _resultStore.load(),
+      );
 
   @override
   void didUpdateWidget(covariant DealAlertOverview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.revision != widget.revision ||
         oldWidget.items != widget.items) {
-      _preferences = _store.load();
+      _data = _load();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<DealAlertPreference>>(
-      future: _preferences,
+    return FutureBuilder<_DealAlertOverviewData>(
+      future: _data,
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final byId = {
-          for (final preference in snapshot.data!)
+          for (final preference in snapshot.data!.preferences)
             if (preference.enabled) preference.flipId: preference,
         };
+        final resultsById = <String, DealAlertResult>{};
+        for (final result in snapshot.data!.results) {
+          final preference = byId[result.flipId];
+          // Changing or re-enabling an alert creates a new evaluation baseline.
+          // Never present a result calculated with an older threshold.
+          if (preference != null &&
+              !result.checkedAt.isBefore(preference.updatedAt)) {
+            resultsById[result.flipId] = result;
+          }
+        }
         final active = widget.items
             .where((item) => byId.containsKey(item.flipId))
             .toList()
@@ -76,16 +96,25 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
         final due = active
             .where((item) => now.difference(item.checkedAt).inHours >= 24)
             .toList();
+        final triggered = active
+            .where((item) => resultsById[item.flipId]?.triggered == true)
+            .length;
         final preview = active.take(3).toList();
         final title = t(
           '${active.length} aktive${active.length == 1 ? 'r' : ''} Deal-Alarm${active.length == 1 ? '' : 'e'}',
           '${active.length} active deal alert${active.length == 1 ? '' : 's'}',
         );
-        final status = due.isEmpty
+        final dueStatus = due.isEmpty
             ? t('Alle Checks jünger als 24 Std.', 'All checks are less than 24h old.')
             : t(
                 '${due.length} ${due.length == 1 ? 'Prüfung ist' : 'Prüfungen sind'} fällig.',
                 '${due.length} ${due.length == 1 ? 'check is' : 'checks are'} due.',
+              );
+        final resultStatus = triggered == 0
+            ? ''
+            : t(
+                ' $triggered zuletzt ausgelöst.',
+                ' $triggered last triggered.',
               );
         return Container(
           key: const ValueKey('deal-alert-overview'),
@@ -108,7 +137,7 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w900, fontSize: 12.5)),
                       Text(
-                        '$status ${t('Nur lokal; Auswertung beim Recheck.', 'Local only; evaluated on recheck.')}',
+                        '$dueStatus$resultStatus ${t('Nur lokal; Auswertung beim Recheck.', 'Local only; evaluated on recheck.')}',
                         style: const TextStyle(
                             fontSize: 10.5, color: Color(0xFF707481)),
                       ),
@@ -125,18 +154,11 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
             for (final item in preview)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 10.8, fontWeight: FontWeight.w700)),
-                  ),
-                  Text(_thresholdLabel(byId[item.flipId]!),
-                      style: const TextStyle(
-                          fontSize: 9.8, color: Color(0xFF087F5B))),
-                ]),
+                child: _alertRow(
+                  item,
+                  byId[item.flipId]!,
+                  resultsById[item.flipId],
+                ),
               ),
             if (active.length > preview.length)
               Text(
@@ -154,4 +176,55 @@ class _DealAlertOverviewState extends State<DealAlertOverview> {
   String _thresholdLabel(DealAlertPreference preference) => widget.english
       ? '+€${preference.minProfitIncrease.toStringAsFixed(0)} / +${preference.minRoiIncrease.toStringAsFixed(0)}pp'
       : '+${preference.minProfitIncrease.toStringAsFixed(0)} € / +${preference.minRoiIncrease.toStringAsFixed(0)} %-Pkt.';
+
+  Widget _alertRow(
+    DealAlertOverviewItem item,
+    DealAlertPreference preference,
+    DealAlertResult? result,
+  ) {
+    final resultLabel = result == null
+        ? null
+        : result.triggered
+            ? t('AUSGELÖST', 'TRIGGERED')
+            : t('GEPRÜFT', 'CHECKED');
+    final resultColor = result?.triggered == true
+        ? const Color(0xFF087F5B)
+        : const Color(0xFF707481);
+    return Row(children: [
+      Expanded(
+        child: Text(item.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w700)),
+      ),
+      if (resultLabel != null) ...[
+        Container(
+          key: ValueKey('deal-alert-result-${item.flipId}'),
+          margin: const EdgeInsets.only(right: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: resultColor.withValues(alpha: .09),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(resultLabel,
+              style: TextStyle(
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w900,
+                  color: resultColor)),
+        ),
+      ],
+      Text(_thresholdLabel(preference),
+          style: const TextStyle(fontSize: 9.8, color: Color(0xFF087F5B))),
+    ]);
+  }
+}
+
+class _DealAlertOverviewData {
+  final List<DealAlertPreference> preferences;
+  final List<DealAlertResult> results;
+
+  const _DealAlertOverviewData({
+    required this.preferences,
+    required this.results,
+  });
 }

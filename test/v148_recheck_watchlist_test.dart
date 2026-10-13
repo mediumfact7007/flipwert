@@ -1,6 +1,10 @@
 import 'package:flipwert/main.dart';
+import 'package:flipwert/deal_alert.dart';
+import 'package:flipwert/deal_alert_result_store.dart';
+import 'package:flipwert/deal_alert_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 V13Flip _saved(String id, DateTime checkedAt, {double buy = 220}) => V13Flip(
       id: id,
@@ -53,6 +57,7 @@ void main() {
   });
 
   testWidgets('recheck uses entered asking price and updates the same snapshot', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     final monetization = V13Monetization(onProUnlocked: () {});
     final oldCheck = DateTime.now().subtract(const Duration(days: 2));
     final existing = _saved('saved-1', oldCheck);
@@ -60,6 +65,12 @@ void main() {
     var adds = 0;
     final input = normalizeV13Search(
       'Nintendo Switch OLED https://www.kleinanzeigen.de/s-anzeige/nintendo-switch-oled/1234567890-279-1234',
+    );
+    await DealAlertStore().save(
+      DealAlertPreference.defaults(
+        existing.id,
+        now: oldCheck.subtract(const Duration(minutes: 1)),
+      ),
     );
 
     await tester.pumpWidget(MaterialApp(
@@ -84,7 +95,7 @@ void main() {
     final buyField = tester.widget<TextField>(find.byKey(const ValueKey('v13-buy-input')));
     expect(buyField.controller?.text, '220');
     await tester.enterText(find.byKey(const ValueKey('v13-buy-input')), '205');
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final saleFinder = find.byKey(const ValueKey('v13-manual-sale-input'));
     final saleField = tester.widget<TextField>(saleFinder);
@@ -105,7 +116,7 @@ void main() {
     final rememberButton = tester.widget<OutlinedButton>(remember);
     expect(rememberButton.onPressed, isNotNull);
     rememberButton.onPressed!();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(adds, 0);
     expect(updated, isNotNull);
@@ -119,6 +130,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Deal aktualisiert.'), findsOneWidget);
+    final storedResults = await DealAlertResultStore().load();
+    expect(storedResults, hasLength(1));
+    expect(storedResults.single.flipId, existing.id);
+    expect(storedResults.single.triggered, isTrue);
     monetization.dispose();
   });
 

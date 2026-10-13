@@ -545,17 +545,69 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
     );
   }
 
-  void _remember() {
+  Future<void> _remember() async {
     final item = _dealSnapshot('Saved');
     if (item == null) return;
     final updating = widget.existingSnapshot != null && widget.onUpdateFlip != null;
     if (updating) {
+      final previous = widget.existingSnapshot!;
+      if (previous.isSaved) {
+        await _recordDealAlertResult(previous, item);
+      }
+      if (!mounted) return;
       widget.onUpdateFlip!(item);
     } else {
       widget.onAddFlip(item);
     }
     setState(() => savedWatch = true);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t(updating ? 'Deal aktualisiert.' : 'Deal gemerkt.', updating ? 'Deal updated.' : 'Deal saved.'))));
+  }
+
+  Future<void> _recordDealAlertResult(
+    V13Flip previous,
+    V13Flip current,
+  ) async {
+    final hasPrivateComparison = current.expectedAtBuy > 0 &&
+        (previous.maxBuyAtCheck > 0 ||
+            previous.profitAtCheck != 0 ||
+            previous.roiAtCheck != 0);
+    final verifiedBuybackComparison =
+        previous.buybackQuoteKindAtCheck == 'live_provider' &&
+            previous.buybackPriceAtCheck > 0 &&
+            current.buybackQuoteKindAtCheck == 'live_provider' &&
+            current.buybackPriceAtCheck > 0;
+    if (!hasPrivateComparison && !verifiedBuybackComparison) return;
+
+    final preference = await DealAlertStore().forFlip(previous.id);
+    if (preference == null || !preference.enabled) return;
+    final evaluation = evaluateDealAlert(
+      preference: preference,
+      previousProfit:
+          hasPrivateComparison ? previous.profitAtCheck : double.nan,
+      currentProfit: hasPrivateComparison ? current.profitAtCheck : double.nan,
+      previousRoi: hasPrivateComparison ? previous.roiAtCheck : double.nan,
+      currentRoi: hasPrivateComparison ? current.roiAtCheck : double.nan,
+      previousBuybackProfit: verifiedBuybackComparison
+          ? previous.buybackPriceAtCheck -
+              previous.buy -
+              previous.costs -
+              previous.buybackSafetyReserve
+          : null,
+      currentBuybackProfit: verifiedBuybackComparison
+          ? current.buybackPriceAtCheck -
+              current.buy -
+              current.costs -
+              current.buybackSafetyReserve
+          : null,
+      verifiedBuybackComparison: verifiedBuybackComparison,
+    );
+    await DealAlertResultStore().save(
+      DealAlertResult.fromEvaluation(
+        flipId: previous.id,
+        checkedAt: current.checkedAt,
+        evaluation: evaluation,
+      ),
+    );
   }
 
   void _bought() {

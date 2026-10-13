@@ -81,11 +81,12 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
     }
     final loadedBackend = prefs.getString('backend_v13') ?? prefs.getString('backend_v10') ?? '';
     final loadedSources = await SourceRegistry.load(backendBase: loadedBackend);
-    await DealAlertStore().retainOnly(
-      loadedFlips
-          .where((flip) => flip.isSaved || flip.isArchived)
-          .map((flip) => flip.id),
-    );
+    final alertEligibleIds = loadedFlips
+        .where((flip) => flip.isSaved || flip.isArchived)
+        .map((flip) => flip.id)
+        .toList(growable: false);
+    await DealAlertStore().retainOnly(alertEligibleIds);
+    await DealAlertResultStore().retainOnly(alertEligibleIds);
     // Older test builds persisted a local PRO preview. It is not a purchase
     // entitlement and must never survive into the verified billing flow.
     await prefs.remove('plan_v13');
@@ -267,6 +268,7 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
                 setState(() => flips.removeWhere((e) => e.id == id));
                 _save();
                 unawaited(DealAlertStore().remove(id));
+                unawaited(DealAlertResultStore().remove(id));
               },
               onLanguage: (value) {
                 setState(() => english = value);

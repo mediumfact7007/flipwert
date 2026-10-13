@@ -210,10 +210,12 @@ IconData _sourceIcon(String id) {
 Future<bool> _syncDealAlertLifecycle(
   V13Flip previous,
   V13Flip current,
-) {
+) async {
   final removeAlert = previous.isSaved &&
       !current.isSaved &&
       !current.isArchived;
-  if (!removeAlert) return Future<bool>.value(true);
-  return DealAlertStore().remove(current.id);
+  if (!removeAlert) return true;
+  final preferenceRemoved = await DealAlertStore().remove(current.id);
+  final resultRemoved = await DealAlertResultStore().remove(current.id);
+  return preferenceRemoved && resultRemoved;
 }
