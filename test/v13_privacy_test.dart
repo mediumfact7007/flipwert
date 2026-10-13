@@ -94,6 +94,37 @@ void main() {
     expect(deletions, 1);
   });
 
+  testWidgets('local data inventory shows exact on-device record counts',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: V13PrivacyPage(
+          english: false,
+          onDeleteAllLocalData: () async => false,
+          onLoadLocalDataSummary: () async => const V13LocalDataSummary(
+            flipRecords: 3,
+            recentSearches: 2,
+            customSources: 1,
+            enabledDealAlerts: 4,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final summary = find.byKey(const ValueKey('v13-local-data-summary'));
+    await tester.scrollUntilVisible(summary, 150);
+    expect(summary, findsOneWidget);
+    expect(find.text('Lokale Flip-Einträge'), findsOneWidget);
+    expect(find.text('Letzte Suchanfragen'), findsOneWidget);
+    expect(find.text('Eigene Preisquellen'), findsOneWidget);
+    expect(find.text('Aktive Deal-Alarme'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+  });
+
   testWidgets('deleting app data clears preferences and returns to onboarding',
       (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -117,7 +148,7 @@ void main() {
     await tester.tap(privacyEntry);
     await tester.pumpAndSettle();
     final deleteButton = find.byKey(const ValueKey('v13-delete-local-data'));
-    await tester.ensureVisible(deleteButton);
+    await tester.scrollUntilVisible(deleteButton, 200);
     await tester.pumpAndSettle();
     await tester.tap(deleteButton);
     await tester.pumpAndSettle();
