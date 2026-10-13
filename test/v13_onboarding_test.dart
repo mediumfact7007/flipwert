@@ -37,13 +37,31 @@ void main() {
     expect(find.text('Links bleiben unter deiner Kontrolle.'), findsOneWidget);
     expect(find.text('FLIPWERT STARTEN'), findsOneWidget);
 
+    const sharedText =
+        'Nintendo Switch OLED 219 € https://www.kleinanzeigen.de/s-anzeige/nintendo-switch-oled/1234567890-279-1234';
+    await tester.enterText(
+      find.byKey(const ValueKey('v13-onboarding-starter-input')),
+      sharedText,
+    );
+    await tester.tap(find.byKey(const ValueKey('v13-onboarding-language')));
+    await tester.pumpAndSettle();
+    expect(find.text('Links stay under your control.'), findsOneWidget);
+    expect(find.text('START FLIPWERT'), findsOneWidget);
+    expect(find.text('DE'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('v13-onboarding-next')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('v13-onboarding')), findsNothing);
     expect(find.byKey(const ValueKey('v13-universal-search')), findsOneWidget);
+    final search = tester.widget<TextField>(
+      find.byKey(const ValueKey('v13-universal-search')),
+    );
+    expect(search.controller?.text, sharedText);
+    expect(find.textContaining('Link detected'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('onboarding_v13_complete'), isTrue);
+    expect(prefs.getBool('english_v13'), isTrue);
   });
 
   test('completed onboarding marker remains distinct from migrated user data',
