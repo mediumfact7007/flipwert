@@ -1,5 +1,6 @@
 import 'package:flipwert/deal_alert.dart';
 import 'package:flipwert/deal_alert_overview.dart';
+import 'package:flipwert/deal_alert_result_store.dart';
 import 'package:flipwert/deal_alert_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,15 @@ class _FixedAlertStore extends DealAlertStore {
 
   @override
   Future<List<DealAlertPreference>> load() async => preferences;
+}
+
+class _FixedResultStore extends DealAlertResultStore {
+  _FixedResultStore(this.results);
+
+  final List<DealAlertResult> results;
+
+  @override
+  Future<List<DealAlertResult>> load() async => results;
 }
 
 DealAlertPreference _preference(String id, {bool enabled = true}) =>
@@ -39,6 +49,7 @@ void main() {
             _preference('oldest'),
             _preference('disabled', enabled: false),
           ]),
+          resultStore: _FixedResultStore(const []),
           items: [
             DealAlertOverviewItem(
               flipId: 'fresh',
@@ -79,6 +90,7 @@ void main() {
         body: DealAlertOverview(
           english: false,
           store: _FixedAlertStore([_preference('deal', enabled: false)]),
+          resultStore: _FixedResultStore(const []),
           items: [
             DealAlertOverviewItem(
               flipId: 'deal',
@@ -93,5 +105,51 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('deal-alert-overview')), findsNothing);
+  });
+
+  testWidgets('keeps the latest triggered result visible in the overview',
+      (tester) async {
+    final now = DateTime(2026, 10, 13, 18);
+    final evaluation = DealAlertEvaluation(
+      triggered: true,
+      profitIncrease: 15,
+      roiIncrease: 8,
+      buybackProfitIncrease: 0,
+      profitThresholdReached: true,
+      roiThresholdReached: true,
+      buybackProfitThresholdReached: false,
+      becameProfitable: false,
+      buybackBecameProfitable: false,
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: DealAlertOverview(
+          english: false,
+          now: now,
+          store: _FixedAlertStore([_preference('deal')]),
+          resultStore: _FixedResultStore([
+            DealAlertResult.fromEvaluation(
+              flipId: 'deal',
+              checkedAt: now,
+              evaluation: evaluation,
+            ),
+          ]),
+          items: [
+            DealAlertOverviewItem(
+              flipId: 'deal',
+              name: 'Nintendo Switch OLED',
+              checkedAt: now,
+            ),
+          ],
+          onRecheck: (_) {},
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.textContaining('1 zuletzt ausgelöst.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('deal-alert-result-deal')), findsOneWidget);
+    expect(find.text('AUSGELÖST'), findsOneWidget);
   });
 }

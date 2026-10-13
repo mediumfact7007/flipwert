@@ -3,6 +3,7 @@ import 'package:flipwert/buyback_client.dart';
 import 'package:flipwert/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets(
@@ -100,6 +101,7 @@ void main() {
   testWidgets(
     'LIVE buyback-only saved deal shows a visible recheck without private market value',
     (tester) async {
+      SharedPreferences.setMockInitialValues({});
       final now = DateTime.now();
       final saved = V13Flip(
         id: 'buyback-only-1',
@@ -185,7 +187,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(accept);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(updated, isNotNull);
       expect(updated!.id, saved.id);
