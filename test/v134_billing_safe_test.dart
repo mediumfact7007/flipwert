@@ -13,7 +13,7 @@ void main() {
     expect(pubspec, contains('in_app_purchase: ^3.3.0'));
     expect(app, contains("package:in_app_purchase/in_app_purchase.dart"));
     expect(app, contains('Billing is initialized lazily by V13Paywall only.'));
-    expect(app, contains('unawaited(widget.monetization.init());'));
+    expect(app, contains('unawaited(widget.monetization.preparePaywall());'));
     expect(app, isNot(contains('  void _scheduleBillingInit() {')));
 
     final appStateStart = shell.indexOf('class _FlipwertV13AppState');

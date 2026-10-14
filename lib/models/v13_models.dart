@@ -558,6 +558,8 @@ class V13Monetization extends ChangeNotifier {
   bool billingAvailable = false;
   bool loadingBilling = false;
   bool _billingPrepared = false;
+  bool _automaticRestoreStarted = false;
+  bool _restoreInFlight = false;
   bool _adsPrepared = false;
   bool _adsLoading = false;
   V13BillingStage billingStage = V13BillingStage.idle;
@@ -696,20 +698,39 @@ class V13Monetization extends ChangeNotifier {
     }
   }
 
+  /// Opens the store lazily and checks existing purchases once per app session.
+  /// This is only called from the paywall, never during normal app startup.
+  Future<void> preparePaywall() async {
+    await init();
+    if (!billingAvailable || _automaticRestoreStarted) return;
+    _automaticRestoreStarted = true;
+    await _restorePurchases(reportRequest: false);
+  }
+
   Future<void> restore() async {
     await init();
     if (!billingAvailable) {
       _setBillingStage(V13BillingStage.unavailable);
       return;
     }
+    await _restorePurchases(reportRequest: true);
+  }
+
+  Future<void> _restorePurchases({required bool reportRequest}) async {
+    if (_restoreInFlight) return;
+    _restoreInFlight = true;
     _setBillingStage(V13BillingStage.restoring);
     try {
       await InAppPurchase.instance.restorePurchases();
       if (billingStage == V13BillingStage.restoring) {
-        _setBillingStage(V13BillingStage.restoreRequested);
+        _setBillingStage(reportRequest
+            ? V13BillingStage.restoreRequested
+            : V13BillingStage.ready);
       }
     } catch (_) {
       _setBillingStage(V13BillingStage.error);
+    } finally {
+      _restoreInFlight = false;
     }
   }
 
@@ -742,9 +763,6 @@ class V13Monetization extends ChangeNotifier {
       } else if (purchase.status == PurchaseStatus.canceled) {
         _setBillingStage(V13BillingStage.canceled);
       }
-      // Never acknowledge a successful purchase until the trusted backend has
-      // verified it. Google can then redeliver an unverified purchase instead
-      // of silently charging while Flipwert remains locked.
       final terminalFailure = purchase.status == PurchaseStatus.error ||
           purchase.status == PurchaseStatus.canceled;
       if (purchase.pendingCompletePurchase &&
