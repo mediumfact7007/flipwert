@@ -1,4 +1,5 @@
 import 'package:flipwert/main.dart';
+import 'package:flipwert/pro_entitlement.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,6 +45,39 @@ void main() {
 
     expect(find.textContaining('Wiederherstellung angefordert'), findsOneWidget);
     expect(find.textContaining('serverseitig geprüft'), findsOneWidget);
+    monetization.dispose();
+  });
+
+  testWidgets('paywall shows the verified plan and expiry', (tester) async {
+    final monetization = _FakeMonetization()
+      ..billingStage = V13BillingStage.verified
+      ..verifiedEntitlement = ProEntitlementResult.verified(
+        productId: V13Monetization.yearlyId,
+        expiresAt: DateTime.parse('2027-10-14T00:00:00Z'),
+      );
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13Paywall(english: false, monetization: monetization),
+    ));
+    await tester.pump();
+
+    expect(find.textContaining('Jahrestarif'), findsOneWidget);
+    expect(find.textContaining('14.10.2027'), findsOneWidget);
+    monetization.dispose();
+  });
+
+  testWidgets('paywall keeps temporary verification outages distinct',
+      (tester) async {
+    final monetization = _FakeMonetization()
+      ..billingStage = V13BillingStage.verificationUnavailable;
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13Paywall(english: false, monetization: monetization),
+    ));
+    await tester.pump();
+
+    expect(find.textContaining('vorübergehend nicht erreichbar'), findsOneWidget);
+    expect(find.textContaining('PRO bleibt unverändert'), findsOneWidget);
     monetization.dispose();
   });
 }

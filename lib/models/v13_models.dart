@@ -537,6 +537,7 @@ enum V13BillingStage {
   verifying,
   verified,
   verificationFailed,
+  verificationUnavailable,
   canceled,
   error,
 }
@@ -560,6 +561,7 @@ class V13Monetization extends ChangeNotifier {
   bool _adsPrepared = false;
   bool _adsLoading = false;
   V13BillingStage billingStage = V13BillingStage.idle;
+  ProEntitlementResult? verifiedEntitlement;
   List<V13StoreProduct> products = const [];
 
   V13Monetization({
@@ -713,7 +715,7 @@ class V13Monetization extends ChangeNotifier {
 
   Future<void> _purchaseUpdate(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
-      var verifiedEntitlement = false;
+      var shouldCompletePurchase = false;
       if (purchase.status == PurchaseStatus.pending) {
         _setBillingStage(V13BillingStage.purchasing);
       }
@@ -721,13 +723,17 @@ class V13Monetization extends ChangeNotifier {
           (purchase.status == PurchaseStatus.purchased ||
               purchase.status == PurchaseStatus.restored)) {
         _setBillingStage(V13BillingStage.verifying);
-        verifiedEntitlement = await _entitlementVerifier.verify(
+        final result = await _entitlementVerifier.verify(
           productId: purchase.productID,
           purchaseToken: purchase.verificationData.serverVerificationData,
         );
-        if (verifiedEntitlement) {
+        if (result.isVerified) {
+          verifiedEntitlement = result;
           _grantVerifiedEntitlement();
           _setBillingStage(V13BillingStage.verified);
+          shouldCompletePurchase = true;
+        } else if (result.status == ProEntitlementStatus.unavailable) {
+          _setBillingStage(V13BillingStage.verificationUnavailable);
         } else {
           _setBillingStage(V13BillingStage.verificationFailed);
         }
@@ -742,7 +748,7 @@ class V13Monetization extends ChangeNotifier {
       final terminalFailure = purchase.status == PurchaseStatus.error ||
           purchase.status == PurchaseStatus.canceled;
       if (purchase.pendingCompletePurchase &&
-          (verifiedEntitlement || terminalFailure)) {
+          (shouldCompletePurchase || terminalFailure)) {
         try {
           await InAppPurchase.instance.completePurchase(purchase);
         } catch (_) {}

@@ -170,11 +170,26 @@ class _V13PaywallState extends State<V13Paywall> {
         return (Icons.verified_user_outlined, _v13Primary,
           t('Kauf gefunden. Berechtigung wird sicher geprüft …', 'Purchase found. Verifying entitlement securely …'));
       case V13BillingStage.verified:
+        final entitlement = widget.monetization.verifiedEntitlement;
+        final plan = entitlement?.productId == V13Monetization.yearlyId
+            ? t('Jahrestarif', 'yearly plan')
+            : t('Monatstarif', 'monthly plan');
+        final expiresAt = entitlement?.expiresAt;
+        final expiry = expiresAt == null
+            ? ''
+            : widget.english
+                ? '${expiresAt.year.toString().padLeft(4, '0')}-${expiresAt.month.toString().padLeft(2, '0')}-${expiresAt.day.toString().padLeft(2, '0')}'
+                : '${expiresAt.day.toString().padLeft(2, '0')}.${expiresAt.month.toString().padLeft(2, '0')}.${expiresAt.year.toString().padLeft(4, '0')}';
         return (Icons.verified_rounded, const Color(0xFF087F5B),
-          t('PRO wurde serverseitig bestätigt.', 'PRO was confirmed by the server.'));
+          expiresAt == null
+              ? t('PRO wurde serverseitig bestätigt.', 'PRO was confirmed by the server.')
+              : t('PRO ($plan) ist bis $expiry serverseitig bestätigt.', 'PRO ($plan) is server-confirmed through $expiry.'));
       case V13BillingStage.verificationFailed:
         return (Icons.gpp_bad_outlined, const Color(0xFFB42318),
           t('Der Kauf konnte nicht als aktive PRO-Berechtigung bestätigt werden.', 'The purchase could not be confirmed as an active PRO entitlement.'));
+      case V13BillingStage.verificationUnavailable:
+        return (Icons.cloud_off_rounded, const Color(0xFF8A5A00),
+          t('Die sichere Prüfung ist vorübergehend nicht erreichbar. PRO bleibt unverändert; bitte später wiederherstellen.', 'Secure verification is temporarily unavailable. PRO remains unchanged; restore again later.'));
       case V13BillingStage.canceled:
         return (Icons.info_outline_rounded, const Color(0xFF656978),
           t('Der Kauf wurde abgebrochen.', 'The purchase was canceled.'));

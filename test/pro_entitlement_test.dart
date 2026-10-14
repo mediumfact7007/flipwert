@@ -21,10 +21,13 @@ void main() {
       }),
     );
 
-    expect(await verifier.verify(
+    final result = await verifier.verify(
       productId: 'flipwert_pro_monthly',
       purchaseToken: 'purchase-token-value-123456',
-    ), isTrue);
+    );
+    expect(result.status, ProEntitlementStatus.verified);
+    expect(result.productId, 'flipwert_pro_monthly');
+    expect(result.expiresAt, DateTime.parse('2026-11-13T12:00:00Z'));
   });
 
   test('fails closed on errors and mismatched products', () async {
@@ -37,19 +40,19 @@ void main() {
         'expires_at': '2026-11-13T12:00:00Z',
       }), 200)),
     );
-    expect(await mismatch.verify(
+    expect((await mismatch.verify(
       productId: 'flipwert_pro_monthly',
       purchaseToken: 'purchase-token-value-123456',
-    ), isFalse);
+    )).status, ProEntitlementStatus.rejected);
 
     final failure = ProEntitlementVerifier(
       endpoint: Uri.parse('https://example.com/verify'),
       client: MockClient((_) async => http.Response('unavailable', 503)),
     );
-    expect(await failure.verify(
+    expect((await failure.verify(
       productId: 'flipwert_pro_monthly',
       purchaseToken: 'purchase-token-value-123456',
-    ), isFalse);
+    )).status, ProEntitlementStatus.unavailable);
   });
 
   test('fails closed when verified entitlement is expired or lacks expiry',
@@ -65,10 +68,24 @@ void main() {
           if (expiresAt != null) 'expires_at': expiresAt,
         }), 200)),
       );
-      expect(await verifier.verify(
+      expect((await verifier.verify(
         productId: 'flipwert_pro_monthly',
         purchaseToken: 'purchase-token-value-123456',
-      ), isFalse);
+      )).status, ProEntitlementStatus.rejected);
+    }
+  });
+
+  test('distinguishes temporary verification failures from rejections',
+      () async {
+    for (final status in [429, 500, 503]) {
+      final verifier = ProEntitlementVerifier(
+        endpoint: Uri.parse('https://example.com/verify'),
+        client: MockClient((_) async => http.Response('{}', status)),
+      );
+      expect((await verifier.verify(
+        productId: 'flipwert_pro_monthly',
+        purchaseToken: 'purchase-token-value-123456',
+      )).status, ProEntitlementStatus.unavailable);
     }
   });
 }
