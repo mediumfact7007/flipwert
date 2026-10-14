@@ -145,10 +145,50 @@ class _V13PaywallState extends State<V13Paywall> {
   @override
   void initState() { super.initState(); widget.monetization.addListener(_refresh); unawaited(widget.monetization.init()); }
   void _refresh() { if (mounted) setState(() {}); }
+
+  (IconData, Color, String)? _billingNotice() {
+    switch (widget.monetization.billingStage) {
+      case V13BillingStage.idle:
+      case V13BillingStage.ready:
+        return null;
+      case V13BillingStage.loadingStore:
+        return (Icons.sync_rounded, _v13Primary,
+          t('Google Play wird verbunden …', 'Connecting to Google Play …'));
+      case V13BillingStage.unavailable:
+        return (Icons.cloud_off_rounded, const Color(0xFF8A5A00),
+          t('Google Play Billing ist auf diesem Gerät oder Testtrack nicht verfügbar.', 'Google Play Billing is unavailable on this device or test track.'));
+      case V13BillingStage.purchasing:
+        return (Icons.hourglass_top_rounded, _v13Primary,
+          t('Kauf läuft. Flipwert wartet auf Google Play.', 'Purchase in progress. Flipwert is waiting for Google Play.'));
+      case V13BillingStage.restoring:
+        return (Icons.restore_rounded, _v13Primary,
+          t('Käufe werden wiederhergestellt …', 'Restoring purchases …'));
+      case V13BillingStage.restoreRequested:
+        return (Icons.restore_rounded, _v13Primary,
+          t('Wiederherstellung angefordert. Gefundene Käufe werden serverseitig geprüft.', 'Restore requested. Found purchases will be verified by the server.'));
+      case V13BillingStage.verifying:
+        return (Icons.verified_user_outlined, _v13Primary,
+          t('Kauf gefunden. Berechtigung wird sicher geprüft …', 'Purchase found. Verifying entitlement securely …'));
+      case V13BillingStage.verified:
+        return (Icons.verified_rounded, const Color(0xFF087F5B),
+          t('PRO wurde serverseitig bestätigt.', 'PRO was confirmed by the server.'));
+      case V13BillingStage.verificationFailed:
+        return (Icons.gpp_bad_outlined, const Color(0xFFB42318),
+          t('Der Kauf konnte nicht als aktive PRO-Berechtigung bestätigt werden.', 'The purchase could not be confirmed as an active PRO entitlement.'));
+      case V13BillingStage.canceled:
+        return (Icons.info_outline_rounded, const Color(0xFF656978),
+          t('Der Kauf wurde abgebrochen.', 'The purchase was canceled.'));
+      case V13BillingStage.error:
+        return (Icons.error_outline_rounded, const Color(0xFFB42318),
+          t('Google Play konnte die Aktion nicht abschließen. Bitte später erneut versuchen.', 'Google Play could not complete the action. Please try again later.'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final month = widget.monetization.product(V13Monetization.monthlyId);
     final year = widget.monetization.product(V13Monetization.yearlyId);
+    final billingNotice = _billingNotice();
     return Scaffold(
       appBar: AppBar(),
       body: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 30), children: [
@@ -164,11 +204,28 @@ class _V13PaywallState extends State<V13Paywall> {
         const SizedBox(height: 8),
         _V13PlanChoice(title: t('Monatlich', 'Monthly'), price: month?.price ?? '4,99 € / Monat', enabled: month != null, onTap: month == null ? null : () => widget.monetization.buy(month)),
         const SizedBox(height: 10),
+        if (billingNotice != null) ...[
+          Container(
+            key: const ValueKey('pro-billing-status'),
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: billingNotice.$2.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: billingNotice.$2.withValues(alpha: .18)),
+            ),
+            child: Row(children: [
+              Icon(billingNotice.$1, color: billingNotice.$2, size: 19),
+              const SizedBox(width: 8),
+              Expanded(child: Text(billingNotice.$3, style: TextStyle(fontSize: 10.8, fontWeight: FontWeight.w700, color: billingNotice.$2))),
+            ]),
+          ),
+          const SizedBox(height: 8),
+        ],
         if (!widget.monetization.billingAvailable || (month == null && year == null))
           Text(t('Play Billing wird erst auf dieser Seite geladen. Produkte erscheinen nur, wenn sie im passenden Google-Play-Testtrack eingerichtet sind.', 'Play Billing loads only on this page. Products appear only when configured in the matching Google Play test track.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A7E8B))),
         TextButton(onPressed: widget.monetization.restore, child: Text(t('Käufe wiederherstellen', 'Restore purchases'))),
         const SizedBox(height: 6),
-        Text(t('Vor produktivem Start werden Käufe serverseitig verifiziert.', 'Purchases will be server-verified before production launch.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF8A8E9B))),
+        Text(t('Käufe werden vor der Freischaltung serverseitig verifiziert.', 'Purchases are server-verified before access is unlocked.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF8A8E9B))),
       ]),
     );
   }
