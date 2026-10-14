@@ -92,6 +92,40 @@ void main() {
     );
   });
 
+  test('eBay title matching keeps named device classes separate', () {
+    const cases = <(String, String)>[
+      ('Samsung Galaxy S10 128 GB', 'Samsung Galaxy Tab S10 128 GB'),
+      ('Samsung Galaxy 7 32 GB', 'Samsung Galaxy Watch 7 32 GB'),
+      ('Samsung Galaxy 3 Pro', 'Samsung Galaxy Buds 3 Pro'),
+      ('Samsung Galaxy 4 Pro', 'Samsung Galaxy Book 4 Pro'),
+      ('Samsung Galaxy 1', 'Samsung Galaxy Ring 1'),
+      ('Xiaomi 7 256 GB', 'Xiaomi Pad 7 256 GB'),
+    ];
+
+    for (final (query, title) in cases) {
+      expect(
+        resaleListingMatchesQuery(query, title),
+        isFalse,
+        reason: '$title must not match $query',
+      );
+    }
+
+    expect(
+      resaleListingMatchesQuery(
+        'Samsung Galaxy Tab S10 256 GB',
+        'Samsung Galaxy Tab S10 256GB Tablet Grau',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple iPad 10 64 GB',
+        'Apple iPad 10 64GB Tablet Silber',
+      ),
+      isTrue,
+    );
+  });
+
   test('eBay title matching rejects accessories and unexpected damage', () {
     expect(
       resaleListingMatchesQuery(

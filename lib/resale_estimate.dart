@@ -100,6 +100,16 @@ const _exclusiveVariantTokens = {
   'air',
 };
 
+const _exclusiveDeviceClassTokens = {
+  'tab',
+  'watch',
+  'buds',
+  'book',
+  'ring',
+  'band',
+  'pad',
+};
+
 List<String> _rawSearchTokens(String value) {
   final normalized = value
       .toLowerCase()
@@ -297,6 +307,12 @@ bool resaleListingMatchesQuery(String query, String listingTitle) {
 
   for (final variant in _exclusiveVariantTokens) {
     if (queryTokens.contains(variant) != listingTokens.contains(variant)) {
+      return false;
+    }
+  }
+  for (final deviceClass in _exclusiveDeviceClassTokens) {
+    if (queryTokens.contains(deviceClass) !=
+        listingTokens.contains(deviceClass)) {
       return false;
     }
   }
