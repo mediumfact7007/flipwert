@@ -6,8 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakeMonetization extends V13Monetization {
   _FakeMonetization() : super(onProUnlocked: () {});
 
+  int preparePaywallCalls = 0;
+
   @override
-  Future<void> init() async {}
+  Future<void> preparePaywall() async {
+    preparePaywallCalls += 1;
+  }
 
   @override
   Future<void> restore() async {
@@ -17,6 +21,18 @@ class _FakeMonetization extends V13Monetization {
 }
 
 void main() {
+  testWidgets('paywall starts one lazy existing-purchase check', (tester) async {
+    final monetization = _FakeMonetization();
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13Paywall(english: false, monetization: monetization),
+    ));
+    await tester.pump();
+
+    expect(monetization.preparePaywallCalls, 1);
+    monetization.dispose();
+  });
+
   testWidgets('paywall explains failed server verification', (tester) async {
     final monetization = _FakeMonetization()
       ..billingStage = V13BillingStage.verificationFailed;

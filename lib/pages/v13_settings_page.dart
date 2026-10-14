@@ -143,7 +143,7 @@ class V13Paywall extends StatefulWidget {
 class _V13PaywallState extends State<V13Paywall> {
   String t(String de, String en) => widget.english ? en : de;
   @override
-  void initState() { super.initState(); widget.monetization.addListener(_refresh); unawaited(widget.monetization.init()); }
+  void initState() { super.initState(); widget.monetization.addListener(_refresh); unawaited(widget.monetization.preparePaywall()); }
   void _refresh() { if (mounted) setState(() {}); }
 
   (IconData, Color, String)? _billingNotice() {
@@ -238,7 +238,7 @@ class _V13PaywallState extends State<V13Paywall> {
         ],
         if (!widget.monetization.billingAvailable || (month == null && year == null))
           Text(t('Play Billing wird erst auf dieser Seite geladen. Produkte erscheinen nur, wenn sie im passenden Google-Play-Testtrack eingerichtet sind.', 'Play Billing loads only on this page. Products appear only when configured in the matching Google Play test track.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A7E8B))),
-        TextButton(onPressed: widget.monetization.restore, child: Text(t('Käufe wiederherstellen', 'Restore purchases'))),
+        TextButton(onPressed: widget.monetization.loadingBilling || widget.monetization.billingStage == V13BillingStage.restoring || widget.monetization.billingStage == V13BillingStage.verifying ? null : widget.monetization.restore, child: Text(t('Käufe wiederherstellen', 'Restore purchases'))),
         const SizedBox(height: 6),
         Text(t('Käufe werden vor der Freischaltung serverseitig verifiziert.', 'Purchases are server-verified before access is unlocked.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF8A8E9B))),
       ]),
