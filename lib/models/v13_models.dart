@@ -478,6 +478,7 @@ class V13Monetization extends ChangeNotifier {
   final ProEntitlementVerifier _entitlementVerifier;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
   Timer? _entitlementExpiryTimer;
+  String? _verifiedPurchaseToken;
   final Map<String, ProductDetails> _nativeProducts = <String, ProductDetails>{};
   bool adsAllowed = false;
   bool billingAvailable = false;
@@ -500,6 +501,7 @@ class V13Monetization extends ChangeNotifier {
   void applyEntitlementResult(
     ProEntitlementResult result, {
     String? checkedProductId,
+    String? checkedPurchaseToken,
   }) {
     if (result.isVerified) {
       final expiry = result.expiresAt!;
@@ -510,6 +512,7 @@ class V13Monetization extends ChangeNotifier {
       }
       _entitlementExpiryTimer?.cancel();
       verifiedEntitlement = result;
+      _verifiedPurchaseToken = checkedPurchaseToken;
       final remaining = expiry.toUtc().difference(DateTime.now().toUtc());
       if (remaining <= Duration.zero) {
         _revokeEntitlement(V13BillingStage.expired);
@@ -532,7 +535,11 @@ class V13Monetization extends ChangeNotifier {
       return;
     }
     final activeProduct = verifiedEntitlement?.productId;
-    if (activeProduct == null || activeProduct == checkedProductId) {
+    final activeToken = _verifiedPurchaseToken;
+    final rejectsActiveToken = activeToken != null
+        ? activeToken == checkedPurchaseToken
+        : activeProduct == null || activeProduct == checkedProductId;
+    if (rejectsActiveToken) {
       _revokeEntitlement(V13BillingStage.verificationFailed);
     } else {
       _setBillingStage(V13BillingStage.verificationFailed);
@@ -543,6 +550,7 @@ class V13Monetization extends ChangeNotifier {
     _entitlementExpiryTimer?.cancel();
     _entitlementExpiryTimer = null;
     verifiedEntitlement = null;
+    _verifiedPurchaseToken = null;
     onProLocked?.call();
     _setBillingStage(stage);
   }
@@ -722,11 +730,20 @@ class V13Monetization extends ChangeNotifier {
           productId: purchase.productID,
           purchaseToken: purchase.verificationData.serverVerificationData,
         );
+        final purchaseToken = purchase.verificationData.serverVerificationData;
         if (result.isVerified) {
-          applyEntitlementResult(result, checkedProductId: purchase.productID);
+          applyEntitlementResult(
+            result,
+            checkedProductId: purchase.productID,
+            checkedPurchaseToken: purchaseToken,
+          );
           shouldCompletePurchase = true;
         } else {
-          applyEntitlementResult(result, checkedProductId: purchase.productID);
+          applyEntitlementResult(
+            result,
+            checkedProductId: purchase.productID,
+            checkedPurchaseToken: purchaseToken,
+          );
         }
       } else if (purchase.status == PurchaseStatus.error) {
         _setBillingStage(V13BillingStage.error);
