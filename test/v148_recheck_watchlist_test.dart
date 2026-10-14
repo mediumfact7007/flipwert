@@ -39,16 +39,17 @@ void main() {
     expect(old.copyWith(status: 'Archived').isOpen, isFalse);
   });
 
-  testWidgets('PRO fallback pricing is coherent when Play products are unavailable', (tester) async {
+  testWidgets('PRO does not present placeholder prices as store offers', (tester) async {
     final monetization = V13Monetization(onProUnlocked: () {});
     await tester.pumpWidget(MaterialApp(
       home: V13Paywall(english: false, monetization: monetization),
     ));
     await tester.pump();
 
-    expect(find.text('39,99 € / Jahr · ≈ 3,33 € / Monat'), findsOneWidget);
-    expect(find.text('4,99 € / Monat'), findsOneWidget);
-    expect(find.text('33 % SPAREN'), findsOneWidget);
+    expect(find.text('Preis wird von Google Play geladen.'), findsNWidgets(2));
+    expect(find.textContaining('39,99'), findsNothing);
+    expect(find.textContaining('4,99'), findsNothing);
+    expect(find.textContaining('SPAREN'), findsNothing);
 
     await tester.pump(const Duration(seconds: 9));
     await tester.pumpAndSettle();

@@ -215,9 +215,9 @@ class _V13PaywallState extends State<V13Paywall> {
         const SizedBox(height: 20),
         for (final item in [t('Deep Check mit konservativem Exit & Risiko', 'Deep Check with conservative exit & risk'), t('Persönliche Empfehlungen aus deinen echten Verkäufen', 'Personal recommendations from your real sales'), t('Kapitaltempo & bessere Verkaufsanalyse', 'Capital speed & better sale analysis'), t('Keine Werbebanner', 'No ad banners')]) Padding(padding: const EdgeInsets.only(bottom: 9), child: Row(children: [const Icon(Icons.check_circle_rounded, color: Color(0xFF087F5B), size: 20), const SizedBox(width: 8), Expanded(child: Text(item, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5)))])),
         const SizedBox(height: 15),
-        _V13PlanChoice(title: t('Jährlich', 'Yearly'), price: year?.price ?? '39,99 € / Jahr · ≈ 3,33 € / Monat', badge: t('33 % SPAREN', 'SAVE 33%'), enabled: year != null, onTap: year == null ? null : () => widget.monetization.buy(year)),
+        _V13PlanChoice(title: t('Jährlich', 'Yearly'), price: year?.price ?? t('Preis wird von Google Play geladen.', 'Price is loaded from Google Play.'), enabled: year != null, onTap: year == null ? null : () => widget.monetization.buy(year)),
         const SizedBox(height: 8),
-        _V13PlanChoice(title: t('Monatlich', 'Monthly'), price: month?.price ?? '4,99 € / Monat', enabled: month != null, onTap: month == null ? null : () => widget.monetization.buy(month)),
+        _V13PlanChoice(title: t('Monatlich', 'Monthly'), price: month?.price ?? t('Preis wird von Google Play geladen.', 'Price is loaded from Google Play.'), enabled: month != null, onTap: month == null ? null : () => widget.monetization.buy(month)),
         const SizedBox(height: 10),
         if (billingNotice != null) ...[
           Container(
@@ -238,6 +238,8 @@ class _V13PaywallState extends State<V13Paywall> {
         ],
         if (!widget.monetization.billingAvailable || (month == null && year == null))
           Text(t('Play Billing wird erst auf dieser Seite geladen. Produkte erscheinen nur, wenn sie im passenden Google-Play-Testtrack eingerichtet sind.', 'Play Billing loads only on this page. Products appear only when configured in the matching Google Play test track.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A7E8B))),
+        if (month != null || year != null)
+          Text(t('Angezeigt werden ausschließlich die aktuell von Google Play gelieferten Preise.', 'Only current prices supplied by Google Play are shown.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A7E8B))),
         TextButton(onPressed: widget.monetization.loadingBilling || widget.monetization.billingStage == V13BillingStage.restoring || widget.monetization.billingStage == V13BillingStage.verifying ? null : widget.monetization.restore, child: Text(t('Käufe wiederherstellen', 'Restore purchases'))),
         const SizedBox(height: 6),
         Text(t('Käufe werden vor der Freischaltung serverseitig verifiziert.', 'Purchases are server-verified before access is unlocked.'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF8A8E9B))),
@@ -251,12 +253,11 @@ class _V13PaywallState extends State<V13Paywall> {
 class _V13PlanChoice extends StatelessWidget {
   final String title;
   final String price;
-  final String? badge;
   final bool enabled;
   final VoidCallback? onTap;
-  const _V13PlanChoice({required this.title, required this.price, required this.enabled, this.badge, this.onTap});
+  const _V13PlanChoice({required this.title, required this.price, required this.enabled, this.onTap});
   @override
-  Widget build(BuildContext context) => Material(color: enabled ? Colors.white : const Color(0xFFF0F1F4), borderRadius: BorderRadius.circular(18), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(border: Border.all(color: enabled ? const Color(0xFFDADCE8) : const Color(0xFFE2E3E8)), borderRadius: BorderRadius.circular(18)), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), if (badge != null) ...[const SizedBox(width: 6), _V13Pill(text: badge!, foreground: const Color(0xFF087F5B), background: const Color(0xFFE1F5EE))]]), const SizedBox(height: 2), Text(price, style: const TextStyle(color: Color(0xFF656978), fontSize: 12))])), Icon(enabled ? Icons.arrow_forward_rounded : Icons.lock_outline_rounded)]))));
+  Widget build(BuildContext context) => Material(color: enabled ? Colors.white : const Color(0xFFF0F1F4), borderRadius: BorderRadius.circular(18), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(border: Border.all(color: enabled ? const Color(0xFFDADCE8) : const Color(0xFFE2E3E8)), borderRadius: BorderRadius.circular(18)), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), const SizedBox(height: 2), Text(price, style: const TextStyle(color: Color(0xFF656978), fontSize: 12))])), Icon(enabled ? Icons.arrow_forward_rounded : Icons.lock_outline_rounded)]))));
 }
 
 class V13BannerAd extends StatelessWidget {
