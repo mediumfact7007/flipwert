@@ -27,7 +27,10 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
   @override
   void initState() {
     super.initState();
-    monetization = V13Monetization(onProUnlocked: _unlockPro);
+    monetization = V13Monetization(
+      onProUnlocked: _unlockPro,
+      onProLocked: _lockPro,
+    );
     unawaited(_loadSafe());
   }
 
@@ -173,6 +176,11 @@ class _FlipwertV13AppState extends State<FlipwertV13App> {
   void _unlockPro() {
     if (!mounted) return;
     setState(() => plan = UserPlan.pro);
+  }
+
+  void _lockPro() {
+    if (!mounted) return;
+    setState(() => plan = UserPlan.free);
   }
 
   void _save() {
