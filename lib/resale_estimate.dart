@@ -83,6 +83,23 @@ const _modelNoiseTokens = {
   'titan', 'titanium',
 };
 
+const _exclusiveVariantTokens = {
+  'pro',
+  'max',
+  'plus',
+  'ultra',
+  'mini',
+  'se',
+  'fe',
+  'edge',
+  'lite',
+  'fold',
+  'flip',
+  'oled',
+  'slim',
+  'air',
+};
+
 List<String> _rawSearchTokens(String value) {
   final normalized = value
       .toLowerCase()
@@ -278,8 +295,7 @@ bool resaleListingMatchesQuery(String query, String listingTitle) {
     return false;
   }
 
-  const variants = {'pro', 'max', 'plus', 'ultra', 'mini', 'se', 'fe'};
-  for (final variant in variants) {
+  for (final variant in _exclusiveVariantTokens) {
     if (queryTokens.contains(variant) != listingTokens.contains(variant)) {
       return false;
     }

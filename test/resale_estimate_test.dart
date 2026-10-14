@@ -58,6 +58,40 @@ void main() {
     );
   });
 
+  test('eBay title matching rejects unrequested product editions', () {
+    const cases = <(String, String)>[
+      ('Samsung Galaxy S25 256 GB', 'Samsung Galaxy S25 Edge 256 GB'),
+      ('Nintendo Switch 64 GB', 'Nintendo Switch OLED 64 GB'),
+      ('Samsung Galaxy Z 256 GB', 'Samsung Galaxy Z Fold 256 GB'),
+      ('Samsung Galaxy Z 256 GB', 'Samsung Galaxy Z Flip 256 GB'),
+      ('MacBook M2 256 GB', 'MacBook Air M2 256 GB'),
+      ('PlayStation 5', 'PlayStation 5 Slim'),
+    ];
+
+    for (final (query, title) in cases) {
+      expect(
+        resaleListingMatchesQuery(query, title),
+        isFalse,
+        reason: '$title must not match $query',
+      );
+    }
+
+    expect(
+      resaleListingMatchesQuery(
+        'Nintendo Switch OLED 64 GB',
+        'Nintendo Switch OLED 64 GB Weiß mit OVP',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Samsung Galaxy S25 Edge 256 GB',
+        'Samsung Galaxy S25 Edge 256GB Titanium Silver',
+      ),
+      isTrue,
+    );
+  });
+
   test('eBay title matching rejects accessories and unexpected damage', () {
     expect(
       resaleListingMatchesQuery(
