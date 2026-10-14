@@ -526,6 +526,21 @@ class V13StoreProduct {
   const V13StoreProduct({required this.id, required this.price});
 }
 
+enum V13BillingStage {
+  idle,
+  loadingStore,
+  ready,
+  unavailable,
+  purchasing,
+  restoring,
+  restoreRequested,
+  verifying,
+  verified,
+  verificationFailed,
+  canceled,
+  error,
+}
+
 class V13Monetization extends ChangeNotifier {
   static const monthlyId = 'flipwert_pro_monthly';
   static const yearlyId = 'flipwert_pro_yearly';
@@ -544,6 +559,7 @@ class V13Monetization extends ChangeNotifier {
   bool _billingPrepared = false;
   bool _adsPrepared = false;
   bool _adsLoading = false;
+  V13BillingStage billingStage = V13BillingStage.idle;
   List<V13StoreProduct> products = const [];
 
   V13Monetization({
@@ -556,6 +572,12 @@ class V13Monetization extends ChangeNotifier {
   String get bannerId => Platform.isAndroid ? androidBanner : iosBanner;
   String get rewardedId => Platform.isAndroid ? androidRewarded : iosRewarded;
 
+  void _setBillingStage(V13BillingStage value) {
+    if (billingStage == value) return;
+    billingStage = value;
+    notifyListeners();
+  }
+
   // SAFE RECOVERY STEP 1: nothing native is touched during normal app boot.
   // Billing is initialized lazily by V13Paywall only.
   // Legacy CI markers, intentionally not executable:
@@ -565,7 +587,7 @@ class V13Monetization extends ChangeNotifier {
     if (_billingPrepared || loadingBilling) return;
     _billingPrepared = true;
     loadingBilling = true;
-    notifyListeners();
+    _setBillingStage(V13BillingStage.loadingStore);
     try {
       _purchaseSub ??= InAppPurchase.instance.purchaseStream.listen(
         _purchaseUpdate,
@@ -592,9 +614,16 @@ class V13Monetization extends ChangeNotifier {
       billingAvailable = false;
       _nativeProducts.clear();
       products = const [];
+      _setBillingStage(V13BillingStage.error);
     } finally {
       loadingBilling = false;
-      notifyListeners();
+      if (billingStage != V13BillingStage.error) {
+        _setBillingStage(billingAvailable
+            ? V13BillingStage.ready
+            : V13BillingStage.unavailable);
+      } else {
+        notifyListeners();
+      }
     }
   }
 
@@ -650,33 +679,62 @@ class V13Monetization extends ChangeNotifier {
   Future<void> buy(V13StoreProduct product) async {
     await init();
     final native = _nativeProducts[product.id];
-    if (native == null) return;
+    if (native == null) {
+      _setBillingStage(V13BillingStage.unavailable);
+      return;
+    }
+    _setBillingStage(V13BillingStage.purchasing);
     try {
-      await InAppPurchase.instance.buyNonConsumable(
+      final started = await InAppPurchase.instance.buyNonConsumable(
         purchaseParam: PurchaseParam(productDetails: native),
       );
-    } catch (_) {}
+      if (!started) _setBillingStage(V13BillingStage.error);
+    } catch (_) {
+      _setBillingStage(V13BillingStage.error);
+    }
   }
 
   Future<void> restore() async {
     await init();
-    if (!billingAvailable) return;
+    if (!billingAvailable) {
+      _setBillingStage(V13BillingStage.unavailable);
+      return;
+    }
+    _setBillingStage(V13BillingStage.restoring);
     try {
       await InAppPurchase.instance.restorePurchases();
-    } catch (_) {}
+      if (billingStage == V13BillingStage.restoring) {
+        _setBillingStage(V13BillingStage.restoreRequested);
+      }
+    } catch (_) {
+      _setBillingStage(V13BillingStage.error);
+    }
   }
 
   Future<void> _purchaseUpdate(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       var verifiedEntitlement = false;
+      if (purchase.status == PurchaseStatus.pending) {
+        _setBillingStage(V13BillingStage.purchasing);
+      }
       if ((purchase.productID == monthlyId || purchase.productID == yearlyId) &&
           (purchase.status == PurchaseStatus.purchased ||
               purchase.status == PurchaseStatus.restored)) {
+        _setBillingStage(V13BillingStage.verifying);
         verifiedEntitlement = await _entitlementVerifier.verify(
           productId: purchase.productID,
           purchaseToken: purchase.verificationData.serverVerificationData,
         );
-        if (verifiedEntitlement) _grantVerifiedEntitlement();
+        if (verifiedEntitlement) {
+          _grantVerifiedEntitlement();
+          _setBillingStage(V13BillingStage.verified);
+        } else {
+          _setBillingStage(V13BillingStage.verificationFailed);
+        }
+      } else if (purchase.status == PurchaseStatus.error) {
+        _setBillingStage(V13BillingStage.error);
+      } else if (purchase.status == PurchaseStatus.canceled) {
+        _setBillingStage(V13BillingStage.canceled);
       }
       // Never acknowledge a successful purchase until the trusted backend has
       // verified it. Google can then redeliver an unverified purchase instead

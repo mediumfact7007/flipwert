@@ -9,6 +9,7 @@ void main() {
   test('accepts only a matching server-verified entitlement', () async {
     final verifier = ProEntitlementVerifier(
       endpoint: Uri.parse('https://example.com/verify'),
+      now: () => DateTime.parse('2026-10-13T12:00:00Z'),
       client: MockClient((request) async {
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['purchase_token'], 'purchase-token-value-123456');
@@ -29,9 +30,11 @@ void main() {
   test('fails closed on errors and mismatched products', () async {
     final mismatch = ProEntitlementVerifier(
       endpoint: Uri.parse('https://example.com/verify'),
+      now: () => DateTime.parse('2026-10-13T12:00:00Z'),
       client: MockClient((_) async => http.Response(jsonEncode({
         'verified': true,
         'product_id': 'flipwert_pro_yearly',
+        'expires_at': '2026-11-13T12:00:00Z',
       }), 200)),
     );
     expect(await mismatch.verify(
@@ -47,5 +50,25 @@ void main() {
       productId: 'flipwert_pro_monthly',
       purchaseToken: 'purchase-token-value-123456',
     ), isFalse);
+  });
+
+  test('fails closed when verified entitlement is expired or lacks expiry',
+      () async {
+    final now = DateTime.parse('2026-10-13T12:00:00Z');
+    for (final expiresAt in [null, 'invalid', '2026-10-13T11:59:59Z']) {
+      final verifier = ProEntitlementVerifier(
+        endpoint: Uri.parse('https://example.com/verify'),
+        now: () => now,
+        client: MockClient((_) async => http.Response(jsonEncode({
+          'verified': true,
+          'product_id': 'flipwert_pro_monthly',
+          if (expiresAt != null) 'expires_at': expiresAt,
+        }), 200)),
+      );
+      expect(await verifier.verify(
+        productId: 'flipwert_pro_monthly',
+        purchaseToken: 'purchase-token-value-123456',
+      ), isFalse);
+    }
   });
 }

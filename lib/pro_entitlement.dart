@@ -7,11 +7,17 @@ import 'source_registry.dart';
 class ProEntitlementVerifier {
   final Uri endpoint;
   final http.Client _client;
+  final DateTime Function() _now;
 
-  ProEntitlementVerifier({Uri? endpoint, http.Client? client})
+  ProEntitlementVerifier({
+    Uri? endpoint,
+    http.Client? client,
+    DateTime Function()? now,
+  })
       : endpoint = endpoint ??
             Uri.parse('${SourceRegistry.defaultBackend}/v1/entitlements/google-play'),
-        _client = client ?? http.Client();
+        _client = client ?? http.Client(),
+        _now = now ?? DateTime.now;
 
   Future<bool> verify({
     required String productId,
@@ -36,7 +42,13 @@ class ProEntitlementVerifier {
       }
       final decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic>) return false;
-      return decoded['verified'] == true && decoded['product_id'] == product;
+      final expiresAt = DateTime.tryParse(
+        decoded['expires_at']?.toString() ?? '',
+      );
+      return decoded['verified'] == true &&
+          decoded['product_id'] == product &&
+          expiresAt != null &&
+          expiresAt.toUtc().isAfter(_now().toUtc());
     } catch (_) {
       return false;
     }
