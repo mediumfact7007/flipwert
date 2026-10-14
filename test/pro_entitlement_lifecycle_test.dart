@@ -91,4 +91,37 @@ void main() {
     expect(monetization.verifiedEntitlement?.expiresAt, longerExpiry);
     monetization.dispose();
   });
+
+  test('rejected duplicate token cannot revoke a newer active purchase', () {
+    var locked = 0;
+    final monetization = V13Monetization(
+      onProUnlocked: () {},
+      onProLocked: () => locked += 1,
+    );
+    monetization.applyEntitlementResult(
+      ProEntitlementResult.verified(
+        productId: V13Monetization.monthlyId,
+        expiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
+      ),
+      checkedProductId: V13Monetization.monthlyId,
+      checkedPurchaseToken: 'new-active-purchase-token',
+    );
+
+    monetization.applyEntitlementResult(
+      const ProEntitlementResult.rejected(),
+      checkedProductId: V13Monetization.monthlyId,
+      checkedPurchaseToken: 'old-expired-purchase-token',
+    );
+    expect(locked, 0);
+    expect(monetization.verifiedEntitlement, isNotNull);
+
+    monetization.applyEntitlementResult(
+      const ProEntitlementResult.rejected(),
+      checkedProductId: V13Monetization.monthlyId,
+      checkedPurchaseToken: 'new-active-purchase-token',
+    );
+    expect(locked, 1);
+    expect(monetization.verifiedEntitlement, isNull);
+    monetization.dispose();
+  });
 }
