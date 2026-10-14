@@ -184,6 +184,9 @@ class _V13PaywallState extends State<V13Paywall> {
           expiresAt == null
               ? t('PRO wurde serverseitig bestätigt.', 'PRO was confirmed by the server.')
               : t('PRO ($plan) ist bis $expiry serverseitig bestätigt.', 'PRO ($plan) is server-confirmed through $expiry.'));
+      case V13BillingStage.expired:
+        return (Icons.event_busy_outlined, const Color(0xFFB42318),
+          t('Die serverbestätigte PRO-Berechtigung ist abgelaufen. Bitte erneut über Google Play prüfen.', 'The server-confirmed PRO entitlement has expired. Please check again through Google Play.'));
       case V13BillingStage.verificationFailed:
         return (Icons.gpp_bad_outlined, const Color(0xFFB42318),
           t('Der Kauf konnte nicht als aktive PRO-Berechtigung bestätigt werden.', 'The purchase could not be confirmed as an active PRO entitlement.'));

@@ -118,4 +118,17 @@ void main() {
     expect(find.textContaining('PRO bleibt unverändert'), findsOneWidget);
     monetization.dispose();
   });
+
+  testWidgets('paywall explains expired verified access', (tester) async {
+    final monetization = _FakeMonetization()
+      ..billingStage = V13BillingStage.expired;
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13Paywall(english: false, monetization: monetization),
+    ));
+    await tester.pump();
+
+    expect(find.textContaining('PRO-Berechtigung ist abgelaufen'), findsOneWidget);
+    monetization.dispose();
+  });
 }
