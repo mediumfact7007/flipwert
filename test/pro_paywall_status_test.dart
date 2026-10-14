@@ -33,6 +33,28 @@ void main() {
     monetization.dispose();
   });
 
+  testWidgets('paywall shows only prices supplied by Google Play', (tester) async {
+    final monetization = _FakeMonetization()
+      ..billingAvailable = true
+      ..products = const [
+        V13StoreProduct(id: V13Monetization.yearlyId, price: '37,49 €'),
+        V13StoreProduct(id: V13Monetization.monthlyId, price: '5,49 €'),
+      ];
+
+    await tester.pumpWidget(MaterialApp(
+      home: V13Paywall(english: false, monetization: monetization),
+    ));
+    await tester.pump();
+
+    expect(find.text('37,49 €'), findsOneWidget);
+    expect(find.text('5,49 €'), findsOneWidget);
+    expect(find.textContaining('39,99'), findsNothing);
+    expect(find.textContaining('33 %'), findsNothing);
+    expect(find.textContaining('ausschließlich die aktuell von Google Play'),
+        findsOneWidget);
+    monetization.dispose();
+  });
+
   testWidgets('paywall explains failed server verification', (tester) async {
     final monetization = _FakeMonetization()
       ..billingStage = V13BillingStage.verificationFailed;
