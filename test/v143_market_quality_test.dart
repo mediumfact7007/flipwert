@@ -116,6 +116,30 @@ void main() {
     ]);
   });
 
+  test('condition metadata cannot admit damaged or unknown market evidence', () {
+    SourceListing listing(String condition, double price) => SourceListing(
+          sourceId: 'partner_live',
+          sourceName: 'Partner',
+          role: 'local',
+          title: 'Apple iPhone 15 Pro 256GB',
+          price: price,
+          shipping: 0,
+          url: 'https://example.test/$price',
+          condition: condition,
+          live: true,
+        );
+
+    final comparable = v13ComparableMarketListings([
+      listing('Gut', 800),
+      listing('Defekt', 350),
+      listing('For parts', 300),
+      listing('', 780),
+      listing('Unknown future value', 790),
+    ], 'Apple iPhone 15 Pro 256 GB');
+
+    expect(comparable.map((item) => item.total), [800]);
+  });
+
   test('quality market listings remove the outlier listing itself', () {
     SourceListing listing(String source, double price) => SourceListing(
           sourceId: source,

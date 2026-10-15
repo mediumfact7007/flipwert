@@ -16,6 +16,39 @@ ResaleSaleSample sale(
     );
 
 void main() {
+  test('only explicit used conditions are comparable market evidence', () {
+    for (final condition in [
+      'Gebraucht',
+      'Wie neu',
+      'Sehr gut',
+      'Gut',
+      'Akzeptabel',
+      'USED_GOOD',
+      'Used - Very Good',
+    ]) {
+      expect(
+        resaleUsedConditionIsComparable(condition),
+        isTrue,
+        reason: condition,
+      );
+    }
+
+    for (final condition in [
+      '',
+      'Defekt',
+      'For parts',
+      'Neu',
+      'Certified refurbished',
+      'Unknown future value',
+    ]) {
+      expect(
+        resaleUsedConditionIsComparable(condition),
+        isFalse,
+        reason: condition,
+      );
+    }
+  });
+
   test('model matching tolerates listing noise but keeps variants strict', () {
     expect(
       resaleSameModel(

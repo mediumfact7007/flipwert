@@ -124,6 +124,31 @@ List<String> _rawSearchTokens(String value) {
   return normalized.split(RegExp(r'\s+'));
 }
 
+/// Only conditions that are explicitly mapped to a normal used-device state
+/// may contribute to the automatic resale estimate. This is a second boundary
+/// behind the server adapter so a future feed cannot turn an unknown, new,
+/// refurbished or defective item into used-market evidence by accident.
+bool resaleUsedConditionIsComparable(String condition) {
+  final normalized = _rawSearchTokens(condition).join(' ');
+  return const {
+    'used',
+    'gebraucht',
+    'like new',
+    'used excellent',
+    'wie neu',
+    'neuwertig',
+    'very good',
+    'used very good',
+    'sehr gut',
+    'good',
+    'used good',
+    'gut',
+    'acceptable',
+    'used acceptable',
+    'akzeptabel',
+  }.contains(normalized);
+}
+
 List<String> _modelTokens(String value) {
   final raw = _rawSearchTokens(value);
   final result = <String>[];
