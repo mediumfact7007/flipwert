@@ -35,6 +35,24 @@ void main() {
 
     expect(listing.live, isTrue);
     expect(listing.checkedAt, now.subtract(const Duration(minutes: 4)));
+    expect(listing.isLiveAt(now), isTrue);
+    expect(listing.isLiveAt(now.add(const Duration(minutes: 2))), isFalse);
+  });
+
+  test('runtime LIVE check fails closed without a timestamp', () {
+    final listing = SourceListing(
+      sourceId: source.id,
+      sourceName: source.name,
+      role: source.role,
+      title: 'Direct listing',
+      price: 700,
+      shipping: 0,
+      url: 'https://www.ebay.de/itm/123',
+      condition: 'Gut',
+      live: true,
+    );
+
+    expect(listing.isLiveAt(now), isFalse);
   });
 
   test('fresh timestamp with an explicit offset is normalized to UTC', () {

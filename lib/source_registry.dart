@@ -113,6 +113,13 @@ class SourceListing {
   double get total => price + shipping;
   bool get hasSafeOfferUrl => _isSafeListingUrl(url);
 
+  bool isLiveAt(DateTime now) {
+    final timestamp = checkedAt;
+    if (!live || timestamp == null) return false;
+    final age = now.toUtc().difference(timestamp.toUtc());
+    return !age.isNegative && age <= liveFreshness;
+  }
+
   factory SourceListing.fromJson(
     Map<String, dynamic> json,
     PriceSource source, {

@@ -4,6 +4,8 @@ import 'package:flipwert/main.dart';
 import 'package:flipwert/source_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+final marketNow = DateTime.utc(2026, 10, 15, 12);
+
 SourceListing comp(
   double price, {
   String source = 'ebay_de',
@@ -20,6 +22,7 @@ SourceListing comp(
       url: 'https://example.test/item',
       condition: 'USED',
       live: live,
+      checkedAt: marketNow,
     );
 
 void main() {
@@ -28,14 +31,18 @@ void main() {
       comp(600, live: false),
       comp(620, live: false),
       comp(640, live: false),
-    ]);
+    ], now: marketNow);
     expect(result.score, 0);
     expect(result.hasLiveData, isFalse);
     expect(result.label(false), 'Keine Live-Daten');
   });
 
   test('manual sale price is clearly separated from automatic confidence', () {
-    final result = v13MarketConfidence(const <SourceListing>[], manualOverride: true);
+    final result = v13MarketConfidence(
+      const <SourceListing>[],
+      manualOverride: true,
+      now: marketNow,
+    );
     expect(result.manual, isTrue);
     expect(result.label(false), 'Manuell');
   });
@@ -45,7 +52,7 @@ void main() {
     for (var i = 0; i < 12; i++) {
       values.add(comp(590 + i * 5.0, source: i.isEven ? 'ebay_de' : 'partner_live'));
     }
-    final result = v13MarketConfidence(values);
+    final result = v13MarketConfidence(values, now: marketNow);
     expect(result.liveCount, 12);
     expect(result.sourceCount, 2);
     expect(result.score, greaterThanOrEqualTo(85));
@@ -59,7 +66,7 @@ void main() {
       comp(610),
       comp(620),
       comp(630),
-    ]);
+    ], now: marketNow);
     expect(result.score, inInclusiveRange(70, 84));
     expect(result.label(false), 'Hoch');
   });
@@ -72,7 +79,7 @@ void main() {
       comp(630),
       comp(650),
       comp(680),
-    ]);
+    ], now: marketNow);
     expect(result.liveCount, 5);
     expect(result.removedOutliers, 1);
   });
@@ -85,7 +92,7 @@ void main() {
       comp(630),
       comp(650),
       comp(680),
-    ]);
+    ], now: marketNow);
 
     expect(result.liveCount, 5);
     expect(result.sourceCount, 1);
@@ -100,6 +107,7 @@ void main() {
         comp(700, title: 'Apple iPhone 15 Pro 128GB'),
       ],
       query: 'Apple iPhone 15 Pro 256 GB',
+      now: marketNow,
     );
 
     expect(result.liveCount, 1);
@@ -112,7 +120,7 @@ void main() {
       comp(500),
       comp(900),
       comp(1300),
-    ]);
+    ], now: marketNow);
     expect(result.score, lessThan(45));
     expect(result.label(false), 'Niedrig');
   });

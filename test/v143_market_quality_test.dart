@@ -3,6 +3,8 @@ import 'package:flipwert/main.dart';
 import 'package:flipwert/source_registry.dart';
 
 void main() {
+  final now = DateTime.utc(2026, 10, 15, 12);
+
   test('removes a severe low accessory-price outlier', () {
     final cleaned = v13CleanMarketValues([24.99, 599, 620, 630, 650, 680]);
     expect(cleaned, isNot(contains(24.99)));
@@ -49,13 +51,14 @@ void main() {
           url: 'https://www.ebay.de/itm/$price',
           condition: 'Gebraucht',
           live: true,
+          checkedAt: now,
         );
 
     final values = v13EbayAskingValues([
       listing('Apple iPhone 15 Pro 256GB Weiß TOP Zustand', 800),
       listing('Apple iPhone 15 Pro Max 256GB', 1000),
       listing('Apple iPhone 15 Pro 128GB', 700),
-    ], 'Apple iPhone 15 Pro 256 GB');
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
 
     expect(values, [800]);
   });
@@ -77,6 +80,7 @@ void main() {
           url: 'https://example.test/$price',
           condition: 'Gebraucht',
           live: true,
+          checkedAt: now,
         );
 
     final comparable = v13ComparableMarketListings([
@@ -119,7 +123,7 @@ void main() {
         price: 1100,
         role: 'retail',
       ),
-    ], 'Apple iPhone 15 Pro 256 GB');
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
 
     expect(comparable.map((item) => item.total), [800, 790]);
     expect(comparable.map((item) => item.sourceId), [
@@ -139,6 +143,7 @@ void main() {
           url: 'https://example.test/$price',
           condition: condition,
           live: true,
+          checkedAt: now,
         );
 
     final comparable = v13ComparableMarketListings([
@@ -147,7 +152,7 @@ void main() {
       listing('For parts', 300),
       listing('', 780),
       listing('Unknown future value', 790),
-    ], 'Apple iPhone 15 Pro 256 GB');
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
 
     expect(comparable.map((item) => item.total), [800]);
   });
@@ -163,6 +168,7 @@ void main() {
           url: url,
           condition: 'Gebraucht',
           live: true,
+          checkedAt: now,
         );
 
     final comparable = v13ComparableMarketListings([
@@ -170,7 +176,7 @@ void main() {
       listing('', 100),
       listing('http://partner.example/device/insecure', 200),
       listing('https://127.0.0.1/device/internal', 300),
-    ], 'Apple iPhone 15 Pro 256 GB');
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
 
     expect(comparable.map((item) => item.total), [800]);
   });
@@ -186,6 +192,7 @@ void main() {
           url: 'https://example.test/$price',
           condition: 'Gebraucht',
           live: true,
+          checkedAt: now,
         );
 
     final quality = v13QualityMarketListings([
@@ -195,9 +202,32 @@ void main() {
       listing('partner_live', 630),
       listing('partner_live', 650),
       listing('partner_live', 680),
-    ], 'Apple iPhone 15 Pro 256 GB');
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
 
     expect(quality.map((item) => item.total), [599, 620, 630, 650, 680]);
     expect(quality.map((item) => item.sourceId).toSet(), {'partner_live'});
+  });
+
+  test('market evidence expires while the check remains open', () {
+    SourceListing listing(DateTime? checkedAt, double price) => SourceListing(
+          sourceId: 'partner_live',
+          sourceName: 'Partner',
+          role: 'local',
+          title: 'Apple iPhone 15 Pro 256GB',
+          price: price,
+          shipping: 0,
+          url: 'https://example.test/$price',
+          condition: 'Gebraucht',
+          live: true,
+          checkedAt: checkedAt,
+        );
+
+    final comparable = v13ComparableMarketListings([
+      listing(now.subtract(const Duration(minutes: 4)), 800),
+      listing(now.subtract(const Duration(minutes: 6)), 900),
+      listing(null, 1000),
+    ], 'Apple iPhone 15 Pro 256 GB', now: now);
+
+    expect(comparable.map((item) => item.total), [800]);
   });
 }
