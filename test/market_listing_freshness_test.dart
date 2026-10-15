@@ -37,6 +37,35 @@ void main() {
     expect(listing.checkedAt, now.subtract(const Duration(minutes: 4)));
   });
 
+  test('fresh timestamp with an explicit offset is normalized to UTC', () {
+    final listing = SourceListing.fromJson(
+      payload(checkedAt: '2026-10-12T01:56:00+02:00'),
+      source,
+      now: now,
+    );
+
+    expect(listing.live, isTrue);
+    expect(listing.checkedAt, now.subtract(const Duration(minutes: 4)));
+    expect(listing.checkedAt!.isUtc, isTrue);
+  });
+
+  test('timezone-free timestamps never become LIVE evidence', () {
+    for (final checkedAt in <String>[
+      '2026-10-12',
+      '2026-10-12T00:00:00',
+      '2026-10-12 00:00:00',
+    ]) {
+      final listing = SourceListing.fromJson(
+        payload(checkedAt: checkedAt),
+        source,
+        now: now,
+      );
+
+      expect(listing.live, isFalse, reason: checkedAt);
+      expect(listing.checkedAt, isNull, reason: checkedAt);
+    }
+  });
+
   test('missing, future and stale timestamps fail closed', () {
     for (final checkedAt in <String?>[
       null,

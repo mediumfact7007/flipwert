@@ -77,6 +77,12 @@ bool _isSafeListingUrl(String raw) {
       (!uri.hasPort || uri.port == 443);
 }
 
+bool _hasExplicitListingTimeZone(String raw) {
+  final value = raw.trim();
+  return value.endsWith('Z') ||
+      RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(value);
+}
+
 class SourceListing {
   static const liveFreshness = Duration(minutes: 5);
 
@@ -113,8 +119,10 @@ class SourceListing {
     DateTime? now,
   }) {
     final current = (now ?? DateTime.now()).toUtc();
-    final checkedAt =
-        DateTime.tryParse(json['checked_at']?.toString() ?? '')?.toUtc();
+    final checkedAtRaw = json['checked_at']?.toString() ?? '';
+    final checkedAt = _hasExplicitListingTimeZone(checkedAtRaw)
+        ? DateTime.tryParse(checkedAtRaw)?.toUtc()
+        : null;
     final age = checkedAt == null ? null : current.difference(checkedAt);
     final fresh = age != null && !age.isNegative && age <= liveFreshness;
     final url = json['url']?.toString().trim() ?? '';
