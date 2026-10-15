@@ -97,8 +97,20 @@ void main() {
       ),
       listing(
         source: 'partner_live',
-        title: 'Partner comparison',
+        title: 'Apple iPhone 15 Pro 256GB Partnerangebot',
         price: 790,
+        role: 'local',
+      ),
+      listing(
+        source: 'partner_live',
+        title: 'Apple iPhone 15 Pro Max 256GB Partnerangebot',
+        price: 990,
+        role: 'local',
+      ),
+      listing(
+        source: 'partner_live',
+        title: 'Partner comparison',
+        price: 780,
         role: 'local',
       ),
       listing(
@@ -145,7 +157,7 @@ void main() {
           sourceId: source,
           sourceName: source,
           role: 'local',
-          title: 'Comparison',
+          title: 'Apple iPhone 15 Pro 256GB',
           price: price,
           shipping: 0,
           url: 'https://example.test/$price',

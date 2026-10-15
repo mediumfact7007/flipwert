@@ -65,8 +65,7 @@ List<SourceListing> v13ComparableMarketListings(
             item.total.isFinite &&
             item.total > 0 &&
             resaleUsedConditionIsComparable(item.condition) &&
-            (item.sourceId != 'ebay_de' ||
-                normalizedQuery.isEmpty ||
+            (normalizedQuery.isEmpty ||
                 resaleListingMatchesQuery(normalizedQuery, item.title)),
       )
       .toList();
