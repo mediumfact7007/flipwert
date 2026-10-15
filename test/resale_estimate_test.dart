@@ -58,6 +58,44 @@ void main() {
     );
   });
 
+  test('eBay title matching separates RAM from device storage', () {
+    expect(
+      resaleListingMatchesQuery(
+        'Samsung Galaxy S25 Ultra 256 GB',
+        'Samsung Galaxy S25 Ultra 12 GB RAM 256 GB Titanium',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Google Pixel 9 Pro 256 GB',
+        'Google Pixel 9 Pro RAM 16GB Speicher 256GB',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple MacBook Pro M4 1 TB',
+        'Apple MacBook Pro M4 16GB RAM 1024GB SSD',
+      ),
+      isTrue,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Samsung Galaxy S25 Ultra 256 GB',
+        'Samsung Galaxy S25 Ultra 12 GB RAM 512 GB',
+      ),
+      isFalse,
+    );
+    expect(
+      resaleListingMatchesQuery(
+        'Apple MacBook Pro M4 16GB RAM 1TB',
+        'Apple MacBook Pro M4 8GB RAM 1TB SSD',
+      ),
+      isFalse,
+    );
+  });
+
   test('eBay title matching rejects unrequested product editions', () {
     const cases = <(String, String)>[
       ('Samsung Galaxy S25 256 GB', 'Samsung Galaxy S25 Edge 256 GB'),

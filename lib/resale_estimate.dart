@@ -288,6 +288,47 @@ bool resaleSameModel(String left, String right) {
   return true;
 }
 
+({Set<int> ram, Set<int> storage}) _deviceCapacitiesInMb(String value) {
+  final tokens = _rawSearchTokens(value);
+  final ram = <int>{};
+  final storage = <int>{};
+  const ramMarkers = {'ram', 'arbeitsspeicher'};
+  final consumedRamMarkers = <int>{};
+
+  for (var index = 0; index < tokens.length; index++) {
+    final token = tokens[index];
+    final combined = RegExp(r'^(\d+)(mb|gb|tb)$').firstMatch(token);
+    final separated = RegExp(r'^\d+$').hasMatch(token) &&
+            index + 1 < tokens.length &&
+            const {'mb', 'gb', 'tb'}.contains(tokens[index + 1])
+        ? (amount: int.parse(token), unit: tokens[index + 1], end: index + 1)
+        : null;
+    if (combined == null && separated == null) continue;
+
+    final amount = separated?.amount ?? int.parse(combined!.group(1)!);
+    final unit = separated?.unit ?? combined!.group(2)!;
+    final end = separated?.end ?? index;
+    final previous = index > 0 ? tokens[index - 1] : '';
+    final next = end + 1 < tokens.length ? tokens[end + 1] : '';
+    final multiplier = switch (unit) {
+      'tb' => 1024 * 1024,
+      'gb' => 1024,
+      _ => 1,
+    };
+    final trailingRamMarker = ramMarkers.contains(next) ? end + 1 : null;
+    final leadingRamMarker = ramMarkers.contains(previous) &&
+            !consumedRamMarkers.contains(index - 1)
+        ? index - 1
+        : null;
+    final ramMarker = trailingRamMarker ?? leadingRamMarker;
+    final target = ramMarker == null ? storage : ram;
+    if (ramMarker != null) consumedRamMarkers.add(ramMarker);
+    target.add(amount * multiplier);
+    index = end;
+  }
+  return (ram: ram, storage: storage);
+}
+
 bool resaleListingMatchesQuery(String query, String listingTitle) {
   if (_hasUnexpectedListingQualifier(query, listingTitle)) return false;
   final queryTokens = _modelTokens(query);
@@ -295,13 +336,20 @@ bool resaleListingMatchesQuery(String query, String listingTitle) {
   if (queryTokens.length < 2 || listingTokens.length < 2) return false;
 
   final listingSet = listingTokens.toSet();
-  if (!queryTokens.every(listingSet.contains)) return false;
+  final capacity = RegExp(r'^\d+(?:mb|gb|tb)$');
+  if (!queryTokens.where((token) => !capacity.hasMatch(token)).every(
+        listingSet.contains,
+      )) {
+    return false;
+  }
 
-  final storage = RegExp(r'^\d+(?:mb|gb|tb)$');
-  final queryStorage = queryTokens.where(storage.hasMatch).toSet();
-  final listingStorage = listingTokens.where(storage.hasMatch).toSet();
-  if (queryStorage.length != listingStorage.length ||
-      !queryStorage.containsAll(listingStorage)) {
+  final queryCapacities = _deviceCapacitiesInMb(query);
+  final listingCapacities = _deviceCapacitiesInMb(listingTitle);
+  if (queryCapacities.storage.length != listingCapacities.storage.length ||
+      !queryCapacities.storage.containsAll(listingCapacities.storage) ||
+      (queryCapacities.ram.isNotEmpty &&
+          (queryCapacities.ram.length != listingCapacities.ram.length ||
+              !queryCapacities.ram.containsAll(listingCapacities.ram)))) {
     return false;
   }
 
