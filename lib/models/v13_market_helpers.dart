@@ -43,10 +43,11 @@ List<double> v13CleanMarketValues(List<double> raw) {
 
 List<double> v13EbayAskingValues(
   Iterable<SourceListing> listings,
-  String query,
-) =>
+  String query, {
+  DateTime? now,
+}) =>
     v13CleanMarketValues(
-      v13ComparableMarketListings(listings, query)
+      v13ComparableMarketListings(listings, query, now: now)
           .where((item) => item.sourceId == 'ebay_de')
           .map((item) => item.total)
           .toList(),
@@ -54,13 +55,15 @@ List<double> v13EbayAskingValues(
 
 List<SourceListing> v13ComparableMarketListings(
   Iterable<SourceListing> listings,
-  String query,
-) {
+  String query, {
+  DateTime? now,
+}) {
+  final current = (now ?? DateTime.now()).toUtc();
   final normalizedQuery = query.trim();
   return listings
       .where(
         (item) =>
-            item.live &&
+            item.isLiveAt(current) &&
             item.hasSafeOfferUrl &&
             (item.role == 'resale' || item.role == 'local') &&
             item.total.isFinite &&
@@ -97,9 +100,12 @@ List<SourceListing> v13CleanMarketListings(
 
 List<SourceListing> v13QualityMarketListings(
   Iterable<SourceListing> listings,
-  String query,
-) =>
-    v13CleanMarketListings(v13ComparableMarketListings(listings, query));
+  String query, {
+  DateTime? now,
+}) =>
+    v13CleanMarketListings(
+      v13ComparableMarketListings(listings, query, now: now),
+    );
 
 class V13MarketConfidence {
   final int score;
@@ -151,10 +157,20 @@ V13MarketConfidence v13MarketConfidence(
   List<SourceListing> listings, {
   bool manualOverride = false,
   String? query,
+  DateTime? now,
 }) {
-  final live = v13ComparableMarketListings(listings, query ?? '');
+  final current = (now ?? DateTime.now()).toUtc();
+  final live = v13ComparableMarketListings(
+    listings,
+    query ?? '',
+    now: current,
+  );
   final raw = live.map((e) => e.total).toList();
-  final cleanedListings = v13QualityMarketListings(listings, query ?? '');
+  final cleanedListings = v13QualityMarketListings(
+    listings,
+    query ?? '',
+    now: current,
+  );
   final cleaned = cleanedListings.map((e) => e.total).toList();
   final used = cleanedListings.length;
   final sources = cleanedListings.map((e) => e.sourceId).toSet().length;

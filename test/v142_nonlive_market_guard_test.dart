@@ -46,8 +46,9 @@ void main() {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
     expect(pubspec, contains('version: 0.14.2+25'));
-    expect(app, contains('e.live && roles.contains(e.role)'));
-    expect(app, contains('e.live && e.sourceId == id'));
+    expect(app, contains('e.live && roles.contains(e.role) &&'));
+    expect(app, contains('e.live && e.sourceId == id &&'));
+    expect(app, contains('e.isLiveAt(DateTime.now())'));
     expect(app, contains('status.isSandbox(source.id)'));
     expect(app, contains('eBay Sandbox verbunden'));
   });

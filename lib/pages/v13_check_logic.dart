@@ -26,6 +26,7 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
   int buybackToken = 0;
   int token = 0;
   V13Decision? lastHaptic;
+  Timer? marketFreshnessTimer;
 
   String t(String de, String en) => widget.english ? en : de;
 
@@ -85,6 +86,7 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
     if (q.isEmpty) return;
     final preserveSnapshotFallback = widget.existingSnapshot != null && token == 0;
     final myToken = ++token;
+    marketFreshnessTimer?.cancel();
     ++buybackToken; // Invalidate quotes still loading for the previous query.
     widget.onHistory(q);
     setState(() {
@@ -145,8 +147,29 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
       failed.remove(source.id);
     }
     setState(() => listings = dedupe.values.toList()..sort((a, b) => a.total.compareTo(b.total)));
+    _scheduleMarketFreshnessRefresh();
     if (pending.isEmpty && expectedSale == null) setState(() => manualMode = true);
     if (buy.text.isEmpty) WidgetsBinding.instance.addPostFrameCallback((_) => buyFocus.requestFocus());
+  }
+
+  void _scheduleMarketFreshnessRefresh() {
+    marketFreshnessTimer?.cancel();
+    final current = DateTime.now().toUtc();
+    final expiries = listings
+        .where((item) => item.live && item.checkedAt != null)
+        .map((item) => item.checkedAt!.toUtc().add(SourceListing.liveFreshness))
+        .where((expiry) => !expiry.isBefore(current))
+        .toList()
+      ..sort();
+    if (expiries.isEmpty) return;
+    final delay = expiries.first.difference(current) + const Duration(milliseconds: 1);
+    marketFreshnessTimer = Timer(delay, () {
+      if (!mounted) return;
+      setState(() {
+        if (pending.isEmpty && expectedSale == null) manualMode = true;
+      });
+      _scheduleMarketFreshnessRefresh();
+    });
   }
 
   Future<void> _loadBuyback(BuybackCondition condition) async {
@@ -326,7 +349,8 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
   }
 
   List<double> _valuesFor(Set<String> roles) => listings
-      .where((e) => e.live && roles.contains(e.role))
+      .where((e) => e.live && roles.contains(e.role) &&
+          e.isLiveAt(DateTime.now()))
       .map((e) => e.total)
       .where((e) => e > 0 && e.isFinite)
       .toList();
@@ -450,7 +474,8 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
 
   double? _sourceMedian(String id) => _median(_clean((id == 'ebay_de'
           ? comparableMarketListings.where((e) => e.sourceId == id)
-          : listings.where((e) => e.live && e.sourceId == id))
+          : listings.where((e) => e.live && e.sourceId == id &&
+              e.isLiveAt(DateTime.now())))
       .map((e) => e.total)
       .where((e) => e > 0 && e.isFinite)
       .toList()));
@@ -643,6 +668,7 @@ abstract class _V13CheckPageLogic extends State<V13CheckPage> {
 
   @override
   void dispose() {
+    marketFreshnessTimer?.cancel();
     query.dispose();
     buy.dispose();
     costs.dispose();
