@@ -2,6 +2,15 @@
 
 This tiny Node.js service keeps marketplace credentials out of the mobile app and normalizes live price results for Flipwert.
 
+`handler.js` exposes the platform-independent Fetch API entry point
+`handle(request, env)`. `index.js` is only the Node.js HTTP adapter. Runtime
+configuration is read from the passed `env` bindings; no credentials are held
+in the handler module.
+
+The in-memory request limiter and short-lived search caches are intentionally
+per process/isolate. They reduce accidental bursts but are not a globally
+coordinated abuse-control boundary.
+
 ## What is live
 
 - **eBay DE:** official eBay Browse API, active listings only. These are current offers, **not verified sold prices**.

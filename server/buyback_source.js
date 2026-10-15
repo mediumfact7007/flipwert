@@ -1,31 +1,42 @@
 'use strict';
 
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 const { CONDITIONS, normalizeBuybackPayload, bestBuybackOffer } = require('./buyback');
 const { matchesBuybackQuery } = require('./buyback_match');
 
-const configuredTimeoutMs = Number(process.env.BUYBACK_SOURCE_TIMEOUT_MS || 6000);
-const BUYBACK_SOURCE_TIMEOUT_MS = Number.isFinite(configuredTimeoutMs)
-  ? Math.min(15000, Math.max(1000, configuredTimeoutMs))
-  : 6000;
-const configuredCacheTtlMs = Number(process.env.BUYBACK_SOURCE_CACHE_TTL_MS || 60000);
-const BUYBACK_SOURCE_CACHE_TTL_MS = Number.isFinite(configuredCacheTtlMs)
-  ? Math.min(300000, Math.max(0, configuredCacheTtlMs))
-  : 60000;
 const BUYBACK_SOURCE_CACHE_MAX = 200;
 const BUYBACK_SOURCE_MAX_ITEMS = 500;
-const BUYBACK_SOURCE_URL = String(process.env.BUYBACK_SOURCE_URL || '').trim();
-const BUYBACK_SOURCE_TOKEN = String(process.env.BUYBACK_SOURCE_TOKEN || '').trim();
-const BUYBACK_SOURCE_POLICY_ACK = String(process.env.BUYBACK_SOURCE_POLICY_ACK || '').trim();
-const BUYBACK_SOURCE_APPROVALS_JSON = String(process.env.BUYBACK_SOURCE_APPROVALS_JSON || '').trim();
-const BUYBACK_SOURCE_ACTIVATION_FINGERPRINT = String(process.env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT || '').trim().toLowerCase();
 const REQUIRED_POLICY_ACK = 'approved-feed-and-price-display-v1';
 const ACTIVATION_FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 const APPROVED_HOST_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const resultCache = new Map();
 const inFlightRequests = new Map();
+
+function defaultEnv() {
+  return typeof process === 'undefined' ? {} : process.env;
+}
+
+function runtimeConfig(env = defaultEnv()) {
+  const configuredTimeoutMs = Number(env.BUYBACK_SOURCE_TIMEOUT_MS || 6000);
+  const configuredCacheTtlMs = Number(env.BUYBACK_SOURCE_CACHE_TTL_MS || 60000);
+  return {
+    timeoutMs: Number.isFinite(configuredTimeoutMs)
+      ? Math.min(15000, Math.max(1000, configuredTimeoutMs))
+      : 6000,
+    cacheTtlMs: Number.isFinite(configuredCacheTtlMs)
+      ? Math.min(300000, Math.max(0, configuredCacheTtlMs))
+      : 60000,
+    sourceUrl: String(env.BUYBACK_SOURCE_URL || '').trim(),
+    sourceToken: String(env.BUYBACK_SOURCE_TOKEN || '').trim(),
+    policyAck: String(env.BUYBACK_SOURCE_POLICY_ACK || '').trim(),
+    approvalsJson: String(env.BUYBACK_SOURCE_APPROVALS_JSON || '').trim(),
+    activationFingerprint: String(
+      env.BUYBACK_SOURCE_ACTIVATION_FINGERPRINT || '',
+    ).trim().toLowerCase(),
+  };
+}
 
 function explicitTimestamp(value) {
   const raw = String(value || '').trim();
@@ -57,11 +68,12 @@ function providerName(value) {
   return normalized.length >= 2 && normalized.length <= 120 ? normalized : null;
 }
 
-function currentProviderApprovals(now = Date.now()) {
-  if (!BUYBACK_SOURCE_APPROVALS_JSON) return new Map();
+function currentProviderApprovals(now = Date.now(), env = defaultEnv()) {
+  const { approvalsJson } = runtimeConfig(env);
+  if (!approvalsJson) return new Map();
   let rows;
   try {
-    rows = JSON.parse(BUYBACK_SOURCE_APPROVALS_JSON);
+    rows = JSON.parse(approvalsJson);
   } catch (_) {
     return new Map();
   }
@@ -106,23 +118,25 @@ function currentProviderApprovals(now = Date.now()) {
   return approvals;
 }
 
-function currentSourceApprovals(now = Date.now()) {
-  if (BUYBACK_SOURCE_POLICY_ACK !== REQUIRED_POLICY_ACK || !BUYBACK_SOURCE_URL) return new Map();
+function currentSourceApprovals(now = Date.now(), env = defaultEnv()) {
+  const config = runtimeConfig(env);
+  if (config.policyAck !== REQUIRED_POLICY_ACK || !config.sourceUrl) return new Map();
   try {
-    const sourceHost = new URL(BUYBACK_SOURCE_URL).hostname.toLowerCase();
-    return new Map([...currentProviderApprovals(now)]
+    const sourceHost = new URL(config.sourceUrl).hostname.toLowerCase();
+    return new Map([...currentProviderApprovals(now, env)]
       .filter(([, approval]) => approval.feedHosts.has(sourceHost)));
   } catch (_) {
     return new Map();
   }
 }
 
-function sourceConfigFingerprint(now = Date.now()) {
-  const approvals = currentSourceApprovals(now);
-  if (!approvals.size || !BUYBACK_SOURCE_URL) return null;
+function sourceConfigFingerprint(now = Date.now(), env = defaultEnv()) {
+  const config = runtimeConfig(env);
+  const approvals = currentSourceApprovals(now, env);
+  if (!approvals.size || !config.sourceUrl) return null;
   let sourceUrl;
   try {
-    sourceUrl = new URL(BUYBACK_SOURCE_URL).toString();
+    sourceUrl = new URL(config.sourceUrl).toString();
   } catch (_) {
     return null;
   }
@@ -144,12 +158,12 @@ function sourceConfigFingerprint(now = Date.now()) {
     .digest('hex');
 }
 
-function hasCurrentApproval(now = Date.now()) {
-  return currentSourceApprovals(now).size > 0;
+function hasCurrentApproval(now = Date.now(), env = defaultEnv()) {
+  return currentSourceApprovals(now, env).size > 0;
 }
 
-function approvedProviderIds(now = Date.now()) {
-  return [...currentSourceApprovals(now).keys()].sort();
+function approvedProviderIds(now = Date.now(), env = defaultEnv()) {
+  return [...currentSourceApprovals(now, env).keys()].sort();
 }
 
 function hasPublicSourceHost(hostname) {
@@ -176,18 +190,19 @@ function hasPublicSourceHost(hostname) {
     (a === 203 && b === 0 && c === 113) || a >= 224);
 }
 
-function sourceRightsReadiness(now = Date.now()) {
-  if (!BUYBACK_SOURCE_URL) return 'missing_source_url';
+function sourceRightsReadiness(now = Date.now(), env = defaultEnv()) {
+  const config = runtimeConfig(env);
+  if (!config.sourceUrl) return 'missing_source_url';
   let url;
   try {
-    url = new URL(BUYBACK_SOURCE_URL);
+    url = new URL(config.sourceUrl);
   } catch (_) {
     return 'invalid_source_url';
   }
   if (url.protocol !== 'https:' || url.username || url.password ||
       !hasPublicSourceHost(url.hostname)) return 'invalid_source_url';
-  if (BUYBACK_SOURCE_POLICY_ACK !== REQUIRED_POLICY_ACK) return 'missing_policy_ack';
-  const approvals = currentProviderApprovals(now);
+  if (config.policyAck !== REQUIRED_POLICY_ACK) return 'missing_policy_ack';
+  const approvals = currentProviderApprovals(now, env);
   if (!approvals.size) return 'missing_current_provider_approval';
   if (![...approvals.values()].some((approval) =>
     approval.feedHosts.has(url.hostname.toLowerCase()))) {
@@ -196,20 +211,21 @@ function sourceRightsReadiness(now = Date.now()) {
   return 'rights_ready';
 }
 
-function sourceReadiness(now = Date.now()) {
-  const rightsReadiness = sourceRightsReadiness(now);
+function sourceReadiness(now = Date.now(), env = defaultEnv()) {
+  const config = runtimeConfig(env);
+  const rightsReadiness = sourceRightsReadiness(now, env);
   if (rightsReadiness !== 'rights_ready') return rightsReadiness;
-  const expected = sourceConfigFingerprint(now);
+  const expected = sourceConfigFingerprint(now, env);
   if (!expected ||
-      !ACTIVATION_FINGERPRINT_PATTERN.test(BUYBACK_SOURCE_ACTIVATION_FINGERPRINT) ||
-      BUYBACK_SOURCE_ACTIVATION_FINGERPRINT !== expected) {
+      !ACTIVATION_FINGERPRINT_PATTERN.test(config.activationFingerprint) ||
+      config.activationFingerprint !== expected) {
     return 'missing_or_stale_validation';
   }
   return 'ready';
 }
 
-function configured(now = Date.now()) {
-  return sourceReadiness(now) === 'ready';
+function configured(now = Date.now(), env = defaultEnv()) {
+  return sourceReadiness(now, env) === 'ready';
 }
 
 function hasApprovedOfferUrl(value, allowedHosts) {
@@ -247,20 +263,21 @@ function cachedResult(key, now) {
   return entry.result;
 }
 
-function effectiveCacheTtlMs(now = Date.now()) {
-  const approvals = currentSourceApprovals(now);
+function effectiveCacheTtlMs(now = Date.now(), env = defaultEnv()) {
+  const config = runtimeConfig(env);
+  const approvals = currentSourceApprovals(now, env);
   if (!approvals.size) return 0;
   return Math.min(
-    BUYBACK_SOURCE_CACHE_TTL_MS,
+    config.cacheTtlMs,
     ...[...approvals.values()].map((approval) => approval.cacheTtlMs),
   );
 }
 
-function cacheResult(key, result, now) {
-  const cacheTtlMs = effectiveCacheTtlMs(now);
+function cacheResult(key, result, now, env) {
+  const cacheTtlMs = effectiveCacheTtlMs(now, env);
   if (cacheTtlMs <= 0 || result.unavailable === true) return;
   let expiresAt = now + cacheTtlMs;
-  const approvals = currentSourceApprovals(now);
+  const approvals = currentSourceApprovals(now, env);
   for (const item of result.items) {
     const checkedAt = Date.parse(String(item.checked_at || ''));
     if (Number.isFinite(checkedAt)) {
@@ -293,12 +310,12 @@ async function fetchBuybackOffersForVerification(query, condition, options = {})
 async function fetchBuybackOffersInternal(
   query,
   condition,
-  { fetchImpl = fetch, now = Date.now() } = {},
+  { fetchImpl = fetch, now = Date.now(), env = defaultEnv() } = {},
   requireActivation,
 ) {
   const available = requireActivation
-    ? configured(now)
-    : sourceRightsReadiness(now) === 'rights_ready';
+    ? configured(now, env)
+    : sourceRightsReadiness(now, env) === 'rights_ready';
   if (!available) return { configured: false, items: [], best: null };
 
   const normalizedQuery = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 180);
@@ -309,7 +326,7 @@ async function fetchBuybackOffersInternal(
   }
 
   const key = cacheKey(normalizedQuery, normalizedCondition);
-  const cacheTtlMs = effectiveCacheTtlMs(now);
+  const cacheTtlMs = effectiveCacheTtlMs(now, env);
   if (cacheTtlMs > 0) {
     const cached = cachedResult(key, now);
     if (cached) return cached;
@@ -320,28 +337,34 @@ async function fetchBuybackOffersInternal(
   const request = requestBuybackOffers(normalizedQuery, normalizedCondition, {
     fetchImpl,
     now,
+    env,
   });
   if (cacheTtlMs <= 0) return request;
   inFlightRequests.set(key, request);
   try {
     const result = await request;
-    cacheResult(key, result, now);
+    cacheResult(key, result, now, env);
     return result;
   } finally {
     if (inFlightRequests.get(key) === request) inFlightRequests.delete(key);
   }
 }
 
-async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetchImpl, now }) {
-  const endpoint = new URL(BUYBACK_SOURCE_URL);
+async function requestBuybackOffers(
+  normalizedQuery,
+  normalizedCondition,
+  { fetchImpl, now, env },
+) {
+  const config = runtimeConfig(env);
+  const endpoint = new URL(config.sourceUrl);
   endpoint.searchParams.set('q', normalizedQuery);
   if (normalizedCondition) endpoint.searchParams.set('condition', normalizedCondition);
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BUYBACK_SOURCE_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), config.timeoutMs);
   try {
     const headers = { accept: 'application/json' };
-    if (BUYBACK_SOURCE_TOKEN) headers.authorization = `Bearer ${BUYBACK_SOURCE_TOKEN}`;
+    if (config.sourceToken) headers.authorization = `Bearer ${config.sourceToken}`;
     const response = await fetchImpl(endpoint, { headers, signal: controller.signal, redirect: 'error' });
     if (!response.ok) return { configured: true, items: [], best: null, unavailable: true };
     const contentType = String(response.headers?.get?.('content-type') || '').toLowerCase();
@@ -353,7 +376,7 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
     if (rawItems === null) {
       return { configured: true, items: [], best: null, unavailable: true };
     }
-    const allowedProviders = currentSourceApprovals(now);
+    const allowedProviders = currentSourceApprovals(now, env);
     const candidateItems = rawItems.filter((item) => {
       const providerId = String(item?.provider_id || '').trim().toLowerCase();
       const approval = allowedProviders.get(providerId);
@@ -390,17 +413,17 @@ async function requestBuybackOffers(normalizedQuery, normalizedCondition, { fetc
   }
 }
 
-function sourceStatus(now = Date.now()) {
-  const approvals = currentSourceApprovals(now);
-  const readiness = sourceReadiness(now);
-  const rightsReady = sourceRightsReadiness(now) === 'rights_ready';
+function sourceStatus(now = Date.now(), env = defaultEnv()) {
+  const approvals = currentSourceApprovals(now, env);
+  const readiness = sourceReadiness(now, env);
+  const rightsReady = sourceRightsReadiness(now, env) === 'rights_ready';
   const isConfigured = readiness === 'ready';
   return {
     configured: isConfigured,
     mode: isConfigured ? 'approved_partner_adapter' : 'disabled',
     data_kind: 'indicative_buyback',
     max_age_hours: 24,
-    cache_ttl_seconds: effectiveCacheTtlMs(now) / 1000,
+    cache_ttl_seconds: effectiveCacheTtlMs(now, env) / 1000,
     minimum_match_confidence: 0.9,
     rights_gate: rightsReady ? 'approved' : 'not_approved_or_expired',
     activation_gate: isConfigured ? 'validated' : 'missing_or_stale',
