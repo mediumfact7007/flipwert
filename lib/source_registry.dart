@@ -15,6 +15,68 @@ class SourceFetchException implements Exception {
       : 'SourceFetchException($code, statusCode: $statusCode)';
 }
 
+bool _hasPublicListingHost(String rawHost) {
+  var host = rawHost.toLowerCase().replaceAll('[', '').replaceAll(']', '');
+  while (host.endsWith('.')) {
+    host = host.substring(0, host.length - 1);
+  }
+  if (host.isEmpty ||
+      host == 'localhost' ||
+      host.endsWith('.localhost') ||
+      host.endsWith('.local') ||
+      host == '::1') {
+    return false;
+  }
+
+  if (host.contains(':')) {
+    if (host.contains('.') ||
+        host.contains(':ffff:') ||
+        host.startsWith('2001:db8:') ||
+        host.startsWith('ff')) {
+      return false;
+    }
+    return host != '::' &&
+        !host.startsWith('fc') &&
+        !host.startsWith('fd') &&
+        !host.startsWith('fe8') &&
+        !host.startsWith('fe9') &&
+        !host.startsWith('fea') &&
+        !host.startsWith('feb');
+  }
+
+  final octets = host.split('.').map(int.tryParse).toList();
+  final isIpv4 = octets.length == 4 &&
+      octets.every((octet) => octet != null && octet >= 0 && octet <= 255);
+  if (!isIpv4) return true;
+
+  final first = octets[0]!;
+  final second = octets[1]!;
+  final third = octets[2]!;
+  return !(first == 0 ||
+      first == 10 ||
+      first == 127 ||
+      (first == 100 && second >= 64 && second <= 127) ||
+      (first == 169 && second == 254) ||
+      (first == 172 && second >= 16 && second <= 31) ||
+      (first == 192 && second == 0 && third == 0) ||
+      (first == 192 && second == 0 && third == 2) ||
+      (first == 192 && second == 168) ||
+      (first == 198 && (second == 18 || second == 19)) ||
+      (first == 198 && second == 51 && third == 100) ||
+      (first == 203 && second == 0 && third == 113) ||
+      first >= 224);
+}
+
+bool _isSafeListingUrl(String raw) {
+  final uri = Uri.tryParse(raw.trim());
+  return uri != null &&
+      uri.scheme == 'https' &&
+      uri.host.isNotEmpty &&
+      _hasPublicListingHost(uri.host) &&
+      uri.userInfo.isEmpty &&
+      (!uri.hasPort || uri.port == 443);
+}
+
 class SourceListing {
   static const liveFreshness = Duration(minutes: 5);
 
@@ -43,6 +105,7 @@ class SourceListing {
   });
 
   double get total => price + shipping;
+  bool get hasSafeOfferUrl => _isSafeListingUrl(url);
 
   factory SourceListing.fromJson(
     Map<String, dynamic> json,
@@ -54,6 +117,7 @@ class SourceListing {
         DateTime.tryParse(json['checked_at']?.toString() ?? '')?.toUtc();
     final age = checkedAt == null ? null : current.difference(checkedAt);
     final fresh = age != null && !age.isNegative && age <= liveFreshness;
+    final url = json['url']?.toString().trim() ?? '';
     return SourceListing(
       sourceId: source.id,
       sourceName: source.name,
@@ -66,11 +130,14 @@ class SourceListing {
           : 'Listing',
       price: _toDouble(json['price']),
       shipping: _toDouble(json['shipping']),
-      url: json['url']?.toString() ?? '',
+      url: url,
       condition: json['condition']?.toString() ?? '',
       // LIVE is an explicit trust boundary. Missing, malformed or stringified
       // values must never promote an adapter result into automatic valuation.
-      live: json['live'] is bool && (json['live'] as bool) && fresh,
+      live: json['live'] is bool &&
+          (json['live'] as bool) &&
+          fresh &&
+          _isSafeListingUrl(url),
       checkedAt: checkedAt,
     );
   }

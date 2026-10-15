@@ -152,6 +152,29 @@ void main() {
     expect(comparable.map((item) => item.total), [800]);
   });
 
+  test('direct listings without a safe offer link cannot affect the market', () {
+    SourceListing listing(String url, double price) => SourceListing(
+          sourceId: 'partner_live',
+          sourceName: 'Partner',
+          role: 'local',
+          title: 'Apple iPhone 15 Pro 256GB',
+          price: price,
+          shipping: 0,
+          url: url,
+          condition: 'Gebraucht',
+          live: true,
+        );
+
+    final comparable = v13ComparableMarketListings([
+      listing('https://partner.example/device/approved', 800),
+      listing('', 100),
+      listing('http://partner.example/device/insecure', 200),
+      listing('https://127.0.0.1/device/internal', 300),
+    ], 'Apple iPhone 15 Pro 256 GB');
+
+    expect(comparable.map((item) => item.total), [800]);
+  });
+
   test('quality market listings remove the outlier listing itself', () {
     SourceListing listing(String source, double price) => SourceListing(
           sourceId: source,
