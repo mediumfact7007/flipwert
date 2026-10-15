@@ -53,7 +53,7 @@ def _monetization_errors(repo_root: Path) -> list[str]:
     models_path = repo_root / "lib" / "models" / "v13_models.dart"
     entitlement_client_path = repo_root / "lib" / "pro_entitlement.dart"
     entitlement_server_path = repo_root / "server" / "play_entitlement.js"
-    server_index_path = repo_root / "server" / "index.js"
+    server_handler_path = repo_root / "server" / "handler.js"
     settings_path = repo_root / "lib" / "pages" / "v13_settings_page.dart"
     shell_path = repo_root / "lib" / "pages" / "v13_shell.dart"
     android_path = repo_root / "tools" / "prepare_android_ci.py"
@@ -61,7 +61,7 @@ def _monetization_errors(repo_root: Path) -> list[str]:
         models = models_path.read_text(encoding="utf-8")
         entitlement_client = entitlement_client_path.read_text(encoding="utf-8")
         entitlement_server = entitlement_server_path.read_text(encoding="utf-8")
-        server_index = server_index_path.read_text(encoding="utf-8")
+        server_handler = server_handler_path.read_text(encoding="utf-8")
         settings = settings_path.read_text(encoding="utf-8")
         shell = shell_path.read_text(encoding="utf-8")
         android = android_path.read_text(encoding="utf-8")
@@ -85,7 +85,7 @@ def _monetization_errors(repo_root: Path) -> list[str]:
     if (
         "/v1/entitlements/google-play" not in entitlement_client
         or "androidpublisher.googleapis.com" not in entitlement_server
-        or "verifyPlayEntitlement" not in server_index
+        or "verifyPlayEntitlement" not in server_handler
     ):
         errors.append("trusted Google Play server verification is incomplete")
     if "PRO TEST" in settings or "setInt('plan_v13'" in shell:
