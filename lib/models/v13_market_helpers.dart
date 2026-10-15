@@ -61,6 +61,7 @@ List<SourceListing> v13ComparableMarketListings(
       .where(
         (item) =>
             item.live &&
+            item.hasSafeOfferUrl &&
             (item.role == 'resale' || item.role == 'local') &&
             item.total.isFinite &&
             item.total > 0 &&

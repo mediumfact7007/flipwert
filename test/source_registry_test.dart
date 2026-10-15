@@ -63,7 +63,7 @@ void main() {
     expect(listing.live, isFalse);
   });
 
-  test('only explicit boolean true with a fresh timestamp marks LIVE', () {
+  test('only explicit boolean true with fresh timestamp and link marks LIVE', () {
     const source = PriceSource(
       id: 'trusted-test',
       name: 'Trusted',
@@ -86,6 +86,7 @@ void main() {
     final explicit = SourceListing.fromJson({
       'price': 100,
       'shipping': 0,
+      'url': 'https://example.com/item/100',
       'live': true,
       'checked_at': now.toIso8601String(),
     }, source, now: now);

@@ -60,4 +60,34 @@ void main() {
     final raw = payload(checkedAt: now.toIso8601String())..['live'] = 'true';
     expect(SourceListing.fromJson(raw, source, now: now).live, isFalse);
   });
+
+  test('missing or unsafe offer links cannot become LIVE evidence', () {
+    for (final url in <String>[
+      '',
+      'http://www.ebay.de/itm/123',
+      'https://user:secret@www.ebay.de/itm/123',
+      'https://localhost/itm/123',
+      'https://api.localhost./itm/123',
+      'https://192.168.1.2/itm/123',
+      'https://[fd00::1]/itm/123',
+      'https://[::ffff:127.0.0.1]/itm/123',
+      'https://[2001:db8::1]/itm/123',
+      'https://[ff02::1]/itm/123',
+      'https://www.ebay.de:8443/itm/123',
+    ]) {
+      final raw = payload(checkedAt: now.toIso8601String())..['url'] = url;
+      final listing = SourceListing.fromJson(raw, source, now: now);
+      expect(listing.live, isFalse, reason: url);
+      expect(listing.hasSafeOfferUrl, isFalse, reason: url);
+    }
+  });
+
+  test('public HTTPS offer link on the standard port stays eligible', () {
+    final raw = payload(checkedAt: now.toIso8601String())
+      ..['url'] = 'https://www.ebay.de:443/itm/123';
+    final listing = SourceListing.fromJson(raw, source, now: now);
+
+    expect(listing.live, isTrue);
+    expect(listing.hasSafeOfferUrl, isTrue);
+  });
 }
