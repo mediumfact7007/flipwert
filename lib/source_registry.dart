@@ -336,11 +336,13 @@ class PriceSource {
 class SourceRegistry {
   static const _customKey = 'custom_sources_v05';
   static const _enabledKey = 'enabled_sources_v05';
-  static const defaultBackend = 'https://flipwert-api-production-ec00.up.railway.app';
+  static const String defaultBackend =
+      String.fromEnvironment('FLIPWERT_API_BASE');
 
-  static String _backendAdapter(String backendBase, String source) {
+  static String? _backendAdapter(String backendBase, String source) {
     final manual = backendBase.trim().replaceAll(RegExp(r'/+$'), '');
     final b = manual.isEmpty ? defaultBackend : manual;
+    if (b.isEmpty) return null;
     return '$b/v1/market/search?source=$source&q={query}';
   }
 

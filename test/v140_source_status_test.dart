@@ -87,13 +87,22 @@ void main() {
     expect(stale.isBuybackValidated, isFalse);
   });
 
-  test('derives status endpoint from the configured Flipwert adapter', () {
+  test('does not invent a status endpoint without build configuration', () {
     final sources = SourceRegistry.builtIns();
+    final endpoint = MarketStatusClient.endpointFor(sources);
+
+    expect(endpoint, isNull);
+  });
+
+  test('derives status endpoint from an explicitly configured adapter', () {
+    final sources = SourceRegistry.builtIns(
+      backendBase: 'https://api.flipwert.example/',
+    );
     final endpoint = MarketStatusClient.endpointFor(sources);
 
     expect(endpoint, isNotNull);
     expect(endpoint!.scheme, 'https');
-    expect(endpoint.host, 'flipwert-api-production-ec00.up.railway.app');
+    expect(endpoint.host, 'api.flipwert.example');
     expect(endpoint.path, '/v1/status');
     expect(endpoint.query, isEmpty);
   });

@@ -237,6 +237,7 @@ jobs:
           FLIPWERT_OPERATOR_EMAIL: ${{ vars.FLIPWERT_OPERATOR_EMAIL }}
           FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
           FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
+          FLIPWERT_API_BASE: ${{ vars.FLIPWERT_API_BASE }}
         run: |
           if [ "$FLIPWERT_PUBLIC_RELEASE" = "true" ]; then
             # The release gate has already validated these values. They are
@@ -246,9 +247,11 @@ jobs:
               --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS" \
               --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL" \
               --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL" \
-              --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL"
+              --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL" \
+              --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
           else
-            flutter build apk --release
+            flutter build apk --release \
+              --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
           fi
 
       - name: Verify APK

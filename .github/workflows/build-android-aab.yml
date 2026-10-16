@@ -61,7 +61,11 @@ jobs:
           grep -q '^version: 0.14.8+31$' pubspec.yaml
 
       - name: Build release AAB
-        run: flutter build appbundle --release
+        env:
+          FLIPWERT_API_BASE: ${{ vars.FLIPWERT_API_BASE }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
 
       - name: Verify AAB
         run: |
