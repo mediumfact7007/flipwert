@@ -1,5 +1,9 @@
 # Flipwert V0.14.8
 
+**[Aktuelle Android-Test-APK direkt herunterladen](https://github.com/mediumfact7007/flipwert/releases/download/test-latest/flipwert-test.apk)** (fester Link; neue Builds ersetzen die Datei nach erfolgreicher CI auf `main`).
+
+Die Test-APK wird nur mit dauerhaftem Signierschlüssel veröffentlicht. Erforderliche GitHub Actions Secrets: `FLIPWERT_TEST_KEYSTORE_B64`, `FLIPWERT_TEST_STORE_PASSWORD`, `FLIPWERT_TEST_KEY_ALIAS`, `FLIPWERT_TEST_KEY_PASSWORD`. Ohne diese Secrets schlägt der `main`-APK-Build absichtlich fehl; vorhandene Installationen benötigen denselben Schlüssel für Updates.
+
 Installierbare Android-Testversion von Flipwert.
 
 ## Enthalten

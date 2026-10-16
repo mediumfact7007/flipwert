@@ -207,6 +207,55 @@ jobs:
           grep -q 'applicationId = "com.flipwert.app"' android/app/build.gradle.kts
           grep -q 'com.google.android.gms.ads.APPLICATION_ID' android/app/src/main/AndroidManifest.xml
 
+      - name: Configure persistent test APK signing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          TEST_KEYSTORE_B64: ${{ secrets.FLIPWERT_TEST_KEYSTORE_B64 }}
+          TEST_STORE_PASSWORD: ${{ secrets.FLIPWERT_TEST_STORE_PASSWORD }}
+          TEST_KEY_ALIAS: ${{ secrets.FLIPWERT_TEST_KEY_ALIAS }}
+          TEST_KEY_PASSWORD: ${{ secrets.FLIPWERT_TEST_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in TEST_KEYSTORE_B64 TEST_STORE_PASSWORD TEST_KEY_ALIAS TEST_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required persistent test signing secret: $name"
+              exit 1
+            fi
+          done
+          printf '%s' "$TEST_KEYSTORE_B64" | base64 --decode > android/app/flipwert-test.jks
+          chmod 600 android/app/flipwert-test.jks
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/build.gradle.kts")
+          code = path.read_text()
+          anchor = '    buildTypes {'
+          assert code.count(anchor) == 1
+          assert 'signingConfig = signingConfigs.getByName("debug")' in code
+          code = code.replace(anchor, '''
+              signingConfigs {
+                  create("persistentTest") {
+                      storeFile = file("flipwert-test.jks")
+                      storePassword = System.getenv("TEST_STORE_PASSWORD")
+                      keyAlias = System.getenv("TEST_KEY_ALIAS")
+                      keyPassword = System.getenv("TEST_KEY_PASSWORD")
+                  }
+              }
+          ''' + anchor, 1)
+          code = code.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("persistentTest")', 1)
+          path.write_text(code)
+          PY
+
+      - name: Stamp monotonic Android test version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version_name=$(sed -n 's/^version: \([^+]*\)+[0-9]*$/\1/p' pubspec.yaml)
+          test -n "$version_name"
+          echo "FLIPWERT_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "FLIPWERT_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+
       - name: Get packages
         run: flutter pub get
 
@@ -238,20 +287,38 @@ jobs:
           FLIPWERT_PRIVACY_URL: ${{ vars.FLIPWERT_PRIVACY_URL }}
           FLIPWERT_TERMS_URL: ${{ vars.FLIPWERT_TERMS_URL }}
           FLIPWERT_API_BASE: ${{ vars.FLIPWERT_API_BASE }}
+          TEST_STORE_PASSWORD: ${{ secrets.FLIPWERT_TEST_STORE_PASSWORD }}
+          TEST_KEY_ALIAS: ${{ secrets.FLIPWERT_TEST_KEY_ALIAS }}
+          TEST_KEY_PASSWORD: ${{ secrets.FLIPWERT_TEST_KEY_PASSWORD }}
         run: |
           if [ "$FLIPWERT_PUBLIC_RELEASE" = "true" ]; then
             # The release gate has already validated these values. They are
             # public operator details, not credentials or secret tokens.
-            flutter build apk --release \
-              --dart-define="FLIPWERT_OPERATOR_NAME=$FLIPWERT_OPERATOR_NAME" \
-              --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS" \
-              --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL" \
-              --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL" \
-              --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL" \
-              --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              flutter build apk --release --build-name="$FLIPWERT_VERSION_NAME" --build-number="$FLIPWERT_VERSION_CODE" \
+                --dart-define="FLIPWERT_OPERATOR_NAME=$FLIPWERT_OPERATOR_NAME" \
+                --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS" \
+                --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL" \
+                --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL" \
+                --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL" \
+                --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            else
+              flutter build apk --release \
+                --dart-define="FLIPWERT_OPERATOR_NAME=$FLIPWERT_OPERATOR_NAME" \
+                --dart-define="FLIPWERT_OPERATOR_ADDRESS=$FLIPWERT_OPERATOR_ADDRESS" \
+                --dart-define="FLIPWERT_OPERATOR_EMAIL=$FLIPWERT_OPERATOR_EMAIL" \
+                --dart-define="FLIPWERT_PRIVACY_URL=$FLIPWERT_PRIVACY_URL" \
+                --dart-define="FLIPWERT_TERMS_URL=$FLIPWERT_TERMS_URL" \
+                --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            fi
           else
-            flutter build apk --release \
-              --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              flutter build apk --release --build-name="$FLIPWERT_VERSION_NAME" --build-number="$FLIPWERT_VERSION_CODE" \
+                --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            else
+              flutter build apk --release \
+                --dart-define="FLIPWERT_API_BASE=$FLIPWERT_API_BASE"
+            fi
           fi
 
       - name: Verify APK
@@ -268,3 +335,23 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+
+      - name: Publish direct test APK download
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp build/app/outputs/flutter-apk/app-release.apk flipwert-test.apk
+          commit_title=$(git log -1 --format=%s)
+          short_sha=$(git rev-parse --short HEAD)
+          timestamp=$(date -u '+%Y-%m-%d %H:%M UTC')
+          printf 'Built: %s\nCommit: %s (%s)\nversionName: %s\nversionCode: %s\n' \
+            "$timestamp" "$commit_title" "$short_sha" "$FLIPWERT_VERSION_NAME" "$FLIPWERT_VERSION_CODE" > /tmp/flipwert-release-notes.txt
+          if gh release view test-latest >/dev/null 2>&1; then
+            gh release edit test-latest --prerelease --title "Flipwert latest test APK" --notes-file /tmp/flipwert-release-notes.txt
+          else
+            gh release create test-latest --prerelease --title "Flipwert latest test APK" --notes-file /tmp/flipwert-release-notes.txt --target "$GITHUB_SHA"
+          fi
+          gh release upload test-latest flipwert-test.apk --clobber
