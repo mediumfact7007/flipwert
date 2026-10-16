@@ -18,15 +18,17 @@ coordinated abuse-control boundary.
 - **Kleinanzeigen, MediaMarkt, SATURN, idealo, rebuy, Back Market:** remain official website searches until an approved API/feed/partner adapter is available.
 - **Kleinanzeigen shared listings:** the app opens the original listing and asks the user to enter its price; the retired `/v1/listing/resolve` route returns HTTP 410 without requesting third-party pages.
 
-## One-time deployment
+## Cloudflare Workers deployment
 
-Recommended simple route: deploy the `server` folder as a Node.js service (for example Railway). Start command:
+The production entry point lives in `../worker/index.mjs`; `index.js` remains a
+local Node adapter only. Deploy from the repository root with:
 
 ```bash
-node index.js
+npx wrangler deploy --config worker/wrangler.toml
 ```
 
-Set environment variables in the hosting dashboard, never in the Flutter app or Git. Start with Sandbox explicitly:
+Store every credential and contractual acknowledgement as a Worker secret,
+never in the Flutter app, `wrangler.toml` or Git. Start with Sandbox explicitly:
 
 ```text
 EBAY_ENV=sandbox
@@ -66,9 +68,11 @@ acknowledgement `KEEPA_SOURCE_RIGHTS_ACK=approved-keepa-price-use-and-display-v1
 Set it only when the current Keepa contract covers the app's intended automated
 use and price display. A key by itself does not activate the source.
 
-The current Android build workflow does not need eBay credentials because the mobile app never receives the Client Secret; marketplace credentials belong on the server deployment only.
-
-`PORT` is normally provided automatically by the host.
+The Android build does not need eBay credentials because the mobile app never
+receives the Client Secret; marketplace credentials belong only in Worker
+bindings. `node:crypto` and `Buffer` are provided by the configured
+`nodejs_compat` runtime. The Node adapter can still be run locally with
+`node index.js` and an optional `PORT` environment variable.
 
 ### Approved buyback partner feed
 
@@ -161,7 +165,7 @@ responses are not cached, and a cache entry can never outlive an offer's
 explicit expiry, the 24-hour quote freshness boundary or the provider approval.
 The effective TTL is also capped by every provider's contractual cache limit.
 
-After deployment, open Flipwert -> **Mehr -> Erweitert: Flipwert-Server** and enter the HTTPS base URL, for example `https://your-service.example`.
+After deployment, use the Worker's HTTPS base URL as the Flipwert API base.
 
 ## Endpoints
 
@@ -176,6 +180,8 @@ Zeitstempel werden fail-closed von LIVE-Anzeige und Kalkulation ausgeschlossen.
 - `GET /v1/market/search?source=amazon_de&q=<ASIN-or-EAN>`
 - `GET /v1/market/search?source=all&q=...`
 - `GET /v1/buyback/search?q=...&condition=used_good`
+- `GET /v1/listing/resolve` (intentionally returns HTTP 410)
+- `POST /v1/entitlements/google-play`
 
 The response format is normalized to objects containing source, title, price, shipping, currency, condition, URL and a live flag.
 
