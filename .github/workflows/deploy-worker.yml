@@ -1,0 +1,72 @@
+name: Deploy API Worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'server/**'
+      - 'worker/**'
+
+concurrency:
+  group: flipwert-api-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require Cloudflare deployment secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "::error::Cloudflare deployment is not configured. Add repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+
+      - name: Check API
+        run: npm --prefix server run check
+
+      - name: Deploy Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.151.0'
+          command: deploy --config worker/wrangler.toml
+
+      - name: Verify deployed health endpoint
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [[ -z "$DEPLOYMENT_URL" ]]; then
+            echo "::error::Wrangler did not return a deployment URL; /health cannot be verified."
+            exit 1
+          fi
+          DEPLOYMENT_URL="${DEPLOYMENT_URL%% *}"
+          if [[ "$DEPLOYMENT_URL" != http://* && "$DEPLOYMENT_URL" != https://* ]]; then
+            DEPLOYMENT_URL="https://$DEPLOYMENT_URL"
+          fi
+          HEALTH_URL="${DEPLOYMENT_URL%/}/health"
+          HTTP_STATUS=$(curl --retry 5 --retry-all-errors --retry-delay 2 \
+            --silent --show-error --output /tmp/flipwert-health.json \
+            --write-out '%{http_code}' "$HEALTH_URL")
+          if [[ "$HTTP_STATUS" != "200" ]]; then
+            echo "::error::Worker health check returned HTTP $HTTP_STATUS from $HEALTH_URL."
+            exit 1
+          fi
+          jq -e '.ok == true and .service == "flipwert-api"' \
+            /tmp/flipwert-health.json >/dev/null
+          echo "Worker health check passed: $HEALTH_URL"
