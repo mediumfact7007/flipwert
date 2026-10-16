@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "check": "node --check index.js && node --check handler.js && node handler_test.js && node buyback_test.js && node buyback_match_test.js && node buyback_source_test.js && node market_quality_test.js && node market_endpoint_test.js && node verify_buyback_source_test.js && node play_entitlement_test.js",
+    "check": "node --check index.js && node --check handler.js && node handler_test.js && node ../worker/index_test.mjs && node buyback_test.js && node buyback_match_test.js && node buyback_source_test.js && node market_quality_test.js && node market_endpoint_test.js && node verify_buyback_source_test.js && node play_entitlement_test.js",
     "verify:buyback-source": "node verify_buyback_source.js"
   }
 }
