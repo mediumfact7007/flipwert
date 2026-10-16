@@ -1,6 +1,6 @@
 'use strict';
 
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 const ALLOWED_PRODUCTS = new Set([
   'flipwert_pro_monthly',

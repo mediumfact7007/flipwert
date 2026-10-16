@@ -56,9 +56,9 @@ jobs:
           grep -Rq --include='*.dart' "ValueKey('v148-menu-" lib/
           grep -Rq --include='*.dart' "ValueKey('v151-buyback-condition')" lib/
           grep -Rq --include='*.dart' "ValueKey('v156-buyback-empty')" lib/
-          grep -q "url.pathname === '/v1/listing/resolve'" server/index.js
-          grep -q 'listing_import_disabled' server/index.js
-          ! grep -q 'resolvePublicListing\|resolveSharedListing' server/index.js
+          grep -q "url.pathname === '/v1/listing/resolve'" server/handler.js
+          grep -q 'listing_import_disabled' server/handler.js
+          ! grep -Rq 'resolvePublicListing\|resolveSharedListing' server/
           ! grep -Rq --include='*.dart' 'resolvePublicListing\|resolveSharedListing' lib/
           test ! -e server/listing_resolver.js
           grep -q '^EBAY_ENV=sandbox$' server/.env.example
