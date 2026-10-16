@@ -33,7 +33,14 @@ class _V13SourcesPageState extends State<V13SourcesPage> {
   }
 
   String _connection(PriceSource source) {
-    if (!source.canFetchInApp) return t('Browser-Suche', 'Browser search');
+    if (!source.canFetchInApp) {
+      final requiresServer =
+          source.id == 'ebay_de' || source.id == 'amazon_de';
+      if (requiresServer && runtimeStatus?.error == 'no_backend') {
+        return t('Server nicht konfiguriert', 'Server not configured');
+      }
+      return t('Browser-Suche', 'Browser search');
+    }
     if (checkingStatus) return t('Prüfe Live-Status …', 'Checking live status …');
     final status = runtimeStatus;
     if (status == null || !status.reachable) {
@@ -47,6 +54,12 @@ class _V13SourcesPageState extends State<V13SourcesPage> {
   String _summary() {
     if (checkingStatus) return t('Flipwert-Server wird geprüft …', 'Checking Flipwert server …');
     final status = runtimeStatus;
+    if (status?.error == 'no_backend') {
+      return t(
+        'Server nicht konfiguriert. Browser-Suchen funktionieren weiter.',
+        'Server not configured. Browser searches still work.',
+      );
+    }
     if (status == null || !status.reachable) {
       return t(
         'Live-Server momentan nicht erreichbar. Browser-Suchen funktionieren weiter.',
